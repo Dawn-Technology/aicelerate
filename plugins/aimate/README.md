@@ -1,6 +1,8 @@
 # aimate
 
-AI SDLC Acceleration — reusable skills for security auditing, GitLab workflow automation, and development planning.
+AI Automation Teamate.
+
+AI Acceleration supporting SDLC — reusable skills for security auditing, GitLab workflow automation, and development planning.
 
 ## Skills
 
@@ -69,8 +71,6 @@ Uses [`@zereight/mcp-gitlab`](https://github.com/zereight/gitlab-mcp) over stdio
 - **Use cases:** Create and review MRs, post comments, manage branches, fetch diffs
 
 **Setup:** Generate a GitLab PAT at **User Settings → Access Tokens** with the `api` scope. Copilot will prompt you for it when a GitLab skill is first invoked.
-
-For self-managed GitLab, update the `--api-url` argument in [.mcp.json](.mcp.json) to point to your instance (e.g. `https://gitlab.example.com/api/v4`).
 
 ---
 

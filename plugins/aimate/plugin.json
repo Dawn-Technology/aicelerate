@@ -1,12 +1,12 @@
 {
   "name": "aimate",
-  "description": "AI SDLC Acceleration — reusable skills for security auditing, GitLab workflow automation, and development planning.",
+  "description": "AI Automation Teammate - SDLC Acceleration; reusable skills for security auditing, GitLab workflow automation, and development planning.",
   "version": "1.0.0",
   "author": {
     "name": "Dawn Technology",
     "url": "https://github.com/Dawn-Technology"
   },
-  "repository": "https://github.com/Dawn-Technology/aimate",
+  "repository": "https://github.com/Dawn-Technology/aicelerate/plugins/aimate",
   "license": "MIT",
   "keywords": [
     "security",

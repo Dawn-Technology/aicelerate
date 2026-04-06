@@ -1,4 +1,4 @@
-# aimate — AI Automation Teammate by Dawn Technology
+# aicelerate — AI Acceleration Repository
 
 An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for security auditing, GitLab workflow automation, and development planning.
 
