@@ -10,7 +10,7 @@
       "args": [
         "-y",
         "@zereight/mcp-gitlab",
-        "--token=${input:GITLAB_PAT}",
+        "--token=${input:GITLAB_TOKEN}",
         "--api-url=https://gitlab.com/api/v4"
       ],
       "tools": ["*"]
@@ -22,7 +22,7 @@
   },
   "inputs": [
     {
-      "id": "GITLAB_PAT",
+      "id": "GITLAB_TOKEN",
       "type": "promptString",
       "description": "GitLab Personal Access Token with api scope",
       "password": true

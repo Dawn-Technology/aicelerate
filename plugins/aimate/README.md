@@ -36,13 +36,23 @@ Automates the full workflow from local changes to a published GitLab MR: creates
 
 ---
 
-### `implementation-plan`
+### `scope-plan`
 
-> Create technical implementation plan and time estimation.
+> Create technical implementation plan and time estimate.
 
 Produces a deterministic, execution-ready implementation plan with atomic tasks, effort estimates, and dependency mapping. Suitable for sprint planning, ticket estimation, or pre-development alignment.
 
 **Trigger phrases:** "create an implementation plan", "estimate this ticket", "plan this task"
+
+---
+
+### `write-prd`
+
+> Create a PRD and user stories through user interview, codebase exploration, and component design.
+
+Guides you through building a complete Product Requirements Document by interviewing you about the problem, exploring the codebase, sketching major components, and writing the final PRD as a Markdown file.
+
+**Trigger phrases:** "write a PRD", "create a product requirements document", "write user stories", "plan a new feature"
 
 ---
 

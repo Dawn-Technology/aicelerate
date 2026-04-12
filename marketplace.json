@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI acceleration — plugin marketplace by Dawn Technology.",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
@@ -23,6 +23,8 @@
         "gitlab",
         "code-review",
         "implementation-plan",
+        "product-requirements-document",
+        "user-stories",
         "estimation"
       ]
     }
