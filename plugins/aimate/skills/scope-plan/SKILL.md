@@ -3,7 +3,7 @@ name: scope-plan
 description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.6.0
+  version: 4.6.1
 ---
 
 # Plan & Estimate tasks
@@ -23,7 +23,9 @@ You are an expert **Principal Software Engineer**. Produce a deterministic, exec
 
 ### Phase 2: Planning, Estimation
 
-Before defining tasks, list the files to create or modify and what each file is responsible for.
+Before defining tasks, derive a requirements list from the plan scope. Each requirement must be a single sentence describing a concrete deliverable or behavior a non-technical stakeholder can read and validate. Use checkboxes (`- [ ]`). Place this list in Section 1 of the output under **Requirements**.
+
+List the files to create or modify and what each file is responsible for.
 
 - Prefer small, focused files when the codebase allows it.
 - Follow existing repo patterns first.
@@ -38,9 +40,9 @@ Before defining tasks, list the files to create or modify and what each file is 
 
   ```
   #### Task N — Task Name
-  **Docs / References:** `[doc, ADR, README, API doc]` or `None`
-  **Commit:** `type: short message`
-  **Depends on:** [Task number(s) or "None"]
+  - **Docs / References:** `[doc, ADR, README, API doc]` or `None`
+  - **Commit:** `type: short message`
+  - **Depends on:** [Task number(s) or "None"]
 
   **N.1 Subtask Name** — `[path]` (create), `[path]` (modify)
   [What to build: concrete behavior, function signatures, types, and conventions — all inline as prose.]
@@ -103,6 +105,14 @@ Ask what to do next: "Would you like to review the plan, or should I assist you 
 
 [Concise summary of current vs. desired state]
 
+### Requirements
+
+[Human-readable list of what will be built, derived from the plan. Each item should be a single sentence describing a concrete deliverable or behavior that a non-technical stakeholder can read, understand, and validate. Example format:]
+
+- [ ] Users can reset their password via an email link
+- [ ] The password reset link expires after 24 hours
+- [ ] An email is sent using the existing mailer service
+
 ## 2. Technical Approach
 
 [Key architecture decisions, libraries, and critical type signatures. Include security, logging/observability, and config dependencies.]
@@ -112,9 +122,9 @@ Ask what to do next: "Would you like to review the plan, or should I assist you 
 ### [Frontend / Backend / Database]
 
 #### Task 1 — [Task Name]
-**Docs / References:** `[Relevant doc, ADR, README, API doc]` or `None`
-**Commit:** `type: short message`
-**Depends on:** [Task number(s) that must complete first, or "None"]
+- **Docs / References:** `[Relevant doc, ADR, README, API doc]` or `None`
+- **Commit:** `type: short message`
+- **Depends on:** [Task number(s) that must complete first, or "None"]
 
 **1.1 [Subtask Name]** — `[File Path]` (create | modify)
 [What to build: concrete behavior, function signatures, inline types, and conventions — all as prose.]
