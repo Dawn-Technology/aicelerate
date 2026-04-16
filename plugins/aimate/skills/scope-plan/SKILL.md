@@ -3,7 +3,7 @@ name: scope-plan
 description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.6.1
+  version: 4.6.3
 ---
 
 # Plan & Estimate tasks
@@ -25,7 +25,7 @@ You are an expert **Principal Software Engineer**. Produce a deterministic, exec
 
 Before defining tasks, derive a requirements list from the plan scope. Each requirement must be a single sentence describing a concrete deliverable or behavior a non-technical stakeholder can read and validate. Use checkboxes (`- [ ]`). Place this list in Section 1 of the output under **Requirements**.
 
-List the files to create or modify and what each file is responsible for.
+List the files to create or modify and what each file is responsible for. Every task must contain the actual content an engineer needs.
 
 - Prefer small, focused files when the codebase allows it.
 - Follow existing repo patterns first.
@@ -33,7 +33,7 @@ List the files to create or modify and what each file is responsible for.
 - Prefer separation of concerns and avoid coupling unrelated responsibilities.
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - Do not plan unnecessary rewrites or file splits.
-- No single task estimate may exceed 4h. You must break it into sub-tasks until every task is 4h or less. Use this canonical format:
+- No single subtask estimate may exceed 4h. You must break it into subtasks until every subtask is 4h or less. Use this canonical format:
 
   **Task metadata lives at the task level** — one commit per task, one `Depends on`, one `Docs / References`.
   **Subtasks carry only implementation detail** — what to build or test for that specific step.
@@ -45,7 +45,7 @@ List the files to create or modify and what each file is responsible for.
   - **Depends on:** [Task number(s) or "None"]
 
   **N.1 Subtask Name** — `[path]` (create), `[path]` (modify)
-  [What to build: concrete behavior, function signatures, types, and conventions — all inline as prose.]
+  [What to build: concrete behavior, function signatures, types, code blocks, and conventions — all inline as prose.]
 
   **N.2 Write tests for [feature]** — `[test path]` (create)
   [Scenarios to cover, setup/act/assert pattern, and which test harness or fixture style to use.]
@@ -55,18 +55,20 @@ List the files to create or modify and what each file is responsible for.
   - Tasks use `####` headings; subtasks use a `**N.N Name** — files` inline header followed by a single prose paragraph. No separate bold label lines inside a subtask.
   - `Commit`, `Depends on`, and `Docs / References` appear **once at the task level only**.
   - Every file in the subtask header must be annotated with `(create)` or `(modify)`.
-  - Types, interfaces, and conventions belong inside the prose — not as separate fields.
+  - Types, interfaces, code blocks and conventions belong inside the prose — not as separate fields.
   - The last subtask of every task must be a test subtask.
 
-- Every task needs a test subtask. Use unit tests for pure logic, integration tests for APIs and boundaries, and E2E only when explicitly in scope. End every plan with a 1h task for PR review and documentation.
-- If a task cannot be estimated reliably, add a time-boxed spike of at most 1h with a clear question and expected output.
+- Every task needs a test subtask. Use unit tests for pure logic, integration tests for APIs and boundaries, and E2E only when explicitly in scope.
+- End every plan with a task for updating documentation and allow addressing code review feedback. Estimate this task like any other, with subtasks if needed.
+- If a (sub)task cannot be estimated reliably, add a time-boxed spike of at most 2h with a clear question and expected output.
 - Always name concrete file paths, function names, type signatures, dependencies, and relevant docs or references.
-- Use fixed buckets for task estimation: Trivial 0.5h, Small 1h, Medium 2h, Large 4h. Reference baselines: CRUD API 2h, simple UI component 2h, DB migration 1h, i18n update 0.5h.
-- Apply the risk multiplier. Keep the resulting decimal in the table.
+- Use fixed buckets for subtask estimation: Trivial 0.5h, Small 1h, Medium 2h, Large 4h. Reference baselines: CRUD API 4h, domain entity 2h, simple UI component 2h, DB migration 1h, i18n update 0.5h.
+- Apply the risk multiplier to the subtask estimation.
 - Risk Multipliers:
   - Low (1.0x): You can name all affected files and their changes.
   - Medium (1.5x): One or two integration points are unclear, or the change touches shared infra.
   - High (2.0x): Architecture is undecided, the subsystem is unfamiliar, or the scope boundary is fuzzy.
+- Sum the subtasks to get the total task estimate. Keep the resulting decimal in the table.
 - Every task must include exactly one `Commit:` line at the task level, using a Conventional Commit message.
 - Use the exact Markdown template below. Replace all placeholders. Leave all checkboxes empty.
 
@@ -90,7 +92,7 @@ If you find issues, fix them inline and continue.
 
 Notify the user that the plan is complete and saved, and provide a summary of the estimation breakdown.
 
-Ask what to do next: "Would you like to review the plan, or should I assist you with anything else?"
+Ask what to do next: "Would you like to discuss/review the plan, or should I proceed with implementation?"
 
 ## 3. Template
 
