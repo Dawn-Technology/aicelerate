@@ -65,6 +65,26 @@ copilot plugin update aimate
   - Agent plugin support enabled (`chat.plugins.enabled: true` in settings)
 - [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli) installed and authenticated
 
+## Recommended external skills
+
+The following skills are not part of this repository but are recommended for use alongside `aimate`.
+
+### Grill Me ([mattpocock/skills — grill-me](https://github.com/mattpocock/skills/blob/main/grill-me))
+
+Interviews you relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree one question at a time. Use when you want to stress-test a plan or get grilled on a design.
+
+```bash
+npx skills add https://github.com/mattpocock/skills --skill grill-me
+```
+
+### ADR Writing ([vercel/ai — adr-skill](https://skills.sh/vercel/ai/adr-skill))
+
+Helps agents write Architectural Decision Records (ADRs) as executable specifications — structured enough for a coding agent to implement without follow-up questions.
+
+```bash
+npx skills add https://github.com/vercel/ai --skill adr-skill
+```
+
 ## Plugin
 
 See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details.
