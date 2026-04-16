@@ -4,7 +4,7 @@ description: Create a PRD and user stories through user interview, codebase expl
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   based_on: "https://github.com/mattpocock/skills/blob/main/write-a-prd/SKILL.md"
-  version: 0.0.8
+  version: 0.0.9
 ---
 
 ## Steps
@@ -41,16 +41,18 @@ The solution to the problem, from the user's perspective.
 
 ## User Stories
 
-A LONG, numbered list of user stories inluding title, description, conversation/notes, acceptance criteria. Use the INVEST checklist to ensure each story is Independent, Negotiable, Valuable, Estimable, Small, and Testable. Follow the Given-When-Then format for acceptance criteria. Each user story description should be in the format of:
+A LONG, sequentially numbered list of user stories including title, description, conversation/notes, acceptance criteria. Number each story with a unique, incrementing integer (1, 2, 3, …) — never restart numbering. Use the INVEST checklist to ensure each story is Independent, Negotiable, Valuable, Estimable, Small, and Testable. Follow the Given-When-Then format for acceptance criteria. Each user story description should be in the format of:
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+{N}. <Title>
+
+As an <actor>, I want a <feature>, so that <benefit>
 
 <user-story-example>
 1. Display account balance
 
 As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
 
-Conversation/Notes:
+Notes:
 
 - This is a core feature of any banking app, and is expected by users. It should be easily accessible from the home screen.
 
