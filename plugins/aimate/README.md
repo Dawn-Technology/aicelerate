@@ -16,6 +16,16 @@ Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requir
 
 ---
 
+### `review-pr`
+
+> Review a GitLab Merge Request or GitHub Pull Request and provide findings, and post structured review comments with issue explanation plus code fixes.
+
+Performs comprehensive code review — identifies bugs, logic errors, security issues, and style violations. Posts structured inline comments with code fix suggestions directly on the MR.
+
+**Trigger phrases:** "review this MR", "review this merge request", "review the gitlab MR"
+
+---
+
 ### `gitlab-mr-review`
 
 > Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes.
