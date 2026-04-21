@@ -26,13 +26,11 @@ Performs comprehensive code review — identifies bugs, logic errors, security i
 
 ---
 
-### `gitlab-mr-review`
+### `gitlab-mr-review` (Deprecated)
 
-> Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes.
+> ⚠️ **Deprecated.** Use [`review-pr`](#review-pr) instead, which provides unified support for both GitHub and GitLab.
 
-Performs comprehensive code review on GitLab MRs — identifies bugs, logic errors, security issues, and style violations. Posts structured inline comments with code fix suggestions directly on the MR.
-
-**Trigger phrases:** "review this MR", "review this merge request", "review the gitlab MR"
+~~Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes.~~
 
 ---
 

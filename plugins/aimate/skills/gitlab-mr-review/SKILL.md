@@ -1,10 +1,13 @@
 ---
 name: gitlab-mr-review
-description: Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a Gitlab Merge request.
+description: DEPRECATED - Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a Gitlab Merge request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 3.6.1
+  status: deprecated
 ---
+
+> ⚠️ **This skill is deprecated.** Please use the [review-pr skill](../review-pr/SKILL.md) instead, which provides unified support for both GitHub Pull Requests and GitLab Merge Requests with improved functionality.
 
 # GitLab MR Review Workflow Skill
 
