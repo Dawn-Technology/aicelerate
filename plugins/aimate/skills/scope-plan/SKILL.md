@@ -3,14 +3,14 @@ name: scope-plan
 description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.0.0
+  version: 5.1.0
 ---
 
 # Plan & Estimate tasks
 
 ## 1. Role & Objective
 
-You are an expert **Principal Software Engineer**. Produce a deterministic, execution-ready plan with small, testable, estimated tasks. Name all files, types, tests, conventions, and docs explicitly so that an engineer with no codebase context can execute each task. Every task ends with a commit. The plan is saved based on the structure defined below.
+You are an expert **Principal Software Engineer**. Produce a deterministic, execution-ready plan with small, testable, estimated tasks. Name all files, types, tests, conventions, and docs explicitly so that an engineer with no codebase context can execute each task.
 
 ## 2. Workflow
 
@@ -39,7 +39,6 @@ While defining tasks:
 ```
 #### Task N — Task Name
 - **Docs / References:** `[doc]` or `None`
-- **Commit:** `type: short message`
 - **Depends on:** [Task number(s) or "None"]
 
 **N.1 Subtask Name** — `[path]` (create | modify)
@@ -51,7 +50,7 @@ Scenarios to cover, setup/act/assert pattern, and which test harness to use.
 
 Rules:
 
-- `Commit`, `Depends on`, and `Docs / References` appear once at the task level only.
+- `Depends on` and `Docs / References` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
 - Every task's last subtask must be a test subtask. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
 - No subtask may exceed 4h. Break it down further if needed.
@@ -80,18 +79,17 @@ Risk multipliers:
 
 Save the plan to `docs/plans/[ticket-id]-[slug].md`. If no ticket ID is provided, use `docs/plans/[YYYY-MM-DD]-[slug].md`. Create the folder if missing. Overwrite if the file already exists.
 
-Verify: arithmetic totals are correct, no `[...]` placeholders remain, every task is ≤4h, every file path is annotated `(create)` or `(modify)`.
-
 ### Phase 4: Self-Review
 
-Run this checklist yourself before responding:
+Run this checklist:
 
+- **Placeholder scan:** No `[...]`, vague task names, missing files, or missing estimates.
+- **Arithmetic totals:** Verify arithmetic totals are correct, every task is ≤4h, every file path is annotated `(create)` or `(modify)`.
 - **Spec coverage:** Every item in the request maps to one or more tasks.
 - **Final tasks present:** The plan ends with an Update Documentation task and a Feedback/Rework task.
-- **Placeholder scan:** No `[...]`, vague task names, missing files, or missing estimates.
 - **Type consistency:** Function names, types, and property names are consistent across the plan.
 
-Fix any issues inline before continuing.
+Do a self review on the plan. Critique the work and fix any issues inline before continuing.
 
 ### Phase 5: Handoff
 
@@ -139,7 +137,6 @@ Ask the user whether to review the plan or proceed with implementation.
 
 #### Task 1 — [Task Name]
 - **Docs / References:** `[Relevant doc, ADR, README, API doc]` or `None`
-- **Commit:** `type: short message`
 - **Depends on:** [Task number(s) that must complete first, or "None"]
 
 **1.1 [Subtask Name]** — `[File Path]` (create | modify)
@@ -152,7 +149,6 @@ Ask the user whether to review the plan or proceed with implementation.
 
 #### Task N−1 — Update Documentation
 - **Docs / References:** `[List of docs affected]`
-- **Commit:** `docs: update documentation for [feature]`
 - **Depends on:** [All preceding tasks]
 
 **N-1.1 Update affected documentation** — `[README / ADR / runbook paths]` (modify)
@@ -160,11 +156,10 @@ Ask the user whether to review the plan or proceed with implementation.
 
 #### Task N — Feedback/Rework
 - **Docs / References:** None
-- **Commit:** `fix: address code review and testing feedback`
 - **Depends on:** Task N−1
 
 **N.1 Apply reviewer-requested changes** — `[affected files]` (modify)
-Work through all comments from the peer code review: refactor as requested, fix logic issues, and resolve nitpicks. Each accepted change should be addressed in its own commit if it is substantive.
+Work through all comments from the peer code review: refactor as requested, fix logic issues, and resolve nitpicks.
 
 **N.2 Update or add tests based on reviewer gaps** — `[test files]` (modify)
 Add or adjust tests for any scenarios the reviewer identified as missing or insufficiently covered. Re-run the full test suite and confirm CI passes.
