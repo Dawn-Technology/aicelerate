@@ -64,6 +64,16 @@ Guides you through building a complete Product Requirements Document by intervie
 
 ---
 
+### `wbso-aanvraag`
+
+> Analyseer een project op WBSO-waardigheid en genereer de technische projectbeschrijving, S&O-uren schatting en Jira-labeladvies.
+
+Leest Jira-epics en -issues via de Atlassian MCP-server, scant de applicatiecode en workspace-documenten, genereert hypothesen over technische knelpunten als architect, en schrijft een compleet WBSO-concept weg als Markdown. Inclusief parapluproject-ondersteuning en drie ramingsstrategieën voor S&O-uren.
+
+**Trigger phrases:** "maak een WBSO-aanvraag", "stel een S&O-aanvraag op", "help me met WBSO", "schrijf een WBSO-formulier"
+
+---
+
 ## MCP Servers
 
 This plugin bundles three MCP servers, configured in [.mcp.json](.mcp.json).
@@ -90,7 +100,6 @@ Uses [`@zereight/mcp-gitlab`](https://github.com/zereight/gitlab-mcp) over stdio
 
 **Setup:** Generate a GitLab PAT at **User Settings → Access Tokens** with the `api` scope. Copilot will prompt you for it when a GitLab skill is first invoked.
 
----
 
 ### Atlassian
 

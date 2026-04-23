@@ -19,7 +19,9 @@
     "planning",
     "product-requirements-document",
     "user-stories",
-    "estimation"
+    "estimation",
+    "wbso",
+    "wbso-aanvraag"
   ],
   "skills": "skills/",
   "mcpServers": ".mcp.json"
