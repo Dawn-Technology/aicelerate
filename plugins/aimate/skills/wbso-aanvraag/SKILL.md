@@ -43,7 +43,6 @@ Laad de volgende bestanden uit de skill workspace vóór je begint:
 - `./references/schrijftips.md` — schrijfrichtlijnen voor technische knelpunten en WBSO-taal
 - `./references/parapluproject.md` — wanneer en hoe een parapluproject toe te passen
 - `./references/output-template.md` — invulsjabloon voor het eindformulier
-- `./references/project-types.md` — beslisboom voor projecttype als er twijfel bestaat (bijv. firmware of embedded component aanwezig)
 
 ---
 
