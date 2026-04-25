@@ -1,8 +1,8 @@
 # Kritische Interviewvragen WBSO-aanvraag
 
-Gebruik deze vragen om de informatie te verzamelen die nodig is voor een sterke WBSO-aanvraag.
-Stel elke vraag expliciet en wacht op een concreet antwoord. Accepteer geen vage antwoorden —
-vraag door totdat het antwoord specifiek en technisch onderbouwd is.
+Gebruik dit document als **inspiratiebron** — niet als vragenlijst om af te werken.
+Raadpleeg de vragen om informatiegaten te identificeren; stel alleen wat je echt niet
+kunt afleiden, en bundel maximaal 3 vragen per bericht.
 
 ---
 

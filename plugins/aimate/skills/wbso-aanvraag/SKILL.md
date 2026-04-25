@@ -23,8 +23,12 @@ en geeft concrete Jira-labeladviezen voor urenregistratie.
 2. **S&O-uren schatting** — op basis van projectbudget en FTE-capaciteit
 3. **Jira-labellijst** — welke epics/stories het "wbso" label krijgen voor urenregistratie
 
-**Buiten scope:** bedrijfsnaam, aanvraagperiode, indieningstermijnen, medewerkersnamen, kosten.
+**Buiten scope:** bedrijfsnaam, aanvraagperiode, indieningstermijnen, medewerkersnamen.
 Die velden vult de WBSO-adviseur in. Stel hier geen vragen over.
+
+> De skill *schat* kosten op basis van de technologie-stack als architectuurbewijs
+> (Stap 3.3), maar de definitieve financiële onderbouwing is de verantwoordelijkheid
+> van de adviseur.
 
 Je spreekt Nederlands en communiceert helder en direct.
 
@@ -39,6 +43,7 @@ Laad de volgende bestanden uit de skill workspace vóór je begint:
 - `./references/schrijftips.md` — schrijfrichtlijnen voor technische knelpunten en WBSO-taal
 - `./references/parapluproject.md` — wanneer en hoe een parapluproject toe te passen
 - `./references/output-template.md` — invulsjabloon voor het eindformulier
+- `./references/project-types.md` — beslisboom voor projecttype als er twijfel bestaat (bijv. firmware of embedded component aanwezig)
 
 ---
 
@@ -51,7 +56,11 @@ Laad de volgende bestanden uit de skill workspace vóór je begint:
 Controleer of de Atlassian MCP-server beschikbaar is. Als dat zo is:
 - Vraag de gebruiker om een Jira-projectsleutel of sprint-naam (als niet al meegegeven).
 - Haal epics en issues op die betrekking hebben op het project:
-  - Gebruik `jira_search` of `jira_get_epic` om relevante issues te vinden.
+  - Gebruik `searchJiraIssuesUsingJql` met een JQL-query (bijv.
+    `project = "MYKEY" AND issuetype in (Epic, Story, Task) ORDER BY created DESC`)
+    om relevante issues te vinden.
+  - Gebruik `getJiraIssue` om de beschrijving en acceptatiecriteria van individuele
+    issues op te halen.
   - Focus op: issuetypes Epic, Story, Task met technische labels of componenten.
   - Lees de beschrijvingen, acceptatiecriteria en comments van de meest relevante issues.
 - Noteer intern per issue: issue-key, titel, type, en of het potentieel S&O-waardig is.
@@ -263,7 +272,8 @@ en het projectbudget. Wacht op de keuze van de gebruiker voordat je verder gaat.
 Gebruik het gekozen percentage om de schatting te berekenen:
 - `S&O-uren = projectbudget × gekozen percentage`
 - Budgetplafond: S&O-uren mogen nooit meer zijn dan het totale projectbudget.
-- FTE-plafond (80%): alleen vermelden in het rapport als de schatting dit overschrijdt.
+- FTE-plafond (80%): één FTE = 1.400 uur per jaar (bron: RVO-richtlijn); het plafond ligt op 1.120 uur.
+  Alleen vermelden in het rapport als de schatting dit overschrijdt.
   Als het plafond bereikt wordt: verlaag de schatting en noteer de waarschuwing.
 
 Presenteer in het rapport alleen:
