@@ -20,7 +20,7 @@ en geeft concrete Jira-labeladviezen voor urenregistratie.
 
 **Scope van deze skill — wat je oplevert:**
 1. **Technische projectbeschrijving** (secties 2.1–2.3) — klaar voor de WBSO-adviseur om in te dienen
-2. **S&O-uren schatting** — op basis van projectbudget en FTE-capaciteit
+2. **S&O-uren schatting** — op basis van projectbudget
 3. **Jira-labellijst** — welke epics/stories het "wbso" label krijgen voor urenregistratie
 
 **Buiten scope:** bedrijfsnaam, aanvraagperiode, indieningstermijnen, medewerkersnamen.
@@ -272,9 +272,6 @@ en het projectbudget. Wacht op de keuze van de gebruiker voordat je verder gaat.
 Gebruik het gekozen percentage om de schatting te berekenen:
 - `S&O-uren = projectbudget × gekozen percentage`
 - Budgetplafond: S&O-uren mogen nooit meer zijn dan het totale projectbudget.
-- FTE-plafond (80%): één FTE = 1.400 uur per jaar (bron: RVO-richtlijn); het plafond ligt op 1.120 uur.
-  Alleen vermelden in het rapport als de schatting dit overschrijdt.
-  Als het plafond bereikt wordt: verlaag de schatting en noteer de waarschuwing.
 
 Presenteer in het rapport alleen:
 
@@ -283,8 +280,6 @@ Presenteer in het rapport alleen:
 | Projectbudget | [X] uur | [bron] |
 | Geschat S&O-aandeel | [Y]% | [motivatie op basis van activiteiten] |
 | **Geadviseerd te claimen** | **[uren]** | |
-
-Noteer de FTE-plafond waarschuwing **alleen als de schatting > 80% van één FTE-capaciteit**.
 
 **Stap 3.3 — Kosten en uitgaven schatten**
 
@@ -324,7 +319,7 @@ Voor issues met ⚠️ Deels: noteer welk deel van de activiteit S&O is en welk 
 - [ ] Technisch knelpunt is specifiek en concreet.
 - [ ] Stand der techniek beschreven — bestaande oplossingen en tekortkomingen.
 - [ ] S&O-activiteiten afgebakend — geen routine-werk opgenomen.
-- [ ] Urenschatting past binnen projectbudget en 80%-FTE-plafond.
+- [ ] Urenschatting past binnen projectbudget.
 - [ ] Geen marketingtaal of overdrijving.
 - [ ] Alle technische claims zijn bevestigd of ✅ Sterk.
 - [ ] Jira-labellijst bevat alleen kwalificerende activiteiten.
