@@ -3,7 +3,7 @@ name: asvs-audit
 description: "OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings. Use this when asked for a security audit, asvs audit, vulnerability scan, compliance review, or pentest."
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 2.2.0
+  version: 2.3.0
   asvs-version: 5.0.0
 argument-hint: "Provide target application or scope"
 ---
@@ -112,16 +112,18 @@ _Source: [`./references/severity-guidance.md`](./references/severity-guidance.md
 
 ### Phase 2: Dual Subagent Evaluation
 
-To maximize thoroughness, you MUST delegate the actual evaluation to two separate subagents, running sequentially or in parallel if supported. Each subagent will audit the codebase independently.
+To maximize thoroughness, you MUST delegate the actual evaluation to two separate subagents, running sequentially or in parallel if supported. Each subagent audits the codebase independently using a **different model** — this is mandatory to obtain genuinely diverse findings.
 
-1. **Agent 1 (Sonnet 4.6)**:
-   - Instruct the subagent to use the Claude 3.6 Sonnet (or equivalent "Sonnet 4.6") model if possible, or assume that persona.
-   - Provide it with the context gathered in Phase 1 and the full ASVS CSV.
-   - Instruct it to evaluate all 70 items using the Decision Tree and return its findings.
-2. **Agent 2 (Gemini 3.1 Pro)**:
-   - Instruct the subagent to use the Gemini 3.1 Pro model if possible, or assume that persona.
-   - Provide it with the same context and ASVS CSV.
-   - Instruct it to independently evaluate all 70 items using the Decision Tree and return its findings.
+1. **Agent 1 — Claude Sonnet 4.6**:
+   - Invoke with `model: "Claude Sonnet 4.6 (Copilot)"` (exact string for the `runSubagent` `model` parameter).
+   - Provide it with the context gathered in Phase 1 and the full ASVS CSV content.
+   - Instruct it to evaluate all 70 items in order using the Decision Tree and return every finding with evidence.
+2. **Agent 2 — GPT-5.4**:
+   - Invoke with `model: "GPT-5.4 (Copilot)"` (exact string for the `runSubagent` `model` parameter).
+   - Provide it with the same context and ASVS CSV content.
+   - Instruct it to independently evaluate all 70 items in order using the Decision Tree and return every finding with evidence.
+
+> **Model diversity is the goal.** If a requested model is unavailable, choose the next most capable model that differs from the other agent's model — never use the same model for both agents.
 
 ### Phase 3: Evaluation, Analysis, & Merging
 
@@ -133,8 +135,11 @@ To maximize thoroughness, you MUST delegate the actual evaluation to two separat
     - **Constraint**: The "Verification Control Table" MUST contain exactly 70 rows (Items 1-70).
     - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from both subagents.
     - **Sanitization**: Ensure NO secrets/PII are present.
-3.  **Write to Disk**: Save to `{project_name}-ASVS-L1-audit-{YYYY-MM-DD}.md` in one operation.
-4.  **Completion**: Output coverage statistics and confirm file location.
+3.  **Write to Disk**:
+    - Determine the output path: `{target_repo}/docs/{project_name}-ASVS-L1-audit-{YYYY-MM-DD}.md`.
+    - Check whether the `docs/` directory exists in the Target Repo. If it does not, create it before writing.
+    - Write the report in one operation.
+4.  **Completion**: Output coverage statistics and confirm the full file path.
 
 ---
 
