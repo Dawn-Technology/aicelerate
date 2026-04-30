@@ -57,7 +57,9 @@ Then self-review and critique the summary before continuing: verify that all dec
 
 ### Phase 2: Planning & Estimation
 
-**Requirements first.** Before defining tasks, derive a requirements list. Each requirement is one sentence a non-technical stakeholder can read and validate. Use checkboxes (`- [ ]`). Place this list under **Requirements** in Section 1 of the output.
+Before defining tasks, derive a requirements list. Each requirement is one sentence a non-technical stakeholder can read and validate. Use checkboxes (`- [ ]`). Place this list under **Requirements** in Section 1 of the output.
+
+Secondly you must define the core shared interfaces in the Technical Approach section. This includes exact API request/response payloads, database schemas, and shared domain types. This creates a single source of truth and prevents mismatch between frontend/backend or independent subtasks. Subtasks will then implement these pre-defined contracts.
 
 While defining tasks:
 
@@ -69,10 +71,12 @@ While defining tasks:
 
 **Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
-- Subtask descriptions should be a single prose paragraph detailing concrete behavior, function signatures, types, and conventions.
+- Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
+- **Explicit Contracts Required (Zero-Context Boundries):** Subtasks must be 100% self-contained. You MUST embed Markdown code blocks directly inside the Acceptance Criteria to define exact function signatures, class structures, or methods. If the subtask relies on a shared contract from Section 4.1, you must duplicate that relevant snippet INTO the subtask itself, OR add the file where it was created in a previous task to the `Required Context to Read` list. Never tell a subagent to "refer to Section 4.1". Give the agent/developer the exact code contract they need to fulfill so they never need to read the broader plan.
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
-- Every task's last subtask must be a test subtask detailing scenarios to cover, setup/act/assert patterns, and which test harness to use. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
+- **Context Boundaries:** Every subtask must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions).
+- Every task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, and identifying the test harness to use. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
 - No subtask may exceed 4h. Break it down further if needed.
 - **Estimation fallback:** If a task's scope is highly uncertain, replace it with a 2h Spike task and define the expected output (e.g., 'Sequence Diagram' or 'Interface Proposal').
 - **Final tasks:** Every plan must include a final task "Rework/Documentation" with subtasks for 'Documentation updates' and 'Rework'.
@@ -118,7 +122,7 @@ Ask the user whether to review the plan or proceed with implementation.
 
 <output_template>
 
-```text
+````text
 # [Ticket ID or Title]
 
 **Status:** Draft | **Date:** [Current Date] | **Author:** [AI Model]
@@ -154,7 +158,14 @@ Ask the user whether to review the plan or proceed with implementation.
 
 ## 4. Technical Approach
 
-[Key architecture decisions, libraries, and critical type signatures. Include security, logging/observability, and config dependencies.]
+[Key architecture decisions, libraries, security, logging/observability, and config dependencies.]
+
+### 4.1 Shared Data Models & Interfaces
+
+```[language]
+// Define the exact shared boundaries here BEFORE task execution as a single source of truth.
+// e.g. API JSON schemas, Database Migration structures, or shared TypeScript types.
+```
 
 ## 5. Implementation Plan
 
@@ -166,14 +177,39 @@ Ask the user whether to review the plan or proceed with implementation.
 - **Estimate:** [X.Xh base × risk multiplier = X.Xh]
 
 **1.1 [Subtask Name]** — `[File Path]` (create | modify)
-[What to build: concrete behavior, function signatures, inline types, and conventions as prose.]
+
+**Required Context to Read:**
+
+- `[File path 1 needed for context (e.g. types/interfaces)]`
+- `[File path 2 needed for context]`
+
+**Acceptance Criteria:**
+
+- [ ] [Criterion 1: Exact behavior and expected input/output]
+- [ ] Implement the following exact signature/structure:
+  ```[language]
+  // [Provide explicit code block with function signature, class, or method. If using a shared type, define its shape here or ensure it's in the 'Required Context' file list above.]
+  // e.g. export async function fetchUser(id: string): Promise<User | null>
+  ```
+- [ ] [Criterion 3: Specific conventions, error handling, or edge cases]
 
 **1.2 Write tests for [feature]** — `[Test File Path]` (create)
-[Scenarios to cover; setup, act, assert pattern; and test harness to reference — all as prose.]
+
+**Required Context to Read:**
+
+- `[File Path of the implementation being tested]`
+- `[Relevant test factory or mock file]`
+
+**Acceptance Criteria:**
+
+- [ ] Setup: [Required mock data or test harness state]
+- [ ] Scenario: [Given context, When action, Then expected outcome]
+- [ ] Scenario: [Edge case or error state verification]
 
 [Repeat task and subtask blocks as needed.]
 
 #### Task N — Documentation/Rework (required by Final tasks rule)
+
 - **Docs / References:** None
 - **Depends on:** Task N−1
 - **Estimate:** [X.Xh base × risk multiplier = X.Xh]
@@ -194,7 +230,8 @@ Work through all comments from the peer code review: refactor as requested, fix 
 **Breakdown:**
 
 - [Component]: [X]h
-```
+
+````
 
 </output_template>
 
