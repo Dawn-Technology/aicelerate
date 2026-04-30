@@ -32,6 +32,16 @@ PR/MR-specific wrapper around the reusable `code-review` skill. Fetches PR/MR me
 
 ---
 
+### `review-local`
+
+> Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
+
+Local-review wrapper around the reusable `code-review` skill. Gathers workspace-local scope and context, invokes `code-review`, and returns report-only findings without PR/MR platform actions.
+
+**Trigger phrases:** "review my local changes", "review this file before commit", "review this folder", "review uncommitted changes"
+
+---
+
 ### `code-review`
 
 > Reusable code review core for diffs, patches, commits, pull requests, merge requests, working trees, and snippets.
