@@ -4,13 +4,32 @@ description: Review a GitHub or GitLab Pull/Merge Request and provide findings, 
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 4.2.1
+  depends_on: "code-review"
 ---
 
 # PR/MR Review Workflow Skill
 
 ## Purpose
 
-The purpose of this skill is to provide constructive and comprehensive feedback on code changes. The primary goals are:
+This skill is the PR/MR-specific wrapper around the reusable [`code-review`](../code-review/SKILL.md) skill.
+
+`review-pr` owns:
+
+- Provider detection
+- PR/MR metadata retrieval
+- Diff and discussion retrieval
+- Temporary worktree setup and cleanup
+- Posting comments, approvals, or change requests back to GitHub or GitLab
+
+`code-review` owns:
+
+- Core code review logic
+- Review baseline establishment
+- Diff and snippet analysis patterns
+- Finding classification
+- Comment-ready feedback generation
+
+The primary goals are:
 
 - **Quality Assurance**: Identify bugs, potential logic errors, and edge cases.
 - **Maintainability**: Ensure code is readable, modular, and consistent with the existing architecture.
@@ -90,72 +109,85 @@ Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5. *
 
 ---
 
-### Step 3 — Gather Codebase Context
+### Step 3 — Gather Codebase Context & Prepare the `code-review` Input Bundle
 
-With the branch checked out, use `runSubagent` (`Explore` agent) to analyze the project conventions relevant to the proposed changes. To avoid wasting time on large monorepos, direct the subagent specifically. Use a prompt similar to:
+1. Use `runSubagent` (`Explore` agent) to analyze the project conventions in `worktree_path`. Focus primarily on the modules and adjacent dependencies affected by the PR/MR diff, while briefly checking project-level configuration such as framework config, `README`, linting config, and repository instructions.
+2. Retrieve the diffs between the source and target branches using the MCP tools for `provider`.
+3. Build a file-change inventory: list each changed file with its change type (added / modified / deleted). **All changed files MUST be reviewed**; do not skip files silently.
+4. Collect the review context:
+   - PR/MR title, description, source branch, target branch, author
+   - Existing open and resolved review threads
+   - `provider`
+   - `worktree_path`
+   - `baseline_conventions` from the `Explore` agent output
+5. If the PR/MR contains more than 15 changed files or massive diffs, warn the user and propose chunking into batches of 5 files before invoking `code-review`.
+6. Pass the gathered data to `code-review` using a handoff format like this:
 
-> "Explore the `.worktrees/pr-review-{pr_mr_number}` directory. Focus primarily on the modules and adjacent dependencies affected by the PR/MR diff, while briefly checking for global configs (e.g., framework config, `README`, linting configs, `.github/copilot-instructions.md`). Report: language, framework, architectural patterns, naming conventions, and test strategy relevant to the changed files."
+```yaml
+code_input:
+  submission_type: pull-request | merge-request
+  diff: "<provider diff text>"
+  changed_files:
+    - path: src/example.ts
+      change_type: modified
+  worktree_path: .worktrees/pr-review-{pr_mr_number}
 
-Store the subagent's full response as your **review baseline** for code analysis.
+context:
+  title: "<pr/mr title>"
+  description: "<pr/mr description>"
+  author: "<author>"
+  source_ref: "<source branch>"
+  target_ref: "<target branch>"
+  provider: github | gitlab
+  baseline_conventions: "<Explore agent summary>"
+  existing_feedback:
+    open_threads: "<open threads>"
+    resolved_threads: "<resolved threads>"
 
-**Fallback if conventions are unclear**: Infer standards from the detected language/framework:
+review_scope:
+  modules:
+    - syntax
+    - logic
+    - security
+    - style
+    - documentation
+  include_architecture: true
+  include_scope_consistency: true
+```
 
-- **PHP**: PSR-12, PSR-4 (autoloading).
-- **Python**: PEP 8, type hints (PEP 484).
-- **JavaScript/TypeScript**: ESLint, Google/Airbnb style guides.
-- **Go**: `gofmt`, idiomatic Go patterns.
-- If still unclear, note this assumption in the final report and apply general best practices (SOLID, DRY, KISS).
-
----
-
-### Step 4 — Retrieve, Parse, and Trace the Diff
-
-1. Retrieve the diffs between the source and target branches using the MCP tools for `provider`.
-2. Build a file-change inventory: list each changed file with its change type (added / modified / deleted). **All changed files MUST be reviewed**; do not skip any files.
-3. Prioritise the review order to build context progressively:
-   - **High priority**: core business logic, security-sensitive code, public APIs, data models.
-   - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
-   - **Within each tier, sort files alphabetically by path** to guarantee a deterministic traversal order.
-4. **Context Constraints (Large PRs/MRs)**: If the PR/MR contains more than 15 changed files or massive diffs, warn the user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis. Ask for confirmation before processing the chunks.
-5. **Trace Control Logic and Impact**: Do not evaluate diffs in isolation.
-   - For changes in logic, read the expanded surrounding context or the full file to grasp the complete execution path.
-   - Actively trace dependencies by exploring where modified functions, classes, or variables are invoked across the codebase (e.g., using codebase search capabilities or the `Explore` subagent).
-   - Evaluate cross-file execution paths to definitively determine the impact and identify potential downstream breakages.
-
----
-
-### Step 5 — Analyze & Classify Findings
-
-Evaluate the diff through these four lenses:
-
-1. **Security**: injection flaws, exposed credentials, auth bypasses. Only report issues that are reachable or plausibly reachable. Severity: `security-violation`.
-2. **Correctness**: logic errors, missing error handling, boundary mistakes, broken assumptions. Severity: `request-for-change`.
-3. **Maintainability**: broken contracts, naming inconsistencies, unnecessary complexity, architecture drift. Severity: `request-for-change` or `optional`.
-4. **Scope Consistency**: unaddressed prior feedback, missing translations, mismatch with PR/MR intent. Severity: `request-for-change`.
-
-Only report findings backed by concrete evidence from the diff and nearby code context.
-
-For each finding, capture these fields internally:
-
-- `id`: stable identifier such as `path/to/file:123:rule-slug`
-- `severity`: `security-violation`, `request-for-change`, or `optional`
-- `title`: short constructive label
-- `body`: 1-2 sentences describing the issue and why it matters
-- `location`: file path and line reference from the diff
-- `suggestion`: optional code block or concise remediation guidance
+If the `Explore` result is incomplete, let `code-review` infer conventions from the repository language/framework and disclose those assumptions in the findings report.
 
 ---
 
-### Step 6 — Review & Present Findings to the User
+### Step 4 — Invoke `code-review`
 
-Do a rubber-duck review and critique the findings before sharing. Resolve any issues that may arise from the review.
-Then present the grouped findings report to the user **before taking any action**.
+Activate the [`code-review`](../code-review/SKILL.md) skill and pass the Step 3 bundle as its review input.
+
+`code-review` is responsible for:
+
+- Establishing the review baseline from `worktree_path` and `baseline_conventions`
+- Parsing and prioritizing the diff
+- Tracing control flow and downstream impact
+- Reviewing the submission through syntax, logic, security, style, documentation, architecture, and scope-consistency lenses as applicable
+- Producing structured findings and comment-ready feedback
+
+Do not duplicate that logic here unless the dependency is unavailable.
+
+**Fallback if `code-review` is unavailable**: Continue using the same review standards and output contract defined by `code-review`, and note that the dependency could not be loaded.
+
+---
+
+### Step 5 — Present Findings to the User
+
+Do a rubber-duck review of the findings before sharing them, and drop any point that is not backed by concrete evidence.
+Then present the grouped findings report returned by `code-review` **before taking any action**.
 
 The report must include:
 
-- PR/MR title, source → target branch, author.
-- Finding totals per severity.
-- Findings ordered by severity, then file path.
+- PR/MR title, source → target branch, author
+- Finding totals per severity
+- Findings ordered by severity, then file path
+- Each finding formatted exactly using the `code-review` comment template, prefixed with a reference ID (for example, `**Finding #1 — src/Auth.php:88:sql-injection**`)
 
 Render each finding in this format:
 
@@ -175,9 +207,9 @@ If there are no findings, state that explicitly and mention any residual testing
 
 ---
 
-### Step 7 — Execute Chosen Action (Only When Confirmed)
+### Step 6 — Execute Chosen Action (Only When Confirmed)
 
-Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider`.
+Based on the user's instructions from Step 5, take the appropriate action. All sub-steps below branch on `provider`.
 
 #### 7-A: Post Comments
 
@@ -300,15 +332,13 @@ _Note: `mergeRequestRequestChanges` requires GitLab 17.10+. On older instances t
 
 #### 7-D/E: Refine or Report Only
 
-If the user wants no action taken, proceed to Step 8 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 6.
+If the user wants no action taken, proceed to Step 7 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 5.
 
 ---
 
-### Step 8 — Clean Up
+### Step 7 — Clean Up
 
-Prerequisite: Step 8 must never run in the same response as Step 6. Execute it only after Step 7 is complete, or after the user explicitly says to stop at reporting only.
-
-This step is always executed, regardless of which option was chosen in Step 6.
+This step is always executed after Step 6, or immediately after Step 5 when the user chooses report-only.
 
 1. **Remove the git worktree with verification**:
 
@@ -326,7 +356,7 @@ This step is always executed, regardless of which option was chosen in Step 6.
 
 ## Finding Format Rules
 
-Use the same finding content for chat and posted review comments.
+Use the comment template defined in [`code-review`](../code-review/SKILL.md). Keep the same finding content for chat and posted review comments.
 
 Differences by destination:
 
@@ -339,7 +369,7 @@ Style rules:
 - Do not use extra headings like `Observation:` or `Impact:`.
 - Use the changed file's language in code suggestions.
 - Keep summaries short and factual.
-- State exactly what was posted, including comment or note IDs when available.
+- State exactly what was posted, including comment or note IDs when available and the platform used.
 - If a fallback path was used, explain why in one sentence.
 
 ## Guardrails
