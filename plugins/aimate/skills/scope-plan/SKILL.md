@@ -45,13 +45,15 @@ If codebase exploration does not resolve a decision, ask the user until all deci
 
 Stop discovery when all requirements are clear and explicitly documented.
 
-#### Step 3: Summarize before planning
+#### Step 3: Summarize and validate before planning
 
-Before proceeding to Phase 2, compile the discovery summary:
+Compile the discovery summary:
 
 - **Observed** — facts established from code/docs, with evidence
 - **Decisions** — answers explicitly provided by the user
 - **Assumptions** — defaults adopted by the planner, with rationale
+
+Then self-review and critique the summary before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update the summary or re-ask the user — before proceeding to Phase 2.
 
 ### Phase 2: Planning & Estimation
 
