@@ -67,39 +67,23 @@ While defining tasks:
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - Only split files if a single file would exceed one clear responsibility.
 
-**Task format.** Every task uses `####` headings. Subtasks use `**N.N Name** — files` inline headers followed by a single prose paragraph.
+**Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
-```
-#### Task N — Task Name
-- **Docs / References:** `[doc]` or `None`
-- **Depends on:** [Task number(s) or "None"]
-- **Estimate:** [X.Xh base × risk multiplier = X.Xh]
-
-**N.1 Subtask Name** — `[path]` (create | modify)
-What to build: concrete behavior, function signatures, types, and conventions as prose.
-
-**N.2 Write tests for [feature]** — `[test path]` (create)
-Scenarios to cover, setup/act/assert pattern, and which test harness to use.
-```
-
-Guidelines:
-
+- Subtask descriptions should be a single prose paragraph detailing concrete behavior, function signatures, types, and conventions.
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
-- Every task's last subtask must be a test subtask. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
+- Every task's last subtask must be a test subtask detailing scenarios to cover, setup/act/assert patterns, and which test harness to use. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
 - No subtask may exceed 4h. Break it down further if needed.
 - **Estimation fallback:** If a task's scope is highly uncertain, replace it with a 2h Spike task and define the expected output (e.g., 'Sequence Diagram' or 'Interface Proposal').
 - **Final tasks:** Every plan must include a final task "Rework/Documentation" with subtasks for 'Documentation updates' and 'Rework'.
 
 **Estimation.** Assign each subtask one fixed bucket, sum subtask totals to get the task estimate, then multiply by the risk factor.
 
-| Bucket  | Hours | Applies when…                                                                                                                                                                             |
-| ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trivial | 0.25h | A single, mechanical change with no logic: rename a constant, add a translation key, bump a version.                                                                                      |
-| Tiny    | 0.5h  | A focused change in one file: add/remove one field, wire up an existing utility, write 2–3 unit tests.                                                                                    |
-| Small   | 1h    | A self-contained change that touches 1–3 files: a DB migration + model update, a simple helper function with tests, a form field with validation.                                         |
-| Medium  | 2h    | A feature slice across several layers: a new domain entity, a single REST endpoint (handler + service + tests), a form with client-side validation and an API call.                       |
-| Large   | 4h    | The maximum allowed per subtask. A complete vertical slice or a complex integration: full CRUD resource, OAuth flow, file-upload pipeline, a multi-step form with server-side validation. |
+- **Trivial (0.25h):** Mechanical change, no logic (renaming, translation updates).
+- **Tiny (0.5h):** Focused 1-file change (add/remove field, wire utility, 2-3 tests).
+- **Small (1h):** Self-contained 1-3 files (DB migration + model, helper with tests).
+- **Medium (2h):** Feature slice across layers (new entity, REST endpoint + tests, form + API).
+- **Large (4h):** Max allowed per subtask. Complex integration/vertical slice (CRUD, OAuth).
 
 If a subtask would exceed 4h, split it.
 
@@ -122,7 +106,7 @@ Before outputting, ensure:
 3. No vague placeholders (like `[...]`) remain.
 4. 'Update Documentation' and 'Feedback/Rework' tasks are included.
 
-Do a self review on the plan. Critique the work and fix any issues inline before continuing.
+Do a self review on the plan. Critique the work and resolve any issues found before continuing.
 
 ### Phase 5: Handoff
 
