@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.0.0
+  version: 4.2.0
 ---
 
 # PR/MR Review Workflow Skill
@@ -126,42 +126,50 @@ Store the subagent's full response as your **review baseline** for code analysis
 
 ### Step 5 — Analyze & Classify Findings
 
-Evaluate the diff against these four lenses using your analytical capabilities:
+Evaluate the diff through these four lenses:
 
-1. **Security (OWASP Top 10)**: Injection flaws, exposed credentials, auth bypasses. Confirm patterns are reachable. (Severity: Security violation)
-2. **Correctness & Logic**: Incorrect conditionals, missing error handling, off-by-one errors. (Verify control-flow boundaries). (Severity: Request for Change)
-3. **Architecture & Maintainability**: SOLID violations, naming conventions against the baseline, breaking API contracts. (Severity: Request for Change or Optional)
-4. **Scope & Consistency**: Unaddressed feedback from existing threads, missing translations, description alignment. (Severity: Request for Change)
+1. **Security**: injection flaws, exposed credentials, auth bypasses. Only report issues that are reachable or plausibly reachable. Severity: `security-violation`.
+2. **Correctness**: logic errors, missing error handling, boundary mistakes, broken assumptions. Severity: `request-for-change`.
+3. **Maintainability**: broken contracts, naming inconsistencies, unnecessary complexity, architecture drift. Severity: `request-for-change` or `optional`.
+4. **Scope Consistency**: unaddressed prior feedback, missing translations, mismatch with PR/MR intent. Severity: `request-for-change`.
 
-**Finding Schema & Rules**:
-Only report findings with tangible evidence (do not report without validation). To ensure strict adherence to the schema, organize your findings internally using the following schema. **CRITICAL: Do NOT print this JSON schema to the chat.** Use it purely as an internal data structure to ensure you have collected all required fields, then proceed to format the output as requested in Step 6.
+Only report findings backed by concrete evidence from the diff and nearby code context.
 
-```json
-[
-  {
-    "id": "<file-path>:<new_line>:<rule-slug>",
-    "file": "path/to/file.ext",
-    "line": "<precise line number from diff>",
-    "severity": "optional | request-for-change | security-violation",
-    "category": "<one of the 4 lenses>",
-    "title": "<short constructive label>",
-    "observation": "<1-2 sentences>",
-    "suggestion": "<code block or instruction>"
-  }
-]
-```
+For each finding, capture these fields internally:
+
+- `id`: stable identifier such as `path/to/file:123:rule-slug`
+- `severity`: `security-violation`, `request-for-change`, or `optional`
+- `title`: short constructive label
+- `body`: 1-2 sentences describing the issue and why it matters
+- `location`: file path and line reference from the diff
+- `suggestion`: optional code block or concise remediation guidance
 
 ---
 
-### Step 6 — Present Findings to the User
+### Step 6 — Review & Present Findings to the User
 
-Present the grouped findings report to the user **before taking any action**.
+Do a rubber-duck review and critique the findings before sharing. Resolve any issues that may arise from the review.
+Then present the grouped findings report to the user **before taking any action**.
 
 The report must include:
 
 - PR/MR title, source → target branch, author.
 - Finding totals per severity.
-- Each finding formatted exactly using the **Comment Template** defined below, prefixed with a reference ID (e.g., `**Finding #1 — src/Auth.php:88:sql-injection**`).
+- Findings ordered by severity, then file path.
+
+Render each finding in this format:
+
+`**Finding #N — <id>**`
+
+`**<title>**`
+
+`<body>`
+
+`*Relevant lines: <file path and line reference>*`
+
+`Suggested approach: <suggestion or concise remediation guidance>`
+
+If there are no findings, state that explicitly and mention any residual testing or review gaps.
 
 **HARD STOP**: Pause here and ask the user how they would like to proceed. Provide options naturally: discussing/refining findings, posting comments, approving the PR/MR, or requesting changes. Do NOT proceed until the user issues a clear directive.
 
@@ -175,11 +183,27 @@ Based on the user's instructions from Step 6, take the appropriate action. All s
 
 Post all approved findings as visible inline comments on the PR/MR.
 
+Before calling any provider-specific comment API, normalize the target anchor for every finding:
+
+- **Anchor to a stable diff line**: Use a line that is part of the reviewed diff hunk, not just the file on the branch.
+- **Prefer non-blank anchors**: If the finding targets a blank line, whitespace-only line, or other unstable anchor, shift the inline comment to the nearest non-blank context line in the same hunk and mention the intended blank line in the comment body.
+- **Map the line type correctly**: Added or modified lines should use the post-change line coordinates. Deleted lines should use the pre-change line coordinates. Unchanged context lines should carry both old and new line numbers when the provider API supports that form.
+- **Use ranges only when the provider supports them cleanly**: For multi-line findings, prefer explicit start/end positions. If the platform cannot represent the range reliably, anchor to the most representative line and describe the span in the body.
+- **Do not force invalid inline positions**: If you cannot derive a stable diff anchor after checking the hunk, fall back to a general review comment that names the file and target line.
+
+If comment submission or publication fails after some comments may already have been created, treat the failure as a potential partial success:
+
+- Reconcile remote state before retrying.
+- Fetch the current published review comments/notes to identify what already landed.
+- Fetch the remaining pending draft comments/notes, if the provider supports drafts.
+- Retry only the comments that are still missing. Do not blindly resubmit the whole batch.
+
 **GitHub**:
 
 - Start a pending review using `mcp_github_add_comment_to_pending_review` for each finding.
   - Provide `owner`, `repo`, `pull_number`, `commit_id` (use `head_sha`), `path`, `line`, and `body`.
   - For multi-line findings, use `start_line` and `line` to span the range.
+- Ensure the chosen `line` or range still belongs to the PR diff. If the exact target is not commentable on GitHub, move to the nearest stable diff line or fall back to a top-level PR comment.
 - After all comments are added, submit the review using `mcp_github_pull_request_review_write` with `event: "COMMENT"` and an empty or summary `body`.
 - **Fallback**: If inline positioning fails (the line is not part of the diff), fall back to a top-level PR comment using `mcp_github_add_issue_comment`, indicating the target file and line.
 
@@ -187,8 +211,13 @@ Post all approved findings as visible inline comments on the PR/MR.
 
 - Create draft notes using `mcp_gitlab_create_draft_note` in a loop for each finding.
   - You MUST provide `base_sha`, `start_sha`, and `head_sha` in the `position` object.
-  - **Position Mapping**: Added/modified lines → `new_line` + `new_path`. Deleted lines → `old_line` + `old_path`. Set `position_type: "text"`.
+  - **Position Mapping**: Added/modified lines → `new_line` + `new_path`. Deleted lines → `old_line` + `old_path`. Context lines → both `old_line` + `new_line`. Set `position_type: "text"`.
+  - This non-blank anchor rule matters especially on GitLab: a draft note on a blank line may be accepted during creation and then silently disappear when drafts are published.
 - After all draft notes are created, publish them in a single batch with `mcp_gitlab_bulk_publish_draft_notes`. The user expects published notes, not drafts.
+- If `mcp_gitlab_bulk_publish_draft_notes` errors, do not immediately publish every draft individually. GitLab can partially complete the batch before returning an error.
+  1. Fetch current MR notes to see which comments were already published.
+  2. List remaining draft notes to identify what is still pending.
+  3. Publish only the still-pending drafts individually.
 - **Fallback**: If inline positioning fails (e.g., "Line is out of bounds"), fall back to a general MR discussion note using `mcp_gitlab_create_merge_request_discussion_note`, indicating the target file and line.
 
 #### 7-B: Approve
@@ -293,45 +322,22 @@ This step is always executed, regardless of which option was chosen in Step 6.
 
 ---
 
-## Comment Template
+## Finding Format Rules
 
-Keep finding descriptions simple, conversational, and direct. Do not use structural headers (like "Observation:" or "Impact:"). Use the following flow for every finding:
+Use the same finding content for chat and posted review comments.
 
-1. **Title**: Short constructive topic (e.g., `**Avoid repeated magic string**`).
-2. **Observation & Impact**: Briefly explain what you noticed and why it matters in 1-2 sentences. Use a peer-to-peer tone (e.g., "I noticed", "Have we considered").
-3. **Context**: Relevant file path and exact line references in italics.
-4. **Suggested approach**: A polite, actionable recommendation, ideally with a suggested code block or concise instructions.
+Differences by destination:
 
-Do not invent alternative formats or omit any field. In the chat report, prefix with `**Finding #N — <id>**` (strip the prefix when posting to GitHub or GitLab).
+- In chat, include the `Finding #N — <id>` prefix.
+- In posted comments, omit the prefix and keep the rest unchanged.
 
-**Example:**
+Style rules:
 
-````text
-**Avoid repeated magic string**
-
-I noticed that `"pending"` is hardcoded in multiple places. If the status name changes, missing a spot would cause inconsistent behavior.
-
-*Relevant lines: `src/Service/OrderService.php` around line 42 and `src/Handler/CheckoutHandler.php` around line 17*
-
-Could we extract it to a constant? Something like:
-
-```php
-// define once
-const STATUS_PENDING = 'pending';
-
-// use everywhere
-if ($order->getStatus() === self::STATUS_PENDING) {
-    // handle pending state
-}
-```
-
-_Use the same language as the changed file in the suggestion block._
-````
-
-## Output Style for chat
-
-- Keep summary concise.
-- State exactly what was posted (comment/note IDs when available) and on which platform.
+- Keep the tone direct and peer-to-peer.
+- Do not use extra headings like `Observation:` or `Impact:`.
+- Use the changed file's language in code suggestions.
+- Keep summaries short and factual.
+- State exactly what was posted, including comment or note IDs when available.
 - If a fallback path was used, explain why in one sentence.
 
 ## Guardrails
