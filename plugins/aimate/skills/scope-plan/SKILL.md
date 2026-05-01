@@ -80,7 +80,7 @@ Validate the discovery output before continuing: verify that all decision areas 
 
 Before defining tasks, derive a functional requirements list. Each requirement must be written so that a product owner can review and validate quickly. Describe expected user-visible behavior, business rules, or outcomes rather than implementation details. Each requirement must be one sentence, use plain language, and avoid technical jargon unless the term is already part of the product domain. Use checkboxes (`- [ ]`). Place this list under **Requirements** in Section 1 of the output.
 
-Secondly, when the work creates or changes a public, persisted, or cross-task boundary, define the core shared interfaces in the Technical Approach section. This includes exact API request/response payloads, database schemas, and shared domain types. This section is the canonical source of truth for shared contracts and prevents mismatch between frontend/backend or independent subtasks. Omit this section when the work does not affect a shared boundary.
+Secondly, when the work creates or changes a public, persisted, or cross-task boundary, define the core shared interfaces in the Technical Approach section. This includes exact API request/response payloads, database schemas, and shared domain types. This section is planner-only: it keeps the overall plan internally consistent, but it is never execution context for a subtask. Omit this section when the work does not affect a shared boundary.
 
 While defining tasks:
 
@@ -94,10 +94,10 @@ While defining tasks:
 **Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
 - Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
-- **Explicit Contracts Required (Bounded Context):** Subtasks must include context to execute independently. You MUST embed Markdown code blocks directly inside the Acceptance Criteria to define exact function signatures, class structures, or methods. For cross-boundary work, reference the exact file that defines the contract if that file is created or modified by an earlier task. If the subtask relies on a shared contract from Section 4.1, you must duplicate that relevant snippet INTO the subtask itself, OR add the file where it was created in a previous task to the `Required Context to Read` list. Never tell a subagent to "refer to Section 4.1".
+- **Explicit Contracts Required (Bounded Context):** Every subtask must be executable in isolation and may depend only on explicit repository file paths or exact snippets included in that subtask. Never use any plan section as execution context. Never tell a subagent to refer to Section 4.1, Section 4, the Technical Approach, or any "contract above/below". If a required shared contract already exists, or will be created by an earlier task, list the exact file path in `Required Context to Read`. If the contract does not yet exist as a file at the moment this subtask starts, embed the exact contract fragment needed for execution directly in the subtask's Acceptance Criteria as a Markdown code block, and name the file that must be created or modified.
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
-- **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task.
+- **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task. Do not list plan sections here; only repository file paths are allowed.
 - Every code-changing task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, and identifying the test harness to use. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
 - No subtask may exceed 4h. Break it down further if needed.
 - **Estimation fallback:** If a task's scope is highly uncertain, replace it with a 2h Spike task and define the expected output (e.g., 'Sequence Diagram' or 'Interface Proposal'). If an unresolved branch would materially change contracts, schema, integration choice, or task breakdown, insert a Spike before estimating downstream implementation work.
@@ -127,6 +127,7 @@ Validate the plan and ensure:
 2. All files are marked `(create)` or `(modify)`.
 3. No vague placeholders (like `[...]`) remain.
 4. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
+5. No task or subtask refers to Section 4, Section 4.1, Technical Approach, or any other plan section as required execution context.
 
 Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 
@@ -174,12 +175,13 @@ Ask the user whether to review the plan or proceed with implementation.
 
 [Key architecture decisions, libraries, security, logging/observability, and config dependencies.]
 
-### 4.1 Shared Data Models & Interfaces (only when shared boundaries change)
+### 4.1 Shared Data Models & Interfaces (planner-only, only when shared boundaries change)
 
 ```[language]
 // Include this section only when the work creates or changes a public, persisted,
 // or cross-task boundary. Define the exact shared boundaries here BEFORE task
-// execution as the canonical source of truth.
+// execution as the planner's canonical source of truth.
+// Tasks must not reference this section as execution context.
 // e.g. API JSON schemas, Database Migration structures, or shared TypeScript types.
 ```
 
@@ -203,10 +205,10 @@ Ask the user whether to review the plan or proceed with implementation.
 **Acceptance Criteria:**
 
 - [ ] [Criterion 1: Exact behavior and expected input/output]
-- [ ] If this subtask owns a public or cross-task boundary, reference the canonical contract source and include the smallest required excerpt only when needed for independent execution:
+- [ ] If this subtask needs a shared contract, use exactly one of these patterns so the task remains independently executable: either list the exact repository file in `Required Context to Read`, or embed the exact contract excerpt here if the file does not yet exist.
   ```[language]
-  // [Provide an excerpt only when needed for execution.
-  // Prefer referencing the canonical contract source over duplicating it.]
+  // [Provide an excerpt only when the contract file does not yet exist
+  // when this subtask starts. Name the file that will contain it.]
   // e.g. export async function fetchUser(id: string): Promise<User | null>
   ```
 - [ ] [Criterion 3: Specific conventions, error handling, or edge cases]
