@@ -3,7 +3,7 @@ name: scope-plan
 description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 6.1.0
+  version: 6.3.0
 ---
 
 # Plan & Estimate tasks
@@ -74,7 +74,7 @@ Stop discovery only when:
 
 Compile a single **Design Tree** summary that lists each branch, its status (**Observed**, **Decision**, or **Assumption**), and the supporting evidence or rationale.
 
-Then review and critique the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
+Validate the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
 
 ### Phase 2: Planning & Estimation
 
@@ -94,7 +94,7 @@ While defining tasks:
 **Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
 - Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
-- **Explicit Contracts Required (Bounded Context):** Subtasks must include enough context to execute independently without hidden assumptions. For cross-boundary work, reference the exact file that defines the contract if that file is created or modified by an earlier task. Only include a contract excerpt inside the subtask when that subtask owns a public or cross-task boundary and the excerpt is required to execute independently. Keep one canonical contract source; avoid repeating the same contract in multiple places.
+- **Explicit Contracts Required (Bounded Context):** Subtasks must include context to execute independently. You MUST embed Markdown code blocks directly inside the Acceptance Criteria to define exact function signatures, class structures, or methods. For cross-boundary work, reference the exact file that defines the contract if that file is created or modified by an earlier task. If the subtask relies on a shared contract from Section 4.1, you must duplicate that relevant snippet INTO the subtask itself, OR add the file where it was created in a previous task to the `Required Context to Read` list. Never tell a subagent to "refer to Section 4.1".
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
 - **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task.
@@ -119,11 +119,7 @@ If a subtask would exceed 4h, split it.
 - Medium (1.5x): Touching shared code or unclear integration points.
 - High (2.0x): Unfamiliar architecture or fuzzy scope boundaries.
 
-### Phase 3: Output
-
-Save the plan to `docs/plans/[ticket-id]-[slug].md`. If no ticket ID is provided, use `docs/plans/[YYYY-MM-DD]-[slug].md`. Create the folder if missing. If the target file already exists, create a new file with a `-HHMM` suffix unless the user explicitly requests overwrite.
-
-### Phase 4: Self-Review
+### Phase 3: Review
 
 Validate the plan and ensure:
 
@@ -132,9 +128,11 @@ Validate the plan and ensure:
 3. No vague placeholders (like `[...]`) remain.
 4. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
 
-Do a review and critique the saved plan. Resolve any issues found before continuing.
+Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 
-### Phase 5: Handoff
+### Phase 4: Output & Handoff
+
+Save the plan to `docs/plans/[ticket-id]-[slug].md`. If no ticket ID is provided, use `docs/plans/[YYYY-MM-DD]-[slug].md`. Create the folder if missing. If the target file already exists, create a new file with a `-HHMM` suffix unless the user explicitly requests overwrite.
 
 Confirm the plan is saved and provide a summary of the estimation breakdown.
 
