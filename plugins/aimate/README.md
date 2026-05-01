@@ -4,6 +4,12 @@ AI Automation Teamate.
 
 AI Acceleration supporting SDLC — reusable skills for security auditing, GitLab workflow automation, and development planning.
 
+## Compatibility Note
+
+If you have the Superpowers plugin installed, be aware that it can sometimes interfere with skill workflows in this plugin. Superpowers includes generic skills that may trigger unexpectedly and conflict with the more specific workflow instructions used by `aimate`.
+
+If a skill behaves inconsistently, invokes the wrong workflow, or appears to ignore its instructions, first check whether Superpowers was triggered in the workflow. If it was, disable or uninstall the Superpowers plugin and then rerun the skill.
+
 ## Skills
 
 ### `asvs-audit`
@@ -99,7 +105,6 @@ Uses [`@zereight/mcp-gitlab`](https://github.com/zereight/gitlab-mcp) over stdio
 - **Use cases:** Create and review MRs, post comments, manage branches, fetch diffs
 
 **Setup:** Generate a GitLab PAT at **User Settings → Access Tokens** with the `api` scope. Copilot will prompt you for it when a GitLab skill is first invoked.
-
 
 ### Atlassian
 
