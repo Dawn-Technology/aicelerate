@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.2.0
+  version: 4.2.1
 ---
 
 # PR/MR Review Workflow Skill
@@ -171,7 +171,7 @@ Render each finding in this format:
 
 If there are no findings, state that explicitly and mention any residual testing or review gaps.
 
-**HARD STOP**: Pause here and ask the user how they would like to proceed. Provide options naturally: discussing/refining findings, posting comments, approving the PR/MR, or requesting changes. Do NOT proceed until the user issues a clear directive.
+**HARD STOP**: End the response immediately after presenting the findings and asking the user how they would like to proceed. Provide options naturally: discussing/refining findings, posting comments, approving the PR/MR, or requesting changes. Do NOT call any tools after presenting the report in that same response, and do NOT proceed until the user issues a clear directive in a later turn.
 
 ---
 
@@ -305,6 +305,8 @@ If the user wants no action taken, proceed to Step 8 — Cleanup. If they want t
 ---
 
 ### Step 8 — Clean Up
+
+Prerequisite: Step 8 must never run in the same response as Step 6. Execute it only after Step 7 is complete, or after the user explicitly says to stop at reporting only.
 
 This step is always executed, regardless of which option was chosen in Step 6.
 
