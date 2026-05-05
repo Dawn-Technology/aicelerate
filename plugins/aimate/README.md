@@ -26,9 +26,29 @@ Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requir
 
 > Review a GitLab Merge Request or GitHub Pull Request and provide findings, and post structured review comments with issue explanation plus code fixes.
 
-Performs comprehensive code review — identifies bugs, logic errors, security issues, and style violations. Posts structured inline comments with code fix suggestions directly on the MR.
+PR/MR-specific wrapper around the reusable `code-review` skill. Fetches PR/MR metadata and diffs, prepares review context, invokes `code-review`, then can post structured inline comments back to the review platform.
 
 **Trigger phrases:** "review this MR", "review this merge request", "review the gitlab MR"
+
+---
+
+### `review-local`
+
+> Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
+
+Local-review wrapper around the reusable `code-review` skill. Gathers workspace-local scope and context, invokes `code-review`, and returns report-only findings without PR/MR platform actions.
+
+**Trigger phrases:** "review my local changes", "review this file before commit", "review this folder", "review uncommitted changes"
+
+---
+
+### `code-review`
+
+> Reusable code review core for diffs, patches, commits, pull requests, merge requests, working trees, and snippets.
+
+Provides the framework-agnostic review logic shared by wrapper skills. Analyzes submissions across syntax, logic, security, style, and documentation, and returns structured, comment-ready findings.
+
+**Trigger phrases:** "review this patch", "review this commit", "review this diff", "review this code snippet"
 
 ---
 
