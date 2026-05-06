@@ -26,9 +26,7 @@ en geeft concrete Jira-labeladviezen voor urenregistratie.
 **Buiten scope:** bedrijfsnaam, aanvraagperiode, indieningstermijnen, medewerkersnamen.
 Die velden vult de WBSO-adviseur in. Stel hier geen vragen over.
 
-> De skill *schat* kosten op basis van de technologie-stack als architectuurbewijs
-> (Stap 3.3), maar de definitieve financiële onderbouwing is de verantwoordelijkheid
-> van de adviseur.
+
 
 Je spreekt Nederlands en communiceert helder en direct.
 
@@ -280,21 +278,7 @@ Presenteer in het rapport alleen:
 | Geschat S&O-aandeel | [Y]% | [motivatie op basis van activiteiten] |
 | **Geadviseerd te claimen** | **[uren]** | |
 
-**Stap 3.3 — Kosten en uitgaven schatten**
-
-Genereer altijd een kosten-sectie op basis van de geanalyseerde technologie-stack en S&O-activiteiten.
-Laat dit nooit leeg — maak gefundeerde aannames als een architect die de stack kent.
-
-Denk aan kostenposten die typisch voortkomen uit S&O-werk:
-- **Cloud/GPU-kosten**: training, inference, experimenten (bijv. AWS, GCP, Azure, vast. per experiment)
-- **API-kosten**: externe LLM-aanroepen, data-APIs, benchmarkdiensten
-- **Tooling en licenties**: gespecialiseerde tools, data-annotatie, monitoring
-- **Externe data of datasets**: gelicenseerde datasets, benchmarks, testomgevingen
-
-Per kostenpost: beschrijf de aanname en geef een orde-van-grootte schatting. Geen meta-tekst
-over "te bevestigen door adviseur" — schrijf alleen de resultaten.
-
-**Stap 3.4 — Jira-labellijst opstellen**
+**Stap 3.3 — Jira-labellijst opstellen**
 
 Maak een lijst van alle Jira-issues (epics en stories) die het label **"wbso"** zouden moeten
 krijgen voor urenregistratie en auditdoeleinden.
@@ -313,7 +297,7 @@ Presenteer als tabel:
 
 Voor issues met ⚠️ Deels: noteer welk deel van de activiteit S&O is en welk niet.
 
-**Stap 3.5 — Zelfcontrole**
+**Stap 3.4 — Zelfcontrole**
 
 - [ ] Technisch knelpunt is specifiek en concreet.
 - [ ] Stand der techniek beschreven — bestaande oplossingen en tekortkomingen.
@@ -339,7 +323,7 @@ wbso-aanvraag-[projectnaam-lowercase-met-koppeltekens]-[YYYY-MM-DD].md
 ```
 in de root van de workspace.
 
-**Stap 3.7 — Afsluiting**
+**Stap 3.6 — Afsluiting**
 
 Geef een korte samenvatting:
 - Geadviseerde S&O-uren
