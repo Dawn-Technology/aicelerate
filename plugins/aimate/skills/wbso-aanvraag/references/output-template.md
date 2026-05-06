@@ -57,17 +57,6 @@ volstaan die niet — specifiek en concreet, met namen]
 
 ---
 
-## 4. Kosten en Uitgaven S&O
-
-| Kostenpost | Omschrijving | Geschat bedrag (€) | Aanname / bron |
-|------------|--------------|-------------------|----------------|
-| [bijv. cloud/GPU-kosten] | [toelichting] | [€] | [aanname] |
-| [bijv. LLM API-kosten] | [toelichting] | [€] | [aanname] |
-| [bijv. tooling / licenties] | [toelichting] | [€] | [aanname] |
-| **Totaal** | | **[€]** | |
-
----
-
 # DEEL B — Evaluatie aansluiting WBSO-criteria
 
 | Criterium | Beoordeling | Toelichting |
