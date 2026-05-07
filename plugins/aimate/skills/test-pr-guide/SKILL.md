@@ -1,12 +1,12 @@
 ---
-name: devtest
-description: Use when the user wants to know how to manually test code changes on a branch - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR".
+name: test-pr-guide
+description: Use when the user wants to know how to manually test code changes on a branch or PR - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR".
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
   version: 1.2.0
 ---
 
-# DevTest — Manual Testing Guide
+# Test PR Guide
 
 ## Overview
 
