@@ -69,7 +69,7 @@ For each behavior changed:
 
 ### Step 3 — Discover project context
 
-Understand how this project runs by reading available project docs (CLAUDE.md, README, docker-compose, Makefile, package.json, composer.json, .env.example). If you still can't answer how to start the app, run tests, or load fixtures — ask the user before writing the guide. Store what you find as `project_context` and use it to populate all commands in Step 4.
+Understand how this project runs by checking infrastructure files (README, docker-compose, Makefile, package.json, composer.json, .env.example). If you still can't answer how to start the app, run tests, or load fixtures — ask the user before writing the guide. Store what you find as `project_context` and use it to populate all commands in Step 4.
 
 ### Step 4 — Identify setup requirements
 
