@@ -3,10 +3,7 @@ name: devtest
 description: Use when the user wants to know how to manually test code changes on a branch - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR".
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
-  version: 1.1.0
-agents:
-  - claude
-  - copilot
+  version: 1.2.0
 ---
 
 # DevTest — Manual Testing Guide
@@ -28,15 +25,10 @@ The user has given a GitLab MR URL (e.g. `https://gitlab.com/org/repo/-/merge_re
    - URL contains `gitlab.com` or a self-hosted GitLab domain → `provider = "gitlab"`
    - If ambiguous, ask the user
 2. Verify GitLab MCP tools are available in the current session.
-   If missing → **do not proceed silently**. Use one of the following approaches:
+   If missing → **do not proceed silently**. Inform the user:
+   > GitLab MCP is not installed. Install it via your agent's MCP settings (search for "GitLab" in the MCP marketplace or follow your provider's docs), then re-run this skill with the MR URL.
 
-   **Option A — inline guidance** (when the user just needs quick instructions):
-   > GitLab MCP is not installed. See the `install-mcp-server` skill for setup instructions, then re-run this skill with the MR URL.
-
-   **Option B — dispatch as subagent** (when running inside an automated workflow):
-   > Dispatch the `install-mcp-server` skill as a subagent with input: `provider = "gitlab"`. Wait for confirmation that installation succeeded, then continue from step 3 below.
-
-   After either option, if MCP is still unavailable → fall back to Mode B and notify the user.
+   If MCP is still unavailable → fall back to Mode B and notify the user.
 
 3. Extract `project_path` and `merge_request_iid` from the URL.
 4. Fetch MR details using GitLab MCP:
@@ -77,58 +69,7 @@ For each behavior changed:
 
 ### Step 3 — Discover project context
 
-Before identifying setup requirements, understand how this project runs. Work through the following sources in order, stopping as soon as you have enough confidence.
-
-**3a — Read agent instruction files**
-
-Check for existing AI context files in the project root:
-
-```bash
-cat CLAUDE.md 2>/dev/null
-cat .github/copilot-instructions.md 2>/dev/null
-cat .copilot-instructions.md 2>/dev/null
-cat AGENTS.md 2>/dev/null
-```
-
-Extract from these files:
-- How to start / run the application locally
-- How to run tests
-- How to load fixtures or seed data
-- Any project-specific commands or environment requirements
-
-**3b — Detect infrastructure from project files**
-
-If agent instruction files are absent or incomplete, scan the project root:
-
-```bash
-ls -1 docker-compose*.yml Makefile justfile package.json composer.json \
-       Dockerfile .env.example README.md 2>/dev/null
-```
-
-Use what you find to infer the stack:
-
-| Signal | Inferred setup pattern |
-|--------|----------------------|
-| `docker-compose.yml` | Use `docker compose up` / `docker compose exec` for commands |
-| `Makefile` | Run `make help` or scan targets for `test`, `start`, `fixtures` |
-| `composer.json` | PHP project — check `scripts` block for test/lint commands |
-| `package.json` | JS/TS project — check `scripts` block |
-| `Dockerfile` only | Container-based — infer run commands from `CMD`/`ENTRYPOINT` |
-| `.env.example` | Read for required env vars and service URLs |
-| `README.md` | Last resort — scan for "getting started" or "running locally" section |
-
-**3c — Ask if still uncertain**
-
-If after 3a and 3b you cannot confidently answer all of the following, **stop and ask the user** before writing the guide:
-
-- How do I start the application for local testing?
-- How do I run the test suite?
-- Is there a fixture/seed command, and if so what is it?
-- How do I access logs?
-
-Ask only the questions you cannot answer from the project files. Do not guess and embed wrong commands in the guide.
-
-Store the discovered context as `project_context` — use it to populate all commands in Step 4.
+Understand how this project runs by reading available project docs (CLAUDE.md, README, docker-compose, Makefile, package.json, composer.json, .env.example). If you still can't answer how to start the app, run tests, or load fixtures — ask the user before writing the guide. Store what you find as `project_context` and use it to populate all commands in Step 4.
 
 ### Step 4 — Identify setup requirements
 
@@ -183,6 +124,8 @@ Structure the output as follows:
 **Confidence check:** Is this change covered by automated tests? [yes / partial / no — describe gap]
 
 ---
+
+> **Note for the agent:** The section below contains authoring guidance — do NOT include it in the output you produce for the user.
 
 ## Tips for Good Guides
 
