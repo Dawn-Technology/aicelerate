@@ -3,33 +3,16 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.2.1
-  depends_on: "code-review"
+  version: 4.3.0
+  dependencies:
+    - code-review
 ---
 
 # PR/MR Review Workflow Skill
 
 ## Purpose
 
-This skill is the PR/MR-specific wrapper around the reusable [`code-review`](../code-review/SKILL.md) skill.
-
-`review-pr` owns:
-
-- Provider detection
-- PR/MR metadata retrieval
-- Diff and discussion retrieval
-- Temporary worktree setup and cleanup
-- Posting comments, approvals, or change requests back to GitHub or GitLab
-
-`code-review` owns:
-
-- Core code review logic
-- Review baseline establishment
-- Diff and snippet analysis patterns
-- Finding classification
-- Comment-ready feedback generation
-
-The primary goals are:
+The purpose of this skill is to provide constructive and comprehensive feedback on code changes. The primary goals are:
 
 - **Quality Assurance**: Identify bugs, potential logic errors, and edge cases.
 - **Maintainability**: Ensure code is readable, modular, and consistent with the existing architecture.
@@ -47,6 +30,14 @@ This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Reques
 ## Inputs Required
 
 1. **PR/MR identifier**: Either a URL or `{repository_id, pull_request_number}` for GitHub, or `{project_path, merge_request_iid}` for GitLab.
+
+## Dependency
+
+This skill depends on the reusable [code-review](../code-review/SKILL.md) skill for framework-agnostic review analysis, finding classification, and feedback generation.
+
+`review-pr` owns provider detection, PR/MR metadata retrieval, branch checkout, provider-specific diff retrieval, inline comment positioning, approvals, request-changes state, and cleanup.
+
+`code-review` owns the core review logic: syntax, logic, security, style/maintainability, documentation/scope analysis, finding schema, severity classification, and provider-neutral report/comment text.
 
 ---
 
@@ -105,115 +96,94 @@ git fetch origin {source_branch}
 git worktree add .worktrees/pr-review-{pr_mr_number} {source_branch}
 ```
 
-Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5. **Read-only enforced** — do not modify files in the worktree.
+Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5 and cleanup in Step 8. **Read-only enforced** — do not modify files in the worktree.
 
 ---
 
-### Step 3 — Gather Codebase Context & Prepare the `code-review` Input Bundle
+### Step 3 — Prepare PR/MR Review Context
 
-1. Use `runSubagent` (`Explore` agent) to analyze the project conventions in `worktree_path`. Focus primarily on the modules and adjacent dependencies affected by the PR/MR diff, while briefly checking project-level configuration such as framework config, `README`, linting config, and repository instructions.
-2. Retrieve the diffs between the source and target branches using the MCP tools for `provider`.
-3. Build a file-change inventory: list each changed file with its change type (added / modified / deleted). **All changed files MUST be reviewed**; do not skip files silently.
-4. Collect the review context:
-   - PR/MR title, description, source branch, target branch, author
-   - Existing open and resolved review threads
-   - `provider`
-   - `worktree_path`
-   - `baseline_conventions` from the `Explore` agent output
-5. If the PR/MR contains more than 15 changed files or massive diffs, warn the user and propose chunking into batches of 5 files before invoking `code-review`.
-6. Pass the gathered data to `code-review` using a handoff format like this:
+Keep the checked-out worktree read-only and prepare PR/MR-specific context for the `code-review` dependency:
+
+- `repository_path = ".worktrees/pr-review-{pr_mr_number}"`
+- PR/MR title, description, author, source branch, and target branch.
+- Existing open and resolved review threads.
+- Provider diff refs and SHA metadata needed for inline comments.
+
+If you already have a useful codebase baseline from adjacent tools or exploration, store it as `review_baseline` and pass it to `code-review`. Otherwise, let `code-review` gather the baseline from `repository_path`.
+
+---
+
+### Step 4 — Retrieve Provider Diff
+
+1. Retrieve the diffs between the source and target branches using the MCP tools for `provider`.
+2. Preserve provider-specific diff coordinates and SHA metadata for Step 7-A.
+3. Build the provider changed-file inventory required by the `code-review` input interface, including each changed file and its change type when available.
+4. Pass all retrieved diff content and file inventory to `code-review`; it owns generic review ordering, large-review chunking, and dependency tracing.
+
+---
+
+### Step 5 — Analyze & Classify Findings with Code Review Core
+
+Invoke the [code-review](../code-review/SKILL.md) skill with this PR/MR-specific input wrapper:
 
 ```yaml
+submission:
+  type: pull-request   # or merge-request, based on detected provider
+  title: "{pr_mr_title}"
+  description: "{pr_mr_description}"
+  author: "{author}"
+  source_ref: "{source_branch}"
+  target_ref: "{target_branch}"
 code_input:
-  submission_type: pull-request | merge-request
-  diff: "<provider diff text>"
-  changed_files:
-    - path: src/example.ts
-      change_type: modified
-  worktree_path: .worktrees/pr-review-{pr_mr_number}
-
-context:
-  title: "<pr/mr title>"
-  description: "<pr/mr description>"
-  author: "<author>"
-  source_ref: "<source branch>"
-  target_ref: "<target branch>"
-  provider: github | gitlab
-  baseline_conventions: "<Explore agent summary>"
-  existing_feedback:
-    open_threads: "<open threads>"
-    resolved_threads: "<resolved threads>"
-
-review_scope:
-  modules:
+  diff: "{provider_diff}"
+  files: "{changed_file_inventory}"
+  repository_path: ".worktrees/pr-review-{pr_mr_number}"
+  review_baseline: "{review_baseline}"
+review_context:
+  existing_feedback: "{open_and_resolved_threads}"
+  constraints: "Review every changed file. Do not modify files. Preserve provider diff coordinates for inline comments."
+  focus_areas:
     - syntax
     - logic
     - security
     - style
     - documentation
-  include_architecture: true
-  include_scope_consistency: true
+    - maintainability
+    - scope-consistency
+  output_target: calling-skill
 ```
 
-If the `Explore` result is incomplete, let `code-review` infer conventions from the repository language/framework and disclose those assumptions in the findings report.
+The code-review dependency MUST:
+
+- Apply its full review workflow to all changed files.
+- Return provider-neutral findings, report text, and comment bodies using its output interface.
+
+Store the returned findings and report as the PR/MR review result.
 
 ---
 
-### Step 4 — Invoke `code-review`
+### Step 6 — Review & Present Findings to the User
 
-Activate the [`code-review`](../code-review/SKILL.md) skill and pass the Step 3 bundle as its review input.
-
-`code-review` is responsible for:
-
-- Establishing the review baseline from `worktree_path` and `baseline_conventions`
-- Parsing and prioritizing the diff
-- Tracing control flow and downstream impact
-- Reviewing the submission through syntax, logic, security, style, documentation, architecture, and scope-consistency lenses as applicable
-- Producing structured findings and comment-ready feedback
-
-Do not duplicate that logic here unless the dependency is unavailable.
-
-**Fallback if `code-review` is unavailable**: Continue using the same review standards and output contract defined by `code-review`, and note that the dependency could not be loaded.
-
----
-
-### Step 5 — Present Findings to the User
-
-Do a rubber-duck review of the findings before sharing them, and drop any point that is not backed by concrete evidence.
-Then present the grouped findings report returned by `code-review` **before taking any action**.
+Present the findings returned by `code-review` to the user **before taking any action**.
 
 The report must include:
 
-- PR/MR title, source → target branch, author
-- Finding totals per severity
-- Findings ordered by severity, then file path
-- Each finding formatted exactly using the `code-review` comment template, prefixed with a reference ID (for example, `**Finding #1 — src/Auth.php:88:sql-injection**`)
-
-Render each finding in this format:
-
-`**Finding #N — <id>**`
-
-`**<title>**`
-
-`<body>`
-
-`*Relevant lines: <file path and line reference>*`
-
-`Suggested approach: <suggestion or concise remediation guidance>`
-
-If there are no findings, state that explicitly and mention any residual testing or review gaps.
+- PR/MR title, source → target branch, author.
+- The `code-review` report, including finding totals, ordered findings, and residual review gaps.
 
 **HARD STOP**: End the response immediately after presenting the findings and asking the user how they would like to proceed. Provide options naturally: discussing/refining findings, posting comments, approving the PR/MR, or requesting changes. Do NOT call any tools after presenting the report in that same response, and do NOT proceed until the user issues a clear directive in a later turn.
 
 ---
 
-### Step 6 — Execute Chosen Action (Only When Confirmed)
+### Step 7 — Execute Chosen Action (Only When Confirmed)
 
-Based on the user's instructions from Step 5, take the appropriate action. All sub-steps below branch on `provider`.
+Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider`.
 
 #### 7-A: Post Comments
 
 Post all approved findings as visible inline comments on the PR/MR.
+
+Use the `comment_bodies` map returned by `code-review` in Step 5 as the body for each inline comment, matched by finding `id`. Do not re-generate comment text.
 
 Before calling any provider-specific comment API, normalize the target anchor for every finding:
 
@@ -332,13 +302,15 @@ _Note: `mergeRequestRequestChanges` requires GitLab 17.10+. On older instances t
 
 #### 7-D/E: Refine or Report Only
 
-If the user wants no action taken, proceed to Step 7 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 5.
+If the user wants no action taken, proceed to Step 8 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 6.
 
 ---
 
-### Step 7 — Clean Up
+### Step 8 — Clean Up
 
-This step is always executed after Step 6, or immediately after Step 5 when the user chooses report-only.
+Prerequisite: Step 8 must never run in the same response as Step 6. Execute it only after Step 7 is complete, or after the user explicitly says to stop at reporting only.
+
+This step is always executed, regardless of which option was chosen in Step 6.
 
 1. **Remove the git worktree with verification**:
 
@@ -356,20 +328,17 @@ This step is always executed after Step 6, or immediately after Step 5 when the 
 
 ## Finding Format Rules
 
-Use the comment template defined in [`code-review`](../code-review/SKILL.md). Keep the same finding content for chat and posted review comments.
+Use the finding content returned by `code-review` for chat and posted review comments.
 
 Differences by destination:
 
-- In chat, include the `Finding #N — <id>` prefix.
-- In posted comments, omit the prefix and keep the rest unchanged.
+- In chat, use the `code-review` report format and include PR/MR context.
+- In posted comments, use the provider-neutral `comment_bodies` returned by `code-review`.
 
 Style rules:
 
-- Keep the tone direct and peer-to-peer.
-- Do not use extra headings like `Observation:` or `Impact:`.
-- Use the changed file's language in code suggestions.
-- Keep summaries short and factual.
-- State exactly what was posted, including comment or note IDs when available and the platform used.
+- See [code-review](../code-review/SKILL.md) Finding Format Rules for tone, heading, and language conventions.
+- State exactly what was posted, including comment or note IDs when available.
 - If a fallback path was used, explain why in one sentence.
 
 ## Guardrails

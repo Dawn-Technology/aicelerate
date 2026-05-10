@@ -1,317 +1,255 @@
 ---
 name: code-review
-description: Use when reviewing code changes or code samples and you need structured findings about correctness, security, maintainability, style, or documentation across pull requests, merge requests, commits, patches, diffs, or snippets.
+description: Framework-agnostic reusable code review core for analyzing code, diffs, commits, patches, snippets, pull requests, merge requests, and local changes. Use when another skill or user request needs structured findings about syntax, logic, security, style, documentation, maintainability, or review feedback generation.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 1.0.0
   role: "reusable-review-core"
+  dependencies: []
 ---
 
 # Code Review Core Skill
 
 ## Purpose
 
-This skill provides the reusable core for code review. It is framework-agnostic and can be applied to:
+Provide constructive and comprehensive feedback on code changes. The primary goals are:
 
-- Pull requests and merge requests
-- Commits and commit ranges
-- Patches and unified diffs
-- Changed working trees
-- Standalone code snippets or files
+- **Quality Assurance**: Identify bugs, potential logic errors, and edge cases.
+- **Maintainability**: Ensure code is readable, modular, and consistent with the existing architecture.
+- **Security**: Detect common security vulnerabilities and privacy risks. Validate against OWASP Top 10 where applicable.
+- **Education**: Provide explanations and context for suggested changes to help the author grow.
 
-The primary goals are:
+This skill is **read-first**, **framework-agnostic**, and **non-invasive**:
 
-- **Quality Assurance**: Identify bugs, logic errors, broken assumptions, and edge cases.
-- **Maintainability**: Ensure code is readable, modular, and consistent with surrounding conventions.
-- **Security**: Detect common vulnerabilities and privacy risks. Validate against OWASP Top 10 where applicable.
-- **Education**: Provide actionable, constructive feedback with enough context for the author to improve the code.
-
-This skill is **read-first** and **non-invasive**:
-
-- Do not modify repository files as part of the review.
-- Analyze only the provided code submission and surrounding context.
-- Produce findings in a structured, reusable format that wrapper skills can present or publish.
-
-## Dependency Contract
-
-Wrapper skills such as `review-pr` should invoke this skill after gathering submission-specific metadata and code input. This skill owns the review logic. Wrapper skills should own transport-specific work such as:
-
-- Identifying the source system
-- Fetching code or diff data
-- Creating worktrees or other local context
-- Posting comments, approvals, or change requests back to the platform
+- Do not modify repository files.
+- Analyze the supplied code, diff, patch, commit, snippet, or changed files.
+- Return structured findings and formatted review text to the caller.
+- Leave provider-specific actions, posting comments, approvals, commits, or state changes to the calling skill.
 
 ## Input Interface
 
-Users do not need to provide a formal structure directly. This section defines the recommended internal handoff format for wrapper skills and other callers.
-
-Provide the review input in three parts.
-
-### 1. Code Input
-
-Provide at least one of:
-
-- `diff`
-- `patch`
-- `changed_files`
-- `snippets`
-- `commit_range`
-
-Recommended handoff format:
+The calling skill or user request must provide as much of this context as is available:
 
 ```yaml
+submission:
+  type: pull-request | merge-request | commit | patch | diff | snippet | local-scope
+  title: optional short title
+  description: optional intent, linked issues, or acceptance criteria
+  author: optional author
+  source_ref: optional branch, commit, file path, or snippet label
+  target_ref: optional base branch, previous commit, or comparison target
 code_input:
-  submission_type: pull-request | merge-request | commit | commit-range | patch | diff | snippet | working-tree
-  diff: "<unified diff or provider diff text>"
-  changed_files:
-    - path: src/example.ts
-      change_type: modified
-      patch_excerpt: "<optional>"
-  snippets:
-    - path: src/example.ts
-      language: typescript
-      content: |
-        export function example() {}
-  worktree_path: .worktrees/pr-review-123
+  diff: optional unified diff or provider diff
+  files: optional changed file list with added / modified / deleted status
+  snippets: optional code snippets with language and path hints
+  repository_path: optional local checkout path
+  review_baseline: optional project conventions already gathered by caller
+review_context:
+  existing_feedback: optional prior comments, review threads, or known unresolved findings
+  constraints: optional user or repository constraints
+  focus_areas: optional requested focus such as security, performance, tests, docs
+  output_target: chat | inline-comments | report | calling-skill
 ```
 
-### 2. Context Parameters
+Minimum viable input:
 
-Use as many of these fields as are available:
-
-```yaml
-context:
-  title: "Add retry logic to webhook delivery"
-  description: "Implements retries for transient failures"
-  author: "example-user"
-  source_ref: "feature/retries"
-  target_ref: "main"
-  provider: github | gitlab | local | manual
-  baseline_conventions: "<repo conventions, framework, test strategy>"
-  existing_feedback:
-    open_threads: []
-    resolved_threads: []
-  assumptions:
-    - "Repository follows ESLint defaults when not stated otherwise"
-  constraints:
-    report_only: true
-    comment_ready: true
-```
-
-### 3. Requested Review Scope
-
-If the caller does not provide scope, review all modules below.
-
-```yaml
-review_scope:
-  modules:
-    - syntax
-    - logic
-    - security
-    - style
-    - documentation
-  include_architecture: true
-  include_scope_consistency: true
-```
+- For diffs, commits, patches, PRs, and MRs: a diff plus enough repository context to inspect adjacent code.
+- For snippets: the snippet text plus language or framework hints when available.
+- For local scopes: the file/folder/change scope and the repository path.
 
 ## Output Interface
 
-Return findings in a stable structure that wrapper skills can reformat or publish.
+Return review output to the caller in this shape:
 
-```json
-{
-  "summary": {
-    "submission_type": "pull-request",
-    "title": "Add retry logic to webhook delivery",
-    "author": "example-user",
-    "totals": {
-      "security-violation": 0,
-      "request-for-change": 2,
-      "optional": 1
-    }
-  },
-  "findings": [
-    {
-      "id": "src/example.ts:42:missing-error-guard",
-      "file": "src/example.ts",
-      "line": 42,
-      "severity": "request-for-change",
-      "category": "logic",
-      "title": "Guard the retry loop against permanent failures",
-      "observation": "The current loop retries every error, including validation failures that will never succeed. That can hide the real failure and delay recovery.",
-      "suggestion": "Only retry transient errors and return immediately for permanent failures."
-    }
-  ]
-}
+```yaml
+summary:
+  submission: short description of reviewed input
+  scope: reviewed files, snippets, or change set
+  residual_gaps: optional review gaps, missing context, or tests not run
+totals:
+  security-violation: number
+  request-for-change: number
+  optional: number
+findings:
+  - id: path/to/file:123:rule-slug
+    severity: security-violation | request-for-change | optional
+    category: syntax | logic | security | style | documentation | maintainability | scope-consistency
+    title: short constructive label
+    body: 1-2 sentences describing the issue and why it matters
+    location:
+      file: path/to/file
+      line: precise line number or diff coordinate when available
+      line_type: added | deleted | context | unknown
+    suggestion: optional code block or concise remediation guidance
+report: formatted chat-ready findings report
+comment_bodies: provider-neutral comment text keyed by finding id; always present when output_target is calling-skill or inline-comments, omitted otherwise
 ```
 
-`category` should use one of:
-
-- `syntax`
-- `logic`
-- `security`
-- `style`
-- `documentation`
-- `architecture`
-- `scope-consistency`
+Do not invent precise line numbers when they cannot be derived. Use the best available location and state the limitation in `residual_gaps`.
 
 ## Workflow
 
 Follow these steps in order. Do not skip a step.
 
-### Step 1 — Validate Inputs
+### Step 1 — Normalize Review Context
 
-1. Confirm that at least one code input form is present.
-2. Determine `submission_type`.
-3. Note any missing context that materially weakens the review.
-4. If only snippets are available, explicitly limit findings to what can be validated from the snippet alone.
+1. Identify `submission.type` and the available code input.
+2. Determine whether the review is diff-based, full-file-based, snippet-based, or mixed.
+3. Record the stated intent from the title, description, linked issues, user request, or existing feedback.
+4. Note all open and resolved prior feedback to avoid duplicate findings and to verify whether previously requested changes have been addressed.
 
-### Step 2 — Establish Review Baseline
+If the input is too ambiguous to review safely, ask the caller or user for the missing scope. If some context is missing but a useful review is still possible, continue and record the gap.
 
-Build the standards you will review against.
+### Step 2 — Gather Codebase Context
 
-1. If `baseline_conventions` are provided, use them.
-2. If `worktree_path` is available, inspect nearby files and project-level configs relevant to the changed code.
-3. If conventions remain unclear, infer by language/framework:
-   - **PHP**: PSR-12, PSR-4
-   - **Python**: PEP 8, type hints
-   - **JavaScript/TypeScript**: project lint rules or established ecosystem conventions
-   - **Go**: `gofmt`, idiomatic Go
-4. Record assumptions so wrapper skills can disclose them if needed.
+Use the provided `review_baseline` when available. Otherwise, inspect the repository or supplied files enough to understand the project conventions relevant to the reviewed code:
 
-### Step 3 — Parse and Prioritize the Submission
+- Language and framework.
+- Architectural patterns and boundaries.
+- Naming and style conventions.
+- Error handling and validation patterns.
+- Test strategy relevant to the changed files.
+- Security-sensitive areas such as authentication, authorization, input parsing, secrets, or data access.
 
-1. Build a file-change inventory if one is not already provided.
-2. Review all changed files; do not silently skip files.
-3. Prioritize:
-   - **High priority**: business logic, auth, security-sensitive flows, public APIs, data models
-   - **Lower priority**: generated files, lock files, snapshots, fixtures
-4. If the submission is very large, recommend chunking into smaller review batches before continuing.
+When using an exploration subagent, direct it specifically:
 
-### Step 4 — Trace Context Before Judging
+> "Explore the repository path or supplied files. Focus primarily on the modules and adjacent dependencies affected by the review scope, while briefly checking for global configs such as framework config, README, linting configs, and repository instructions. Report: language, framework, architectural patterns, naming conventions, and test strategy relevant to the changed files."
 
-Do not review diffs in isolation.
+Fallback if conventions are unclear:
 
-1. Read surrounding code where logic changes occur.
-2. Trace call sites, dependencies, and downstream impacts when enough context is available.
-3. Reconcile proposed changes with the stated intent in `title`, `description`, and prior feedback.
-4. Avoid speculative findings that cannot be supported by the available evidence.
+- **PHP**: PSR-12, PSR-4.
+- **Python**: PEP 8, type hints where the project uses them.
+- **JavaScript/TypeScript**: project ESLint/Prettier config first, otherwise common idioms.
+- **Go**: `gofmt` and idiomatic Go patterns.
+- If still unclear, note the assumption and apply general best practices such as SOLID, DRY, and KISS.
 
-### Step 5 — Review by Module
+### Step 3 — Retrieve, Parse, and Trace the Reviewed Code
 
-Evaluate the submission through these modular lenses.
+1. Build a file-change inventory: if a `files` list is provided in `code_input`, use it directly. Otherwise, list each changed or reviewed file with its change type when known. **All files in the requested scope MUST be reviewed**; do not skip files silently.
+2. Prioritize the review order to build context progressively:
+   - **High priority**: core business logic, security-sensitive code, public APIs, data models.
+   - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
+   - **Within each tier, sort files alphabetically by path** to guarantee deterministic traversal order.
+3. For large reviews with more than 15 changed files or massive diffs, warn the caller or user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis, unless the caller has already established chunking. When `output_target` is `chat` or `report`, ask the user for confirmation before processing each chunk. When `output_target` is `calling-skill` or `inline-comments`, do not prompt the user directly — instead return `chunking_required: true` with the proposed chunk plan in `summary.residual_gaps` and let the calling skill handle user confirmation.
+4. Do not evaluate diffs in isolation:
+   - For logic changes, read the expanded surrounding context or the full file.
+   - Trace dependencies by searching where modified functions, classes, routes, schemas, or variables are invoked.
+   - Evaluate cross-file execution paths to determine downstream impact.
 
-#### Syntax
+### Step 4 — Analyze by Review Module
 
-- Invalid or fragile language constructs
-- Type misuse
-- Broken imports, signatures, or obvious compile/runtime hazards visible from the submission
+Only report findings backed by concrete evidence from the diff, code, or nearby context.
 
-#### Logic
+#### Syntax Module
 
-- Incorrect conditionals
-- Missing error handling
-- Off-by-one issues
-- State transitions that violate business rules
-- Control-flow regressions
+Check for parse errors, invalid language constructs, broken imports, type mismatches visible from the code, malformed config, and obvious build-breaking changes.
 
-#### Security
+Use severity:
 
-- Injection flaws
-- Authorization or authentication gaps
-- Sensitive data exposure
-- Unsafe deserialization, path handling, or command execution
-- Reachability must be validated before reporting
+- `request-for-change` for build-breaking or runtime-breaking syntax problems.
+- `optional` only for low-risk cleanup that does not block execution.
 
-#### Style
+#### Logic Module
 
-- Naming mismatches with local conventions
-- Avoidable duplication
-- Readability problems that materially increase maintenance risk
-- Inconsistent patterns when surrounding code clearly establishes a standard
+Check for incorrect conditions, missing error handling, boundary mistakes, invalid state transitions, broken assumptions, concurrency issues, data loss, and unhandled null/empty/error cases.
 
-#### Documentation
+Use severity:
 
-- Missing doc updates for behavior changes
-- Stale comments
-- Missing migration or configuration notes
-- Missing tests or examples when the change introduces a new contract
+- `request-for-change` for reachable correctness problems.
+- `optional` for defensive improvements when no concrete failure is demonstrated.
 
-#### Optional extended modules
+#### Security Module
 
-- **Architecture**: contract breakage, SOLID violations, coupling, boundary erosion
-- **Scope consistency**: unaddressed review feedback, missing translations, mismatch between description and code
+Check for injection flaws, exposed credentials, auth bypasses, authorization gaps, unsafe deserialization, path traversal, SSRF, XSS, CSRF, insecure randomness, sensitive logging, privacy risks, and OWASP Top 10 issues where applicable.
 
-### Step 6 — Classify Findings
+Use severity:
 
-Only report findings with tangible evidence.
+- `security-violation` only for reachable or plausibly reachable security issues.
+- `request-for-change` for security-relevant hardening that blocks safe release but is not an immediate violation.
+- Avoid speculative security findings without a clear attack path.
 
-Use this internal schema:
+#### Style and Maintainability Module
 
-```json
-[
-  {
-    "id": "<file-path>:<line>:<rule-slug>",
-    "file": "path/to/file.ext",
-    "line": "<precise line number>",
-    "severity": "optional | request-for-change | security-violation",
-    "category": "syntax | logic | security | style | documentation | architecture | scope-consistency",
-    "title": "<short constructive label>",
-    "observation": "<1-2 sentences>",
-    "suggestion": "<code block or instruction>"
-  }
-]
-```
+Check readability, modularity, naming consistency, unnecessary complexity, architecture drift, broken contracts, duplicated logic, and mismatch with existing project conventions.
 
-Severity rules:
+Use severity:
 
-- `security-violation`: reachable security or privacy issue
-- `request-for-change`: correctness, logic, contract, or maintainability problem that should block approval
-- `optional`: worthwhile improvement that should not block approval on its own
+- `request-for-change` when maintainability problems break contracts, create confusing behavior, or raise likely future defects.
+- `optional` for non-blocking improvements.
 
-### Step 7 — Format the Review Output
+#### Documentation and Scope Module
 
-Present results in two layers:
+Check missing or stale docs, comments that contradict behavior, missing tests for behavior changes, missing translations, unaddressed prior feedback, and mismatch between the submitted changes and stated intent.
 
-1. **Structured output** using the output interface above
-2. **Human-facing findings** using the comment template below
+Use severity:
 
-If no validated findings are present, say so explicitly and mention any review limits such as missing context or unreviewed generated files.
+- `request-for-change` when missing documentation, tests, or scope alignment blocks confident review.
+- `optional` for helpful but non-blocking documentation improvements.
 
-## Comment Template
+### Step 5 — Classify Findings
 
-Keep finding descriptions simple, conversational, and direct. Do not use structural headers like "Observation" or "Impact". Use the following flow for every finding:
+For each finding, capture these fields internally:
 
-1. **Title**: Short constructive topic
-2. **Observation & Impact**: Explain what you noticed and why it matters in 1-2 sentences
-3. **Context**: Relevant file path and exact line references in italics
-4. **Suggested approach**: A polite, actionable recommendation, ideally with a suggested code block or concise instructions
+- `id`: stable identifier such as `path/to/file:123:rule-slug`
+- `severity`: `security-violation`, `request-for-change`, or `optional`
+- `category`: `syntax`, `logic`, `security`, `style`, `documentation`, `maintainability`, or `scope-consistency`
+- `title`: short constructive label
+- `body`: 1-2 sentences describing the issue and why it matters
+- `location`: file path and line reference from the diff or reviewed code
+- `suggestion`: optional code block or concise remediation guidance
 
-Example:
+Order findings by severity, then file path.
 
-````text
-**Avoid repeated magic string**
+### Step 6 — Rubber-Duck and Render
 
-I noticed that `"pending"` is hardcoded in multiple places. If the status name changes, missing a spot would cause inconsistent behavior.
+Before returning findings, critique them:
 
-*Relevant lines: `src/Service/OrderService.php` around line 42 and `src/Handler/CheckoutHandler.php` around line 17*
+- Is each finding backed by concrete evidence?
+- Is the location actionable by the caller?
+- Is the severity justified?
+- Is the finding new, or does it duplicate existing feedback?
+- Is the suggested fix compatible with the local codebase patterns?
 
-Could we extract it to a constant? Something like:
+Then deliver output based on `output_target`:
 
-```php
-const STATUS_PENDING = 'pending';
+- **`calling-skill`**: Return the structured output interface (summary, totals, findings, report, comment_bodies) to the calling skill. Do not render to chat.
+- **`inline-comments`**: Return `comment_bodies` keyed by finding id; omit the chat render.
+- **`chat`** or **`report`**: Render the report to the user in the format below.
 
-if ($order->getStatus() === self::STATUS_PENDING) {
-    // handle pending state
-}
-```
-````
+If there are findings, use this chat format:
 
-Use the same language as the changed file in suggestion blocks.
+`**Finding #N — <id>**`
+
+`**<title>**`
+
+`<body>`
+
+`*Relevant lines: <file path and line reference>*`
+
+`Suggested approach: <suggestion or concise remediation guidance>`
+
+If there are no findings, state that explicitly and mention any residual testing or review gaps.
+
+## Finding Format Rules
+
+Use the same finding content for chat and provider-neutral comment bodies.
+
+Differences by destination:
+
+- In chat, include the `Finding #N — <id>` prefix.
+- In posted comments, omit the prefix and keep the rest unchanged.
+
+Style rules:
+
+- Keep the tone direct and peer-to-peer.
+- Do not use extra headings like `Observation:` or `Impact:`.
+- Use the changed file's language in code suggestions.
+- Keep summaries short and factual.
+- Do not claim that tests, builds, or tools passed unless they were actually run.
 
 ## Guardrails
 
-- Never invent missing evidence.
-- Never report an issue you cannot tie to the provided code or available context.
-- Do not let style-only comments drown out correctness or security issues.
-- Keep wrapper compatibility stable by preserving `severity`, `id`, and comment-ready finding structure.
+- Never merge, alter code, commit, approve, request changes, or post provider comments from this core skill.
+- Keep findings tied to concrete evidence from the supplied code and available context.
+- Do not use provider-specific API tools from this skill; return provider-neutral output to the caller.
+- Respect caller constraints about scope, chunking, and output target.
