@@ -3,7 +3,7 @@ name: review-local
 description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request or merge request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.0.1
   dependencies:
     - code-review
 ---
@@ -16,8 +16,26 @@ Review local code before committing without involving a pull request or merge re
 
 - Do not modify repository files.
 - Do not commit, stage, push, or create branches.
-- Review the scope requested by the user.
-- Use the reusable [code-review](../code-review/SKILL.md) skill for analysis and finding generation.
+- Resolve the scope requested by the user.
+- Delegate analysis and finding generation to the reusable [code-review](../code-review/SKILL.md) skill.
+
+## Dependency
+
+This skill depends on the reusable [code-review](../code-review/SKILL.md) skill for framework-agnostic review analysis, finding classification, and feedback generation.
+
+`review-local` owns local scope resolution, local diff/patch/snippet collection, repository context packaging, user-facing presentation, and read-only local-review guardrails.
+
+`code-review` owns the core review logic: syntax, logic, security, style/maintainability, documentation/scope analysis, finding schema, severity classification, and provider-neutral report text.
+
+### Mandatory Dependency Boundary
+
+`review-local` MUST delegate the core analysis to `code-review`; this is a hard workflow boundary, not a recommendation.
+
+- Invoke/load the [code-review](../code-review/SKILL.md) skill with the active platform's skill mechanism before analyzing or classifying findings.
+- Do not substitute your own syntax, logic, security, maintainability, documentation, or scope review for `code-review`.
+- Do not present findings unless the findings came from the `code-review` output interface.
+- If `code-review` cannot be invoked or loaded in the current environment, stop and tell the user the required dependency is unavailable. Do not continue with a manual review.
+- Having read `code-review` earlier, remembering its workflow, seeing an obvious issue, reviewing a small change, or being under time pressure does not satisfy this dependency.
 
 ## Inputs Required
 
@@ -57,9 +75,9 @@ Also collect repository context that helps the core review:
 
 Do not create worktrees or branches for local reviews.
 
-### Step 2 — Prepare Code Review Core Input
+### Step 2 — Invoke Code Review Core
 
-Invoke the [code-review](../code-review/SKILL.md) skill with this local-review wrapper:
+Invoke the [code-review](../code-review/SKILL.md) skill with this local-review wrapper before doing any review analysis:
 
 ```yaml
 submission:
@@ -88,11 +106,21 @@ review_context:
   output_target: calling-skill
 ```
 
-The code-review dependency MUST review every file or snippet in the requested scope, trace adjacent code when needed, classify findings, and return structured output to this skill.
+The `code-review` dependency MUST review every file or snippet in the requested scope, trace adjacent code when needed, classify findings, and return structured output to this skill.
+
+Store the returned output as `code_review_result`. `code_review_result` is the only valid source for findings shown in Step 3.
+
+Before moving to Step 3, perform this invariant check:
+
+```text
+Did I invoke/load code-review for this local review, and are all findings/report details copied from code_review_result?
+```
+
+If the answer is not yes, go back and invoke `code-review`. Do not continue by analyzing the local changes yourself.
 
 ### Step 3 — Present Findings
 
-Present the findings returned by `code-review` to the user.
+Present the findings returned by `code_review_result` to the user.
 
 The report must include:
 

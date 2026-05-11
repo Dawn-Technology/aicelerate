@@ -1,9 +1,9 @@
 ---
 name: review-pr
-description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
+description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.3.0
+  version: 4.3.1
   dependencies:
     - code-review
 ---
@@ -22,7 +22,7 @@ The purpose of this skill is to provide constructive and comprehensive feedback 
 This workflow is **read-first** and **non-invasive**:
 
 - Do not modify repository files.
-- Analyze PR/MR content and discussions.
+- Collect PR/MR content and discussions for review.
 - Post comments, update PR/MR only when explicitly requested.
 
 This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Requests). The terms PR and MR are used interchangeably throughout.
@@ -38,6 +38,16 @@ This skill depends on the reusable [code-review](../code-review/SKILL.md) skill 
 `review-pr` owns provider detection, PR/MR metadata retrieval, branch checkout, provider-specific diff retrieval, inline comment positioning, approvals, request-changes state, and cleanup.
 
 `code-review` owns the core review logic: syntax, logic, security, style/maintainability, documentation/scope analysis, finding schema, severity classification, and provider-neutral report/comment text.
+
+### Mandatory Dependency Boundary
+
+`review-pr` MUST delegate the core analysis to `code-review`; this is a hard workflow boundary, not a recommendation.
+
+- Invoke/load the [code-review](../code-review/SKILL.md) skill with the active platform's skill mechanism before analyzing or classifying findings.
+- Do not substitute your own syntax, logic, security, maintainability, documentation, or scope review for `code-review`.
+- Do not present findings, post comments, approve, or request changes unless the findings came from the `code-review` output interface.
+- If `code-review` cannot be invoked or loaded in the current environment, stop and tell the user the required dependency is unavailable. Do not continue with a manual review.
+- Having read `code-review` earlier, remembering its workflow, seeing an obvious issue, reviewing a small PR/MR, or being under time pressure does not satisfy this dependency.
 
 ---
 
@@ -59,6 +69,8 @@ Before proceeding:
    - **GitLab**: Requires GitLab MCP tools (reading MRs, discussions, diffs, posting notes). If missing, stop and ask the user to install the GitLab MCP server.
 
 3. Verify terminal access is available (required for git worktree operations in Step 2).
+
+4. Verify the [code-review](../code-review/SKILL.md) dependency can be invoked/loaded. If unavailable, stop and tell the user the required dependency is unavailable.
 
 Store `provider` — it will gate all provider-specific sub-steps throughout the workflow.
 
@@ -122,9 +134,9 @@ If you already have a useful codebase baseline from adjacent tools or exploratio
 
 ---
 
-### Step 5 — Analyze & Classify Findings with Code Review Core
+### Step 5 — Invoke Code Review Core
 
-Invoke the [code-review](../code-review/SKILL.md) skill with this PR/MR-specific input wrapper:
+Invoke the [code-review](../code-review/SKILL.md) skill with this PR/MR-specific input wrapper before doing any review analysis:
 
 ```yaml
 submission:
@@ -153,12 +165,24 @@ review_context:
   output_target: calling-skill
 ```
 
-The code-review dependency MUST:
+The `code-review` dependency MUST:
 
 - Apply its full review workflow to all changed files.
 - Return provider-neutral findings, report text, and comment bodies using its output interface.
 
-Store the returned findings and report as the PR/MR review result.
+Store the returned output as `code_review_result`. `code_review_result` is the only valid source for:
+
+- Findings shown in Step 6.
+- Comment bodies posted in Step 7-A.
+- Request-changes summaries in Step 7-C.
+
+Before moving to Step 6, perform this invariant check:
+
+```text
+Did I invoke/load code-review for this PR/MR, and are all findings/report/comment bodies copied from code_review_result?
+```
+
+If the answer is not yes, go back and invoke `code-review`. Do not continue by analyzing the PR/MR yourself.
 
 ---
 
