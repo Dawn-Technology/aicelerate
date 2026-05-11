@@ -69,12 +69,12 @@ copilot plugin update aimate
 
 The following skills are not part of this repository but are recommended for use alongside `aimate`.
 
-### Grill Me ([mattpocock/skills — grill-me](https://github.com/mattpocock/skills/blob/main/grill-me))
+### Grill Me ([mattpocock/skills — grill-me](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me))
 
 Interviews you relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree one question at a time. Use when you want to stress-test a plan or get grilled on a design.
 
 ```bash
-npx skills add https://github.com/mattpocock/skills --skill grill-me
+npx skills add https://github.com/mattpocock/skills/tree/main/skills/productivity --skill grill-me
 ```
 
 ### ADR Writing ([vercel/ai — adr-skill](https://skills.sh/vercel/ai/adr-skill))
@@ -83,6 +83,14 @@ Helps agents write Architectural Decision Records (ADRs) as executable specifica
 
 ```bash
 npx skills add https://github.com/vercel/ai --skill adr-skill
+```
+
+### Caveman ([mattpocock/skills — caveman](https://github.com/mattpocock/skills/tree/main/skills/productivity/caveman))
+
+Ultra-compressed communication mode that cuts token usage ~75% by dropping filler, articles, and pleasantries while keeping full technical accuracy. Use when you want terse, token-efficient responses.
+
+```bash
+npx skills add https://github.com/mattpocock/skills/tree/main/skills/productivity --skill caveman
 ```
 
 ## Plugin
