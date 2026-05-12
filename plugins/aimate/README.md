@@ -32,6 +32,16 @@ Performs comprehensive code review — identifies bugs, logic errors, security i
 
 ---
 
+### `test-pr-guide`
+
+> Produce a step-by-step manual testing guide for a branch or PR.
+
+Analyzes the diff, identifies what changed, and writes a guide a real person can follow to verify the feature or fix works — including setup requirements, test scenarios, and expected outcomes. Supports GitLab MR URLs and local branches.
+
+**Trigger phrases:** "how do I test this PR", "create a test plan", "write a QA checklist", "how do I test this MR"
+
+---
+
 ### `gitlab-mr-review` (Deprecated)
 
 > ⚠️ **Deprecated.** Use [`review-pr`](#review-pr) instead, which provides unified support for both GitHub and GitLab.
