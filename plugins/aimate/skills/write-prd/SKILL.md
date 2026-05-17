@@ -4,7 +4,7 @@ description: Create a PRD and user stories through user interview, codebase expl
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   based_on: "https://github.com/mattpocock/skills/blob/main/write-a-prd/SKILL.md"
-  version: 0.0.9
+  version: 1.0.0
 ---
 
 ## Steps
@@ -23,7 +23,7 @@ A deep component (as opposed to a shallow component) is one which encapsulates a
 
 Check with the user that these components match their expectations. Check with the user which components they want tests written for.
 
-5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Save the PRD as a Markdown file in the project's root folder to `<YYYY-MM-DD>-<feature-name>.md`.
+5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Save the PRD as a Markdown file in the project's `docs/spec` folder to `<YYYY-MM-DD>-<feature-name>.md`. Check if folder exists. If not, create it. If file already exists, append a version number to the end of the file name (e.g. `2024-06-01-new-feature-v2.md`).
 
 ## Template
 
