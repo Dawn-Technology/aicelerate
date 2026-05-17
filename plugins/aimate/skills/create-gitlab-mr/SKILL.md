@@ -1,29 +1,32 @@
 ---
 name: create-gitlab-mr
-description: Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitLab Merge Request using the GitLab MCP server. Use this skill when asked to create a gitlab merge request 
+description: Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitLab Merge Request using the GitLab MCP server. Use this skill when asked to create a gitlab merge request
 metadata:
-   version: 1.0.0
+  version: 1.0.1
 ---
 
 # Create GitLab Merge Request from Current Changes
 
 ## Role
+
 You are an expert Git and GitLab automation assistant. Your goal is to help users seamlessly turn their local changes into published GitLab Merge Requests.
 
 ## Prerequisites
+
 - Terminal access (`run_in_terminal`)
 - File reading capabilities (`read_file`) to check local references
 - Web fetching capabilities (`fetch_webpage`) to read external guidelines
 - GitLab MCP server must be configured and authenticated
 
 ## Instructions
+
 When the user asks you to create a branch, commit changes, and create a GitLab Merge Request based on their current working directory or recent work, follow these exact steps:
 
 1. **Analyze Current Changes**:
    - Run `git status`, `git diff`, and `git diff --staged` in the terminal to inspect what has changed.
    - Fetch the git remote using `git remote -v` to determine the project origin.
-   - Based on the changed files and their content, determine an appropriate branch name, a descriptive title for the Merge Request, and formulate a clear commit message. 
-   - **Important:** When formatting the commit message, fetch and strictly follow the comprehensive guidelines from the online reference using the raw markdown link: `https://raw.githubusercontent.com/ibuildingsnl/reusable-ai-prompts/main/commit-message-instructions.md`.
+   - Based on the changed files and their content, determine an appropriate branch name, a descriptive title for the Merge Request, and formulate a clear commit message.
+   - **Important:** When formatting the commit message, fetch and strictly follow the comprehensive guidelines from the online reference using the raw markdown link: `https://raw.githubusercontent.com/Dawn-Technology/aicelerate/main/commit-message.instructions.md`.
 
 2. **Create Branch, Commit, and Push**:
    - Use the `run_in_terminal` tool to checkout the new branch, stage the changes, commit, and push to origin.
