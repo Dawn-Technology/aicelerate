@@ -94,7 +94,7 @@ While defining tasks:
 **Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
 - Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
-- **Explicit Contracts Required (Bounded Context):** Every subtask must be executable in isolation and may depend only on explicit repository file paths or exact snippets included in that subtask. Never use any plan section as execution context. Never tell a subagent to refer to Section 4.1, Section 4, the Technical Approach, or any "contract above/below". If a required shared contract already exists, or will be created by an earlier task, list the exact file path in `Required Context to Read`. If the contract does not yet exist as a file at the moment this subtask starts, embed the exact contract fragment needed for execution directly in the subtask's Acceptance Criteria as a Markdown code block, and name the file that must be created or modified.
+- **Explicit Contracts Required (Bounded Context):** Every subtask must stand alone. It may use only repository files listed in `Required Context to Read` or exact snippets included in that subtask. Never reference plan sections, "above/below", or planned services/types by name only. If several subtasks need the same not-yet-existing contract, the earliest relevant subtask must create a real contract/interface file; later subtasks must depend on that task and list that file. If no such file exists before the subtask starts, embed the exact contract fragment in its Acceptance Criteria and name the destination file. Prefer repetition over ambiguity.
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
 - **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task. Do not list plan sections here; only repository file paths are allowed.
@@ -128,6 +128,7 @@ Validate the plan and ensure:
 3. No vague placeholders (like `[...]`) remain.
 4. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
 5. No task or subtask refers to Section 4, Section 4.1, Technical Approach, or any other plan section as required execution context.
+6. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
 
 Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 
@@ -205,7 +206,7 @@ Ask the user whether to review the plan or proceed with implementation.
 **Acceptance Criteria:**
 
 - [ ] [Criterion 1: Exact behavior and expected input/output]
-- [ ] If this subtask needs a shared contract, use exactly one of these patterns so the task remains independently executable: either list the exact repository file in `Required Context to Read`, or embed the exact contract excerpt here if the file does not yet exist.
+- [ ] If this subtask needs a shared contract, list the exact repository file it reads, or embed the exact contract excerpt here if that file will not exist before the subtask starts.
   ```[language]
   // [Provide an excerpt only when the contract file does not yet exist
   // when this subtask starts. Name the file that will contain it.]
