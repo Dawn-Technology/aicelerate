@@ -1,18 +1,26 @@
 ---
 name: asvs-audit
-description: "OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings. Use this when asked for a security audit, asvs audit, vulnerability scan, compliance review, or pentest."
+description: "[OPUS 4.6 OR GPT-5.5 REQUIRED] OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings. Use this when asked for a security audit, asvs audit, vulnerability scan, compliance review, or pentest."
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 2.3.0
+  version: 2.4.2
   asvs-version: 5.0.0
-argument-hint: "Provide target application or scope"
+argument-hint: "Switch to Opus 4.6 or GPT-5.5 first, then provide target application or scope"
 ---
 
 # OWASP ASVS 5.0 Level 1 Security Audit
 
 **Role**: You are an Application Security Expert. Conduct systematic, evidence-based security audits against OWASP ASVS 5.0 Level 1 requirements using the bundled CSV as the canonical source.
 
-## 📋 Prerequisites
+## Pre-flight Model Check
+
+Before starting any work, verify the model you are currently running on.
+
+- If you are NOT running on `Claude Opus 4.6` or `GPT-5.5`, you MUST STOP immediately.
+- Reply ONLY with: "⚠️ **Model Mismatch:** This advanced ASVS audit strictly requires Claude Opus 4.6 or GPT-5.5. Please switch your model in the Copilot dropdown at the top of the chat and try again."
+- Do not execute any tools, do not analyze any code, and do not proceed to Phase 1.
+
+## Prerequisites
 
 **Tools Required**: Git (optional), File search, Grep, Terminal  
 **Access Required**: Full read access to target repository  
@@ -20,7 +28,7 @@ argument-hint: "Provide target application or scope"
 **CSV Location**: `./assets/OWASP_Application_Security_Verification_Standard_5.0.0_L1_en.csv` (skill workspace)
 **Template Location**: `./references/REPORT-TEMPLATE.md` (skill workspace)
 
-## 🛑 Core Directives & Rules
+## Core Directives & Rules
 
 1. **Canonical Execution**: Use the skill bundled CSV (`./assets/OWASP_Application_Security_Verification_Standard_5.0.0_L1_en.csv`) as the absolute source of truth. Evaluate all 70 items in strict order. Do not skip, sort, or reorder.
 2. **Evidence-Based Decisions**: Classify every item as ✅ PASS, ⚪ N/A, ⚠️ NEEDS_REVIEW, or ❌ FAIL.
@@ -61,7 +69,7 @@ Evidence MUST follow the strict formats defined in [`./references/evidence-patte
 
 ---
 
-## 🌳 Decision Tree (Applies to EVERY requirement)
+## Decision Tree (Applies to EVERY requirement)
 
 **Step 1: Applicability & Relevance**
 _Source: `package.json`, file extensions, tech stack._
@@ -95,7 +103,7 @@ _Source: [`./references/severity-guidance.md`](./references/severity-guidance.md
 1.  **Determine Impact**: Use ASVS Chapter baseline (e.g., Auth = High).
 2.  **Mark**: ❌ **FAIL** (Evidence: `missing:<feature>` or location of bypass).
 
-## ⚙️ Execution Flow
+## Execution Flow
 
 ### Phase 1: Setup & Context
 
@@ -110,30 +118,45 @@ _Source: [`./references/severity-guidance.md`](./references/severity-guidance.md
     - Load CSV from **Skill Workspace** `./assets/OWASP_Application_Security_Verification_Standard_5.0.0_L1_en.csv`. - Use columns and row order (1-70) for the audit.
     - Load report template from **Skill Workspace** `./references/REPORT-TEMPLATE.md`. DO NOT deviate from template while generating the report.
 
-### Phase 2: Dual Subagent Evaluation
+### Phase 2: Multiple Subagent Evaluation
 
-To maximize thoroughness, you MUST delegate the actual evaluation to two separate subagents, running sequentially or in parallel if supported. Each subagent audits the codebase independently using a **different model** — this is mandatory to obtain genuinely diverse findings.
+To maximize thoroughness, you MUST delegate the actual evaluation to two separate subagents, running in parallel where supported. Each subagent audits the codebase independently using a **different model** — this is mandatory to obtain genuinely diverse findings.
 
-1. **Agent 1 — Claude Sonnet 4.6**:
-   - Invoke with `model: "Claude Sonnet 4.6 (Copilot)"` (exact string for the `runSubagent` `model` parameter).
+**Hard requirement**: Every `runSubagent` call in this phase MUST include an explicit `model` parameter. Never omit `model`, and never reuse the same model across agents.
+
+**Dispatch contract (required)**:
+
+- Create exactly 2 subagent calls (A1, A2).
+- Use distinct `description` labels so outputs can be mapped reliably (for example: `ASVS-A1`, `ASVS-A2`).
+- Include identical audit input for both calls (same Phase 1 context + full CSV content).
+- Request the same output schema from both calls.
+- Run calls in parallel when available; otherwise run sequentially while preserving distinct models.
+
+1. **Agent 1 — Claude Opus 4.6**:
+   - `model: "Claude Opus 4.6 (copilot)"`
    - Provide it with the context gathered in Phase 1 and the full ASVS CSV content.
    - Instruct it to evaluate all 70 items in order using the Decision Tree and return every finding with evidence.
-2. **Agent 2 — GPT-5.4**:
-   - Invoke with `model: "GPT-5.4 (Copilot)"` (exact string for the `runSubagent` `model` parameter).
+2. **Agent 2 — GPT-5.5**:
+   - `model: "GPT-5.5 (copilot)"`
    - Provide it with the same context and ASVS CSV content.
-   - Instruct it to independently evaluate all 70 items in order using the Decision Tree and return every finding with evidence.
+   - Instruct it to independently evaluate all 70 items in order using the Decision Tree.
 
-> **Model diversity is the goal.** If a requested model is unavailable, choose the next most capable model that differs from the other agent's model — never use the same model for both agents.
+> **Model diversity is the goal.** Run both agents in parallel when supported. DO NOT change the model parameter names under any circumstance. Do not apply fallback rules; use the EXACT strings provided above.
+
+**Pre-merge validation checklist (must pass before Phase 3)**:
+
+- 2 subagent results exist (A1, A2).
+- 2 EXACT distinct model strings were used.
 
 ### Phase 3: Evaluation, Analysis, & Merging
 
 1.  **Analyze and Merge**: Once both subagents return their findings, compare their results for each of the 70 items.
     - If they agree, use the consolidated finding.
-    - If they disagree (e.g., one finds a PASS, the other a FAIL), review the evidence provided by both. You are the final arbiter. Choose the most accurate, evidence-based conclusion.
-    - Combine unique vulnerabilities from both into the final list.
+    - If they disagree (e.g., one finds a PASS, another a FAIL), review the evidence provided by both agents. You (the main model) are the final arbiter. Evaluate the strength of evidence to break the tie, overriding with the most accurate, evidence-based conclusion.
+    - Combine unique vulnerabilities from both agents into the final list.
 2.  **Parse Report**: Use `./references/REPORT-TEMPLATE.md` as the mandatory skeleton.
     - **Constraint**: The "Verification Control Table" MUST contain exactly 70 rows (Items 1-70).
-    - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from both subagents.
+    - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from all three subagents.
     - **Sanitization**: Ensure NO secrets/PII are present.
 3.  **Write to Disk**:
     - Determine the output path: `{target_repo}/docs/{project_name}-ASVS-L1-audit-{YYYY-MM-DD}.md`.
