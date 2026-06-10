@@ -93,6 +93,20 @@ Ultra-compressed communication mode that cuts token usage ~75% by dropping fille
 npx skills add https://github.com/mattpocock/skills/tree/main/skills/productivity --skill caveman
 ```
 
+## Recommended MCP servers
+
+The following MCP servers are not part of this repository but are recommended for use alongside `aimate`.
+
+### Context7 ([upstash/context7](https://github.com/upstash/context7))
+
+Fetches up-to-date, version-specific documentation and code examples directly from the source and places them in your prompt. Prevents hallucinated APIs and outdated code generation. Add `use context7` to any prompt to pull in current library docs on demand.
+
+```bash
+npx ctx7 setup
+```
+
+Or configure the MCP server manually using `https://mcp.context7.com/mcp` in your MCP client. See [context7.com/docs](https://context7.com/docs) for client-specific setup instructions.
+
 ## Plugin
 
 See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details.
