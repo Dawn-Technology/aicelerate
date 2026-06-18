@@ -145,6 +145,64 @@ Copilot won't infer Jira context from your codebase. Add this block manually so 
 - Allowed types: Taak, Story, Bug, Subtaak, Epic.
 ```
 
+### Commit Message Instructions
+
+The repo ships a [`commit-message.instructions.md`](commit-message.instructions.md) file that defines a strict [Conventional Commits](https://www.conventionalcommits.org/) format with impact analysis and footer metadata. It is used in three ways:
+
+- **VS Code** — Copilot uses it automatically when generating commit messages via the Source Control panel.
+- **Copilot CLI agents** — Agents reference it when crafting commits, so the same standard applies whether you commit manually or via an automated skill.
+- **Skills and prompts** — Any skill that produces commits (e.g. `create-gitlab-mr`) can reference it explicitly to ensure consistent output.
+
+#### VS Code setup
+
+Add the following to your project's `.vscode/settings.json` (or user `settings.json` to apply globally):
+
+```json
+"github.copilot.chat.commitMessageGeneration.instructions": [
+    { "file": "commit-message.instructions.md" }
+]
+```
+
+With this in place, the **Generate Commit Message** button in the Source Control panel will follow the Conventional Commits format defined in the file.
+
+#### Copilot CLI and agents
+
+The file is automatically picked up by the Copilot CLI when it is present at the repo root. No extra configuration is required — agents will apply the commit conventions whenever they stage and commit changes.
+
+### Tone of Voice
+
+The repo ships a [`tone-of-voice.instructions.md`](tone-of-voice.instructions.md) that defines the voice for content Copilot produces on your behalf. It is most valuable when generating output that gets shared externally — documentation, PRDs, ADRs, architectural design specs, and similar artefacts where consistent, professional tone matters. Storing it once means every piece of generated content follows the same standard without repeating yourself.
+
+#### Store it in Copilot memory (recommended)
+
+Copilot memory is user-scoped and persists across all sessions and repositories. Storing your tone preferences there means you never have to repeat them.
+
+Start a session with memory enabled, then ask Copilot to read and remember the file:
+
+```bash
+copilot --enable-memory
+```
+
+Once in the session, run:
+
+```
+Read tone-of-voice.instructions.md and store my tone of voice preferences in your memory.
+```
+
+Copilot will extract the preferences and save them as user-scoped memories. They will be active in every future session without any further configuration.
+
+#### VS Code setup
+
+To apply the tone in VS Code, reference the file in your user `settings.json` (not the project settings, so it applies globally):
+
+```json
+"github.copilot.chat.codeGeneration.instructions": [
+    { "file": "tone-of-voice.instructions.md" }
+]
+```
+
+---
+
 ### Coder Agent (optional)
 
 Because `aimate` intentionally does not bundle a coding agent, each team is expected to configure their own. A custom coder agent combines your project's `AGENTS.md` context, the `aimate` skills, and any project-specific skills into a single, ready-to-invoke agent.
