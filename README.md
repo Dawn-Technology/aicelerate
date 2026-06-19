@@ -55,6 +55,18 @@ copilot plugin install Dawn-Technology/aicelerate:plugins/aimate
 copilot plugin update aimate
 ```
 
+### Claude Code Compatibility
+
+The marketplace is also compatible with Claude Code. Register it, then install by name:
+
+```bash
+claude plugin marketplace add Dawn-Technology/aicelerate
+claude plugin install aimate@aicelerate
+```
+
+> [!NOTE]
+> Compatibility is provided by symlinks (`.claude-plugin/marketplace.json` and `plugins/aimate/.claude-plugin/plugin.json`) that point at the Copilot-canonical manifests. Git stores these as symlinks on macOS and Linux. On Windows they only check out as symlinks when `git config core.symlinks` is `true`; otherwise they become plain text stubs and Claude Code discovery will fail.
+
 ## Requirements
 
 ### Visual Studio Code
