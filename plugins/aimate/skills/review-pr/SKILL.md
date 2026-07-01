@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.2.1
+  version: 4.2.2
 ---
 
 # PR/MR Review Workflow Skill
@@ -154,12 +154,12 @@ Then present the grouped findings report to the user **before taking any action*
 The report must include:
 
 - PR/MR title, source → target branch, author.
-- Finding totals per severity.
+- Findings totals per severity.
 - Findings ordered by severity, then file path.
 
 Render each finding in this format:
 
-`**Finding #N — <id>**`
+`**Finding #N — <id> <severity>**`
 
 `**<title>**`
 
@@ -330,7 +330,7 @@ Use the same finding content for chat and posted review comments.
 
 Differences by destination:
 
-- In chat, include the `Finding #N — <id>` prefix.
+- In chat, include the `Finding #N — <id> <severity>` prefix.
 - In posted comments, omit the prefix and keep the rest unchanged.
 
 Style rules:
