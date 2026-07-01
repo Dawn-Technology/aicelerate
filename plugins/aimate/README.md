@@ -42,14 +42,6 @@ Analyzes the diff, identifies what changed, and writes a guide a real person can
 
 ---
 
-### `gitlab-mr-review` (Deprecated)
-
-> ⚠️ **Deprecated.** Use [`review-pr`](#review-pr) instead, which provides unified support for both GitHub and GitLab.
-
-~~Review a GitLab Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes.~~
-
----
-
 ### `create-gitlab-mr`
 
 > Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitLab Merge Request using the GitLab MCP server.
