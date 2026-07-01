@@ -81,12 +81,12 @@ claude plugin install aimate@aicelerate
 
 The following skills are not part of this repository but are recommended for use alongside `aimate`.
 
-### Grill Me ([mattpocock/skills — grill-me](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me))
+### Grilling ([mattpocock/skills — grilling](https://www.skills.sh/mattpocock/skills/grilling))
 
 Interviews you relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree one question at a time. Use when you want to stress-test a plan or get grilled on a design.
 
 ```bash
-npx skills add https://github.com/mattpocock/skills/tree/main/skills/productivity --skill grill-me
+npx skills add https://github.com/mattpocock/skills --skill grilling
 ```
 
 ### ADR Writing ([vercel/ai — adr-skill](https://skills.sh/vercel/ai/adr-skill))
@@ -248,7 +248,7 @@ Before writing a line of spec, stress-test the problem statement and approach. P
 
 | Tool | Source | Purpose |
 |---|---|---|
-| `grill-me` | [External](#grill-me-mattpocodeskills--grill-me) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
+| `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
 
 ---
@@ -271,7 +271,7 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 | Tool | Source | Purpose |
 |---|---|---|
-| `grill-me` | [External](#grill-me-mattpocodeskills--grill-me) | Stress-test architectural options before committing |
+| `grilling` | [External](#grilling-mattpocockskills--grilling) | Stress-test architectural options before committing |
 | `adr-writing` | [External](#adr-writing-vercelai--adr-skill) | Write Architectural Decision Records in MADR format |
 
 ---
