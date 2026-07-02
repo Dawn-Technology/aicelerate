@@ -97,12 +97,12 @@ Helps agents write Architectural Decision Records (ADRs) as executable specifica
 npx skills add https://github.com/vercel/ai --skill adr-skill
 ```
 
-### Caveman ([mattpocock/skills — caveman](https://github.com/mattpocock/skills/tree/main/skills/productivity/caveman))
+### Caveman ([JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman))
 
 Ultra-compressed communication mode that cuts token usage ~75% by dropping filler, articles, and pleasantries while keeping full technical accuracy. Use when you want terse, token-efficient responses.
 
 ```bash
-npx skills add https://github.com/mattpocock/skills/tree/main/skills/productivity --skill caveman
+npx skills add https://github.com/JuliusBrussee/caveman --skill caveman
 ```
 
 ## Recommended MCP servers
