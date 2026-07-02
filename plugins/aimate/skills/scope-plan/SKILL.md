@@ -3,7 +3,7 @@ name: scope-plan
 description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 6.3.0
+  version: 6.4.0
 ---
 
 # Plan & Estimate tasks
@@ -51,10 +51,10 @@ Decision areas to consider:
 
 If codebase exploration does not resolve a blocking decision, ask the user. When asking, always provide:
 
-- the open question
-- a recommended answer
-- a brief rationale
-- the impact on scope or design if answered differently
+- Question
+- Recommendation
+- Rationale
+- Scope impact if answered differently
 
 Do not silently invent blocking decisions. Non-blocking gaps may become **Assumptions** with rationale.
 
@@ -89,27 +89,54 @@ While defining tasks:
 - Prefer separation of concerns and avoid coupling unrelated responsibilities.
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - Only split files if a single file would exceed one clear responsibility.
-- Optimize for subagent execution: each subtask should have bounded scope, explicit inputs/outputs, and no hidden dependencies.
+- Optimize for subagent execution: each task block must be sufficient as the handoff packet. The subagent should not need the full plan except for repository files explicitly listed in the task.
+- Classify every task as `Parallel-safe`, `Sequential`, or `Coordinator-only`. A task is `Parallel-safe` only when its allowed modification scope does not overlap with any other parallel task and it does not depend on unfinished contracts.
+
+Execution mode semantics:
+
+- `Parallel-safe`: May be delegated to an independent subagent immediately after dependencies are complete.
+- `Sequential`: May be delegated to a subagent only after listed dependencies are complete.
+- `Coordinator-only`: Must be handled by the planner/coordinator, not by an isolated implementation subagent.
+
+Task invariants:
+
+- **Standalone:** Every task/subtask must be executable without reading other plan sections. Never reference `Section 1`, `Section 4`, `Technical Approach`, `Design Tree`, "above", "below", "previous section", "later task", or "the plan" as execution context.
+- **Context-bound:** Execution context may only come from repository files listed in `Required Context to Read`, files created by declared dependencies, or exact snippets embedded inside the task/subtask itself.
+- **Contract-first:** Shared new contracts must be created in an earlier contract-only task with minimal tests.
+- **Contract materialization:** If Section 4.1 defines a shared boundary used by multiple tasks, the first implementation task must create or update the real repository contract file before any consumer task starts. Later tasks must depend on that task and list the contract file in `Required Context to Read`.
+- **Scope-bound:** Declare `Execution Mode`, `Allowed Scope`, `Context to Preserve`, and `Validation Commands`.
+- **Validated:** Every code-changing task ends with tests and exact commands, or states command discovery is required.
+
+Output economy:
+
+- Omit optional sections unless triggered.
+- Use one row per design-tree branch; avoid extra prose after tables unless needed.
+- Keep acceptance criteria concrete but minimal.
+- Do not repeat the same context file in subtasks unless it differs from the task context.
+- Prefer exact file paths over explanatory text.
 
 **Task format guidelines.** Adhere to the hierarchical structure shown in the template (Task > Subtask) and follow these rules:
 
 - Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
-- **Explicit Contracts Required (Bounded Context):** Every subtask must stand alone. It may use only repository files listed in `Required Context to Read` or exact snippets included in that subtask. Never reference plan sections, "above/below", or planned services/types by name only. If several subtasks need the same not-yet-existing contract, the earliest relevant subtask must create a real contract/interface file; later subtasks must depend on that task and list that file. If no such file exists before the subtask starts, embed the exact contract fragment in its Acceptance Criteria and name the destination file. Prefer repetition over ambiguity.
+- **Explicit Contracts Required (Bounded Context):** Apply the task invariants. If no contract file exists before the subtask starts, embed the exact contract fragment in its Acceptance Criteria and name the destination file. Prefer repetition over ambiguity.
 - `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
 - **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task. Do not list plan sections here; only repository file paths are allowed.
-- Every code-changing task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, and identifying the test harness to use. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope.
+- **Contract Inputs:** Every task must list repository contract files it consumes, or `None`. Never list plan sections. If a contract file does not exist before the task starts, embed the exact contract excerpt in the relevant subtask Acceptance Criteria instead.
+- **Context to Preserve:** Every task must list existing behavior, contracts, files, or conventions the subagent must not change while completing the task.
+- Every code-changing task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, identifying the test harness to use, and listing the exact validation command to run. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope. If the command is unknown, state that the subagent must inspect the repository test configuration before editing code.
 - No subtask may exceed 4h. Break it down further if needed.
 - **Estimation fallback:** If a task's scope is highly uncertain, replace it with a 2h Spike task and define the expected output (e.g., 'Sequence Diagram' or 'Interface Proposal'). If an unresolved branch would materially change contracts, schema, integration choice, or task breakdown, insert a Spike before estimating downstream implementation work.
+- **Integration review:** Every plan using two or more subagent-executable tasks must include a near-final **Integration Review** task before Documentation/Rework to reconcile outputs, shared contracts, overlapping edits, and validation results.
 - **Final task:** Every plan must include a final task named **Documentation/Rework** with subtasks for **Documentation updates** and **Rework**.
 
 **Estimation.** Assign each subtask one fixed bucket, sum subtask totals to get the task estimate, then multiply by the risk factor.
 
-- **Trivial (0.25h):** Mechanical change, no logic (renaming, translation updates).
-- **Tiny (0.5h):** Focused 1-file change (add/remove field, wire utility, 2-3 tests).
-- **Small (1h):** Self-contained 1-3 files (DB migration + model, helper with tests).
-- **Medium (2h):** Feature slice across layers (new entity, REST endpoint + tests, form + API).
-- **Large (4h):** Max allowed per subtask. Complex integration/vertical slice (CRUD, OAuth).
+- **Trivial (0.25h):** Mechanical/no logic.
+- **Tiny (0.5h):** Focused 1-file change.
+- **Small (1h):** Self-contained 1-3 files.
+- **Medium (2h):** Feature slice across layers.
+- **Large (4h):** Complex vertical slice; split anything larger.
 
 If a subtask would exceed 4h, split it.
 
@@ -127,8 +154,10 @@ Validate the plan and ensure:
 2. All files are marked `(create)` or `(modify)`.
 3. No vague placeholders (like `[...]`) remain.
 4. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
-5. No task or subtask refers to Section 4, Section 4.1, Technical Approach, or any other plan section as required execution context.
-6. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
+5. Every task satisfies the task invariants.
+6. No task or subtask refers to Section 4, Section 4.1, Technical Approach, Design Tree, "above", "below", or any other plan section as required execution context.
+7. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
+8. Every parallel-safe task has non-overlapping allowed modification scope.
 
 Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 
@@ -155,8 +184,8 @@ Ask the user whether to review the plan or proceed with implementation.
 
 ### Requirements
 
-- [ ] [Functional requirement stated in product-owner language, focused on user-visible behavior or business outcome]
-- [ ] [Functional requirement stated in product-owner language, focused on user-visible behavior or business outcome]
+- [ ] [Requirement]
+- [ ] [Requirement]
 
 ## 2. Discovery Summary
 
@@ -193,13 +222,27 @@ Ask the user whether to review the plan or proceed with implementation.
 #### Task 1 — [Task Name]
 - **Docs / References:** `[Relevant doc, ADR, README, API doc]` or `None`
 - **Depends on:** [Task number(s) that must complete first, or "None"]
+- **Execution Mode:** Parallel-safe | Sequential | Coordinator-only
+- **Allowed Scope:** `[Exact files or folders this task may modify]`
 - **Estimate:** [X.Xh base × risk multiplier = X.Xh]
 
 **Required Context to Read:**
 
 - `[File path 1 needed for context (e.g. types/interfaces)]`
 - `[File path 2 needed for context]`
-- `[Optional third file only if essential]`
+- `[Optional third file]`
+
+**Contract Inputs:**
+
+- `[Repository contract file created by an earlier task]` or `None`
+
+**Context to Preserve:**
+
+- `[Behavior, contract, file, or convention to preserve]`
+
+**Validation Commands:**
+
+- `[Exact command, or command discovery note]`
 
 **1.1 [Subtask Name]** — `[File Path]` (create | modify)
 
@@ -228,11 +271,57 @@ Ask the user whether to review the plan or proceed with implementation.
 
 [Repeat task and subtask blocks as needed.]
 
+#### Task N−1 — Integration Review (required when multiple subagent-executable tasks exist)
+
+- **Docs / References:** None
+- **Depends on:** [All implementation tasks]
+- **Execution Mode:** Coordinator-only
+- **Allowed Scope:** `[Files needed to resolve integration conflicts]`
+- **Estimate:** [X.Xh base × risk multiplier = X.Xh]
+
+**Required Context to Read:**
+
+- `[Changed contract file or primary integration point]`
+
+**Validation Evidence to Review:**
+
+- `[Validation command output, CI job, test report, or subagent summary]`
+
+**Context to Preserve:**
+
+- `[Shared contracts and user-visible behavior validated by earlier tasks]`
+
+**Validation Commands:**
+
+- `[Broadest relevant test, lint, or typecheck command]`
+
+**N−1.1 Reconcile subagent outputs** — `[affected files]` (modify)
+
+**Acceptance Criteria:**
+
+- [ ] All overlapping edits are resolved without reverting unrelated user changes.
+- [ ] Shared contracts used by implementation and tests match the real repository files.
+- [ ] Validation results from subagent tasks are reviewed and any local integration defects are fixed.
+
 #### Task N — Documentation/Rework (required final task)
 
 - **Docs / References:** None
 - **Depends on:** Task N−1
+- **Execution Mode:** Coordinator-only
+- **Allowed Scope:** `[README / ADR / runbook paths and files touched during rework]`
 - **Estimate:** [X.Xh base × risk multiplier = X.Xh]
+
+**Required Context to Read:**
+
+- `[Primary changed file or review notes]`
+
+**Context to Preserve:**
+
+- `[Validated behavior and contracts from implementation tasks]`
+
+**Validation Commands:**
+
+- `[Docs check, test rerun, or final verification command]`
 
 **N.1 Rework** — `[affected files]` (modify)
 Work through all comments from the peer code review: refactor as requested, fix logic issues, and resolve nitpicks.
