@@ -10,6 +10,12 @@ If you have the Superpowers plugin installed, be aware that it can sometimes int
 
 If a skill behaves inconsistently, invokes the wrong workflow, or appears to ignore its instructions, first check whether Superpowers was triggered in the workflow. If it was, disable or uninstall the Superpowers plugin and then rerun the skill.
 
+## Acceptance Criteria Contract
+
+`aimate` specs carry acceptance criteria in a single machine-readable format. Every PRD ends with an `## Acceptance Criteria` block where each criterion has a stable id (`AC-1`, `AC-2`, …) and states a condition and an expected outcome in Given/When/Then — structured data rather than prose buried in a user story.
+
+The id is the join key. `write-prd` writes the block, `spec-to-tests` turns each criterion into a test stub tagged with its id, and `review-pr` reports per id whether the change and its tests satisfy the criterion. The loop from spec to executable check holds because all three skills read and write one format, defined once in [`shared/acceptance-criteria.md`](shared/acceptance-criteria.md). An automated delivery pipeline reads the same block to get an objective definition of done.
+
 ## Skills
 
 ### `asvs-audit`
@@ -26,7 +32,7 @@ Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requir
 
 > Review a GitLab Merge Request or GitHub Pull Request and provide findings, and post structured review comments with issue explanation plus code fixes.
 
-Performs comprehensive code review — identifies bugs, logic errors, security issues, and style violations. Posts structured inline comments with code fix suggestions directly on the MR.
+Performs comprehensive code review — identifies bugs, logic errors, security issues, and style violations. Posts structured inline comments with code fix suggestions directly on the MR. Also runs an acceptance-criteria verification pass: it locates the linked spec and reports, per `AC-<n>`, whether the diff and its tests satisfy each criterion.
 
 **Trigger phrases:** "review this MR", "review this merge request", "review the gitlab MR"
 
@@ -66,9 +72,19 @@ Produces a deterministic, execution-ready implementation plan with atomic tasks,
 
 > Create a PRD and user stories through user interview, codebase exploration, and component design.
 
-Guides you through building a complete Product Requirements Document by interviewing you about the problem, exploring the codebase, sketching major components, and writing the final PRD as a Markdown file.
+Guides you through building a complete Product Requirements Document by interviewing you about the problem, exploring the codebase, sketching major components, and writing the final PRD as a Markdown file. Every PRD ends with a machine-readable `## Acceptance Criteria` block (stable `AC-<n>` ids) in the shared canonical format, derived from the interview and confirmed with you.
 
 **Trigger phrases:** "write a PRD", "create a product requirements document", "write user stories", "plan a new feature"
+
+---
+
+### `spec-to-tests`
+
+> Turn the acceptance-criteria block of a PRD into failing test stubs in the repository's own test framework.
+
+Reads the `## Acceptance Criteria` block from a spec, detects the project's test framework (PHPUnit, Jest/Vitest, pytest, Go `testing`, and similar), and scaffolds one or more stubs per criterion. Each stub is tagged with its criterion id and encodes Given/When/Then as arrange/act/assert with a failing or pending assertion — a starting point to fill in, never a fabricated passing test.
+
+**Trigger phrases:** "generate tests from spec", "spec to tests", "scaffold tests from the prd"
 
 ---
 
