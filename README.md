@@ -232,7 +232,7 @@ This is where teams add project-specific skills — e.g. a deployment agent, a m
 
 ## Spec-Driven Development Workflow
 
-`aimate` and its recommended external skills are designed to support a **spec-driven development** workflow: start with a well-defined specification, align on architecture, plan the work, then hand it off to a coding agent of your choosing. Throughout this repo, "spec" is shorthand for the PRD and the implementation plan together.
+`aimate` and its recommended external skills are designed to support a **spec-driven development** workflow: start with a well-defined specification, align on architecture, plan the work, then hand it off to a coding agent of your choosing. Throughout this section, "spec" refers loosely to the planning artifacts a change produces — chiefly the PRD (the what and why) and the implementation plan (the how). They share the same home and lifecycle in the repo, but they are distinct documents.
 
 The plugin intentionally does **not** include a pre-configured coding agent. Projects vary significantly in language, tooling, and conventions. It is expected that each team brings their own coding agent and project-specific skills on top of this shared foundation.
 
@@ -338,7 +338,7 @@ We work across Jira, GitLab issues, and GitHub depending on the client. The repo
 The common worry is that `docs/specs/` becomes a swamp of stale files. That happens when specs are treated as permanent documentation. They are not. A spec describes one change and stops being edited once that change ships. Documentation describes the system as it is now and lives forever. Keep the two apart, retire finished specs out of the active folder, and the working area stays lean.
 
 - **One spec, one change.** A spec covers a single ticket. Once it merges you stop editing it; the next change gets its own file. Every spec has a natural end.
-- **Keep it small.** A spec over roughly two pages is usually two tickets. If `write-prd` or  produces something enormous, split the work rather than writing a monster. Small specs are also the ones `scope-plan` and `review-pr` handle best.
+- **Keep the PRD small; keep the plan granular.** A PRD over roughly two pages is usually two tickets — if `write-prd` produces something sprawling, split the work rather than writing a monster. Plans are different: an atomic, dependency-mapped plan is legitimately long, so judge it by whether the tasks are small and the scope is still one ticket, not by page count. If a single spec covers so much that its plan balloons, that is a sign to split the ticket, not to trim the plan.
 - **Retire when the ticket is closed.** While the ticket is open the spec stays in `docs/specs/`, because a feature is often hardened or hotfixed after merge and the spec is still the live reference then. When the ticket is closed, move the spec to `docs/specs/done/` in a small cleanup PR. The active folder stays lean and the spec is kept, not thrown away.
 - **Do not curate `done/`.** It is a growing pile on purpose and nobody maintains it. It sits out of the active folder, so it does not clutter daily work, and it has a defined future use (see below).
 - **ADRs are not retired.** ADRs live in the repo like specs, but they stay put when the ticket closes. An architectural decision stays true after the change ships, so it is a durable record, not a disposable spec.
@@ -359,7 +359,7 @@ Nothing here asks you to do factory work today. Keep writing and retiring specs 
 - Is there a spec file for this work in `docs/specs/`?
 - Does the ticket link to it, rather than repeat it?
 - Does the spec describe what the diff actually does?
-- Is it small and about this one change, not a permanent doc in disguise?
+- Is the PRD focused on this one change, not a permanent doc in disguise, and is the scope still a single ticket?
 
 ---
 
