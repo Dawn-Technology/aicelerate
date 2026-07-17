@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.2.2
+  version: 4.3.0
 ---
 
 # PR/MR Review Workflow Skill
@@ -16,6 +16,9 @@ The purpose of this skill is to provide constructive and comprehensive feedback 
 - **Maintainability**: Ensure code is readable, modular, and consistent with the existing architecture.
 - **Security**: Detect common security vulnerabilities and privacy risks. Validate against OWASP Top 10 where applicable.
 - **Education**: Provide explanations and context for suggested changes to help the author grow.
+- **Spec conformance**: Verify the change against the linked spec's acceptance criteria, by id, so "did we build what the spec asked" is a checkable result rather than an opinion.
+
+The review also runs an acceptance-criteria verification pass (Step 5) alongside the code-review lenses. It reads the shared canonical criteria format defined in [`../../shared/acceptance-criteria.md`](../../shared/acceptance-criteria.md) — the same block `write-prd` writes and `spec-to-tests` consumes — and reports, per `AC-<n>`, whether the diff and its tests satisfy the criterion.
 
 This workflow is **read-first** and **non-invasive**:
 
@@ -62,18 +65,19 @@ Retrieve all metadata needed for the review using the tools matching `provider`.
 
 - Fetch the PR details (title, description, source/target branches, author, labels, milestone, `base_sha`, `head_sha`).
 - Fetch existing PR review threads and comments.
-- Note: GitHub uses `base_sha` and `head_sha` for inline comment positioning in Step 7-A.
+- Note: GitHub uses `base_sha` and `head_sha` for inline comment positioning in Step 8-A.
 
 **GitLab**:
 
 - Fetch the MR details (title, description, source/target branches, author, labels, milestone, `base_sha`, `start_sha`, `head_sha`).
 - Fetch existing MR discussions and review threads.
-- Note: GitLab requires `base_sha`, `start_sha`, and `head_sha` in the diff position object in Step 7-A.
+- Note: GitLab requires `base_sha`, `start_sha`, and `head_sha` in the diff position object in Step 8-A.
 
 For **both providers**:
 
 - Note all open and resolved threads to avoid duplicate feedback and to verify whether previously requested changes have been addressed.
 - Note the description for stated intent, linked issues, and breaking-change flags.
+- **Locate the linked spec.** From the description and any linked issue, capture the ticket id and the path of the spec that defines this change. Dawn specs produced by `write-prd` live under `docs/spec/` and end with a machine-readable `## Acceptance Criteria` block. Record the spec path (or note that none was linked) — Step 5 uses it.
 
 ---
 
@@ -86,7 +90,7 @@ git fetch origin {source_branch}
 git worktree add .worktrees/pr-review-{pr_mr_number} {source_branch}
 ```
 
-Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5. **Read-only enforced** — do not modify files in the worktree.
+Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–6. **Read-only enforced** — do not modify files in the worktree.
 
 ---
 
@@ -124,7 +128,29 @@ Store the subagent's full response as your **review baseline** for code analysis
 
 ---
 
-### Step 5 — Analyze & Classify Findings
+### Step 5 — Acceptance-Criteria Verification Pass
+
+This pass checks the change against the spec's acceptance criteria by id. It runs in addition to the code-review lenses in Step 6, not instead of them. Its output is a per-criterion verdict plus any findings it raises.
+
+1. **Load the criteria.** Using the spec path captured in Step 1, read the spec in the worktree and find the `## Acceptance Criteria` block between the `<!-- acceptance-criteria:start ... -->` and `<!-- acceptance-criteria:end -->` sentinels. Parse each `AC-<n>` and its Given/When/Then per the shared canonical format in [`../../shared/acceptance-criteria.md`](../../shared/acceptance-criteria.md). Read that file so you parse the block the way it is written.
+   - If no spec was linked, or the spec has no criteria block, do not fail the review. Record that criteria verification could not run and why, skip the per-criterion checks, and surface it as a gap in the Step 7 report.
+
+2. **Verify each criterion by id.** For every `AC-<n>`, determine two things from the diff and the surrounding worktree code:
+   - **Implementation:** does the change appear to satisfy the criterion's `**Then**` outcome given its `**When**`? Classify as satisfied, partially satisfied, not satisfied, or unclear, and cite the diff evidence.
+   - **Test coverage:** is there a test that references the criterion id (test name or comment containing `AC-<n>`) and that actually asserts the `**Then**` outcome? Open the test and read the assertion — do not treat its existence as coverage.
+
+3. **Raise findings.** A gap in criteria conformance is a finding, not a footnote. Using the finding schema in Step 6, raise a `request-for-change` finding when:
+   - a criterion has no corresponding test;
+   - a test references the criterion id but does not assert the outcome (for example it is still a `spec-to-tests` stub, is skipped/pending, or asserts something trivial);
+   - the diff does not appear to satisfy the criterion.
+
+   Reference the criterion id in every such finding (for example `spec:AC-3:no-test` or `spec:AC-3:not-asserted`) so it joins back to the spec and any generated tests.
+
+4. Carry the per-criterion verdicts and these findings forward. They are presented alongside the code-review findings in Step 7.
+
+---
+
+### Step 6 — Analyze & Classify Findings
 
 Evaluate the diff through these four lenses:
 
@@ -146,15 +172,16 @@ For each finding, capture these fields internally:
 
 ---
 
-### Step 6 — Review & Present Findings to the User
+### Step 7 — Review & Present Findings to the User
 
 Do a rubber-duck review and critique the findings before sharing. Resolve any issues that may arise from the review.
-Then present the grouped findings report to the user **before taking any action**.
+Then present the grouped findings report to the user **before taking any action**. The findings include both the code-review findings from Step 6 and the acceptance-criteria findings from Step 5.
 
 The report must include:
 
 - PR/MR title, source → target branch, author.
 - Findings totals per severity.
+- **Acceptance-criteria verification summary**: the spec that was checked (or a note that none was linked), and a per-criterion line referencing each `AC-<n>` id, its implementation verdict (satisfied / partially / not satisfied / unclear), and its test-coverage verdict (covered / not asserted / no test). If criteria verification could not run, state that here.
 - Findings ordered by severity, then file path.
 
 Render each finding in this format:
@@ -175,11 +202,11 @@ If there are no findings, state that explicitly and mention any residual testing
 
 ---
 
-### Step 7 — Execute Chosen Action (Only When Confirmed)
+### Step 8 — Execute Chosen Action (Only When Confirmed)
 
-Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider`.
+Based on the user's instructions from Step 7, take the appropriate action. All sub-steps below branch on `provider`.
 
-#### 7-A: Post Comments
+#### 8-A: Post Comments
 
 Post all approved findings as visible inline comments on the PR/MR.
 
@@ -220,7 +247,7 @@ If comment submission or publication fails after some comments may already have 
   3. Publish only the still-pending drafts individually.
 - **Fallback**: If inline positioning fails (e.g., "Line is out of bounds"), fall back to a general MR discussion note using `mcp_gitlab_create_merge_request_discussion_note`, indicating the target file and line.
 
-#### 7-B: Approve
+#### 8-B: Approve
 
 If the user requests approval, confirm there are no unresolved security violations first. If there are, explicitly confirm the user wants to proceed despite the risks.
 
@@ -228,7 +255,7 @@ If the user requests approval, confirm there are no unresolved security violatio
 
 **GitLab**: Approve the MR using `mcp_gitlab_approve_merge_request`.
 
-#### 7-C: Request Changes
+#### 8-C: Request Changes
 
 Formally mark the PR/MR as requiring changes.
 
@@ -298,17 +325,17 @@ mutation requestChanges($projectPath: ID!, $iid: String!) {
 
 _Note: `mergeRequestRequestChanges` requires GitLab 17.10+. On older instances the mutation may not exist — inspect the `errors` array and inform the user if it fails._
 
-#### 7-D/E: Refine or Report Only
+#### 8-D/E: Refine or Report Only
 
-If the user wants no action taken, proceed to Step 8 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 6.
+If the user wants no action taken, proceed to Step 9 — Cleanup. If they want to refine, discuss the findings, update them, and repeat Step 7.
 
 ---
 
-### Step 8 — Clean Up
+### Step 9 — Clean Up
 
-Prerequisite: Step 8 must never run in the same response as Step 6. Execute it only after Step 7 is complete, or after the user explicitly says to stop at reporting only.
+Prerequisite: Step 9 must never run in the same response as Step 7. Execute it only after Step 8 is complete, or after the user explicitly says to stop at reporting only.
 
-This step is always executed, regardless of which option was chosen in Step 6.
+This step is always executed, regardless of which option was chosen in Step 7.
 
 1. **Remove the git worktree with verification**:
 

@@ -259,7 +259,7 @@ Translate the problem into a structured Product Requirements Document with user 
 
 | Tool | Source | Purpose |
 |---|---|---|
-| `write-prd` | aimate | Interview-driven PRD creation with codebase exploration and component sketching |
+| `write-prd` | aimate | Interview-driven PRD creation with codebase exploration and component sketching; ends with a machine-readable acceptance-criteria block (`AC-<n>` ids) |
 | Figma MCP | aimate (bundled) | Inspect designs, read component specs, and pull design context directly into the PRD |
 | Atlassian MCP | aimate (bundled) | Read linked Jira issues for acceptance criteria and link the finished PRD back to the ticket |
 
@@ -289,10 +289,11 @@ Break down the spec into an atomic, dependency-mapped implementation plan with e
 
 ### Stage 5 — Implement
 
-Hand off the result of the scope-plan or spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
+Scaffold tests from the spec's acceptance criteria first, then hand off the result of the scope-plan or spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
 
 | Tool | Source | Purpose |
 |---|---|---|
+| `spec-to-tests` | aimate | Turn the PRD's acceptance-criteria block into failing test stubs in the project's test framework, one or more per `AC-<n>` id, ready to implement against |
 | Context7 MCP | [Recommended MCP](#context7-upstashcontext7) | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
 | Figma MCP | aimate (bundled) | Reference component specs and design tokens when generating UI code |
 | GitLab MCP / Github MCP | aimate (bundled) | Create pull requests for changed code |
@@ -305,7 +306,7 @@ Review the resulting code changes for correctness, quality, and security. The Gi
 
 | Tool | Source | Purpose |
 |---|---|---|
-| `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions — uses GitLab MCP to post directly on the MR |
+| `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions — uses GitLab MCP to post directly on the MR. Also verifies the diff and its tests against the spec's acceptance criteria, reporting per `AC-<n>` id |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
 | GitLab MCP / Github | aimate (bundled) | Fetch MR diff, read existing comments, and post structured review comments |
 
