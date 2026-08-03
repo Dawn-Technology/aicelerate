@@ -240,6 +240,10 @@ The stages below describe the recommended workflow and which skills and MCP serv
 
 The three MCP servers bundled with `aimate` (Figma, GitLab, Atlassian) are available throughout the workflow. Skills that depend on an MCP server call it automatically — you do not need to invoke the MCP directly. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for setup details. The only manual step required is generating a GitLab Personal Access Token the first time a GitLab skill is used.
 
+> [!NOTE]
+> [Spec-Driven Development](https://specdriven.ai/) is a methodology not yet solidified. See [Understanding Spec-Driven Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
+> We are learning and experiecing pratical implementation. For now aimate and following documenation assumes at least the first maturity level which is a spec-first development flow.
+
 ---
 
 ### Stage 1 — Explore & Challenge
@@ -247,7 +251,7 @@ The three MCP servers bundled with `aimate` (Figma, GitLab, Atlassian) are avail
 Before writing a line of spec, stress-test the problem statement and approach. Pull in existing Jira context documentation to ground the conversation.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
 
@@ -258,7 +262,7 @@ Before writing a line of spec, stress-test the problem statement and approach. P
 Translate the problem into a structured Product Requirements Document with user stories. Commit the PRD to the repo under `docs/specs/` and link the Jira ticket to that file — do not paste the PRD into the ticket. Reference designs from Figma and link back to the originating Jira issues. Optionally create a Jira ticket based on the PRD.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `write-prd` | aimate | Interview-driven PRD creation with codebase exploration and component sketching |
 | Figma MCP | aimate (bundled) | Inspect designs, read component specs, and pull design context directly into the PRD |
 | Atlassian MCP | aimate (bundled) | Read linked Jira issues for acceptance criteria, and link the ticket to the committed PRD file |
@@ -270,7 +274,7 @@ Translate the problem into a structured Product Requirements Document with user 
 Document key architectural decisions as ADRs — structured enough for a coding agent to implement without follow-up questions. Store ADRs in the repo alongside the spec; unlike PRDs and plans, ADRs are durable architectural records and are not retired.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Stress-test architectural options before committing |
 | `adr-writing` | [External](#adr-writing-vercelai--adr-skill) | Write Architectural Decision Records in MADR format |
 
@@ -281,7 +285,7 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 Break down the spec into an atomic, dependency-mapped implementation plan with effort estimates. Commit the plan alongside the PRD in the repo, and sync only the estimate and status back to Jira. Use the estimate for planning and sales.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `scope-plan` | aimate | Generate execution-ready implementation plan and time estimate |
 | Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
 
@@ -292,7 +296,7 @@ Break down the spec into an atomic, dependency-mapped implementation plan with e
 Hand off the result of the scope-plan or spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Context7 MCP | [Recommended MCP](#context7-upstashcontext7) | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
 | Figma MCP | aimate (bundled) | Reference component specs and design tokens when generating UI code |
 | GitLab MCP / Github MCP | aimate (bundled) | Create pull requests for changed code |
@@ -304,7 +308,7 @@ Hand off the result of the scope-plan or spec to your team's coding agent. This 
 Review the resulting code changes for correctness, quality, and security. The GitLab MCP / Github MCP is used automatically by `review-pr` to fetch the diff and post inline review comments.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions — uses GitLab MCP to post directly on the MR |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
 | GitLab MCP / Github | aimate (bundled) | Fetch MR diff, read existing comments, and post structured review comments |
@@ -316,7 +320,7 @@ Review the resulting code changes for correctness, quality, and security. The Gi
 Produce a manual test guide and open the merge request. The GitLab MCP handles branch creation, push, and MR opening.
 
 | Tool | Source | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `test-pr-guide` | aimate | Step-by-step manual testing guide for a branch or MR |
 | `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step — uses GitLab MCP under the hood |
 | GitLab MCP | aimate (bundled) | Create the remote branch, push commits, and open the MR with description and labels |
