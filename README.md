@@ -144,17 +144,29 @@ For the full reference on placement and format, see the [GitHub Copilot CLI docu
 
 For task-specific or context-specific guidance, use skills or agents instead. That way rules are only loaded when relevant.
 
-#### Add a Jira configuration block
+#### Add Aimate tool preferences and Jira configuration
 
-Copilot won't infer Jira context from your codebase. Add this block manually so every agent and skill that touches Jira targets the right project and sprint without prompting:
+The `configure-mcp` wizard can add these marked blocks automatically. They keep the project route stable without asking each developer on every invocation; an explicit instruction still overrides them.
 
 ```markdown
-## JIRA (<Project> Project)
+<!-- aimate:tool-preferences:start -->
+## Aimate tool preferences
 
-- Assume "ticket" or "JIRA" refers to the <Project> project.
-- Server: `#atlassian/atlassian-mcp-server`. URL: `https://<org>.atlassian.net/browse/<Project>`
-- Requirements: Always include clear acceptance criteria and relevant file paths. Add ticket to backlog unless specified different.
-- Allowed types: Taak, Story, Bug, Subtaak, Epic.
+- Repository operations: `auto`
+- Jira operations: `auto`
+- GitLab operations always use the official `glab` CLI.
+- Do not ask for these preferences again while the selected route is available and authenticated.
+- An explicit instruction in the current request overrides these project defaults.
+<!-- aimate:tool-preferences:end -->
+
+<!-- aimate:jira:start -->
+## Jira
+
+- Preferred route: `auto` (`acli` or the `atlassian-client` MCP server).
+- Jira site: `https://client.atlassian.net`
+- Default project key: `CLIENT`
+- Confirm the project key before creating, updating, or transitioning issues.
+<!-- aimate:jira:end -->
 ```
 
 ### Commit Messages
@@ -243,7 +255,7 @@ The plugin intentionally does **not** include a pre-configured coding agent. Pro
 
 The stages below describe the recommended workflow and which skills and MCP servers to use at each step. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
 
-The three MCP servers bundled with `aimate` (Figma, GitLab, Atlassian) are available throughout the workflow. Skills that depend on an MCP server call it automatically — you do not need to invoke the MCP directly. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for setup details. The only manual step required is generating a GitLab Personal Access Token the first time a GitLab skill is used.
+`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save the project route preference. Skills reuse that preference without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance.
 
 > [!NOTE]
 > [Spec-Driven Development](https://specdriven.ai/) is a methodology not yet solidified. See [Understanding Spec-Driven Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
@@ -260,6 +272,7 @@ Before writing a line of spec, stress-test the problem statement and approach. P
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
+| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
 
 ---
 
@@ -270,8 +283,8 @@ Translate the problem into a structured Product Requirements Document with user 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `write-prd` | aimate | Interview-driven PRD creation with codebase exploration and component sketching |
-| Figma MCP | aimate (bundled) | Inspect designs, read component specs, and pull design context directly into the PRD |
-| Atlassian MCP | aimate (bundled) | Read linked Jira issues for acceptance criteria, and link the ticket to the committed PRD file |
+| Figma MCP | Project-configured via `configure-mcp` | Inspect designs, read component specs, and pull design context directly into the PRD |
+| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read linked Jira issues for acceptance criteria, and link the ticket to the committed PRD file |
 
 ---
 
@@ -295,6 +308,7 @@ Break down the spec into an atomic, dependency-mapped implementation plan with e
 | `write-plan` | aimate | Generate an execution-ready implementation plan with sized tasks |
 | `estimate-time` | aimate | Add an hour estimate to the plan when a time forecast is needed |
 | Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
+| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Update Jira tickets with estimates and move issues into the sprint |
 
 ---
 
@@ -305,33 +319,33 @@ Hand off the result of write-plan (and estimate-time, if a time forecast is need
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | Context7 MCP | [Recommended MCP](#context7-upstashcontext7) | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
-| Figma MCP | aimate (bundled) | Reference component specs and design tokens when generating UI code |
-| GitLab MCP / Github MCP | aimate (bundled) | Create pull requests for changed code |
+| Figma MCP | Project-configured via `configure-mcp` | Reference component specs and design tokens when generating UI code |
+| `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Create pull requests for changed code; GitLab always uses `glab` |
 
 ---
 
 ### Stage 6 — Review
 
-Review the resulting code changes for correctness, quality, and security. The GitLab MCP / Github MCP is used automatically by `review-pr` to fetch the diff and post inline review comments.
+Review the resulting code changes for correctness, quality, and security. `review-pr` uses `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
-| `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions — uses GitLab MCP to post directly on the MR |
+| `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions through the saved provider route |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
-| GitLab MCP / Github | aimate (bundled) | Fetch MR diff, read existing comments, and post structured review comments |
+| `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Fetch the diff, read existing comments, and post structured review comments |
 
 ---
 
 ### Stage 7 — Test & Ship
 
-Produce a manual test guide and open the merge request. The GitLab MCP handles branch creation, push, and MR opening.
+Produce a manual test guide and open the merge request. Local Git handles branch creation and push; the official `glab` CLI opens the MR.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `test-pr-guide` | aimate | Step-by-step manual testing guide for a branch or MR |
 | `write-commit-message` | aimate | Draft the commit message from the staged diff — triggers automatically on every commit |
-| `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step — uses GitLab MCP under the hood |
-| GitLab MCP | aimate (bundled) | Create the remote branch, push commits, and open the MR with description and labels |
+| `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step through `glab` |
+| `glab` | Installed and authenticated locally | Open the MR with description and labels after local Git pushes the branch |
 
 ---
 
