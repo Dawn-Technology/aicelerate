@@ -7,7 +7,7 @@ description: >
   Gebruik deze skill wanneer de gebruiker vraagt om een WBSO-aanvraag, S&O-aanvraag, of WBSO-formulier op te stellen.
 metadata:
   author: "Tim Dinh <tim.dinh@dawn.tech>"
-  version: 2.1.0
+  version: 2.2.0
   language: nl
 argument-hint: "Geef optioneel een Jira-projectsleutel of projectnaam mee, en het totale projectbudget in uren"
 ---
@@ -50,20 +50,31 @@ Laad de volgende bestanden uit de skill workspace vóór je begint:
 
 **Stap 1.1 — Jira inlezen (indien beschikbaar)**
 
-Controleer of de Atlassian MCP-server beschikbaar is. Als dat zo is:
+Los eerst de Jira-route op zonder de gebruiker naar een voorkeur te vragen:
+- Een expliciete instructie in de huidige aanvraag gaat voor.
+- Gebruik daarna `Jira operations` uit het `aimate:tool-preferences` blok in `AGENTS.md`, als dat bestaat en de route werkt.
+- Valideer `acli` met `acli jira auth status`; valideer Atlassian MCP met een onschadelijke read-only discovery call.
+- Zonder opgeslagen voorkeur: gebruik werkende `acli`, daarna een werkende Atlassian MCP.
+
+Als `acli` of Atlassian MCP beschikbaar is:
 - Vraag de gebruiker om een Jira-projectsleutel of sprint-naam (als niet al meegegeven).
 - Haal epics en issues op die betrekking hebben op het project:
-  - Gebruik `searchJiraIssuesUsingJql` met een JQL-query (bijv.
-    `project = "MYKEY" AND issuetype in (Epic, Story, Task) ORDER BY created DESC`)
-    om relevante issues te vinden.
-  - Gebruik `getJiraIssue` om de beschrijving en acceptatiecriteria van individuele
-    issues op te halen.
+  - Gebruik bij MCP de Jira JQL-search en issue-read tools.
+  - Gebruik bij CLI de overeenkomstige `acli jira workitem search` en `acli jira workitem view` commando's; controleer de geïnstalleerde help voor ondersteunde outputflags.
+  - Gebruik als JQL bijvoorbeeld `project = "MYKEY" AND issuetype in (Epic, Story, Task) ORDER BY created DESC`.
   - Focus op: issuetypes Epic, Story, Task met technische labels of componenten.
   - Lees de beschrijvingen, acceptatiecriteria en comments van de meest relevante issues.
 - Noteer intern per issue: issue-key, titel, type, en of het potentieel S&O-waardig is.
 - Probeer het totale projectbudget in uren af te leiden uit Jira (story points, time estimates).
 
-Als Jira niet beschikbaar is of geen relevante data bevat: ga door naar stap 1.2.
+Als geen Jira-route beschikbaar is:
+- Meld kort dat Jira-context wordt overgeslagen.
+- Verwijs naar `acli jira auth login` als de CLI aanwezig maar niet geauthenticeerd is. Verwijs naar Aimate's `configure-mcp` skill als de gebruiker Atlassian MCP wil toevoegen.
+- Ga door naar stap 1.2 met code en documenten; maak Jira nooit een harde vereiste voor de WBSO-analyse.
+
+Als de gekozen route authenticatie vereist, vraag de gebruiker `acli` of de benoemde projectverbinding te authenticeren. Vraag nooit om een token of wachtwoord in de chat. De gebruiker mag kiezen om daarna opnieuw Jira in te lezen of zonder Jira door te gaan.
+
+Als Jira geen relevante data bevat: ga door naar stap 1.2.
 
 **Stap 1.2 — Applicatiecode inlezen**
 
@@ -341,5 +352,3 @@ Geef een korte samenvatting:
 | Projectbudget onbekend na Fase 1 | Vraag eenmalig naar het budget; als gebruiker het niet weet, genereer schatting zonder budgetplafond en noteer dit |
 | Project niet WBSO-waardig | Stop na Fase 2, leg uit waarom, geef advies voor bijstelling |
 | Alle hypothesen zwak of onbevestigd | Schrijf geen aanvraag; presenteer analyse en vraag of er aanvullende context is |
-
-
