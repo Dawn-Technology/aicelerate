@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "sentry-client": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@sentry/mcp-server@0.37.0",
+        "--access-token=${input:SENTRY_TOKEN_CLIENT}",
+        "--host=sentry.example.com",
+        "--disable-skills=seer"
+      ],
+      "tools": ["*"]
+    }
+  },
+  "inputs": [
+    {
+      "id": "SENTRY_TOKEN_CLIENT",
+      "type": "promptString",
+      "description": "Sentry user auth token for client",
+      "password": true
+    }
+  ]
+}
