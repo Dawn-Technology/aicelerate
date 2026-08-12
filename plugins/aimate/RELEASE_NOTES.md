@@ -4,7 +4,7 @@
 
 `aimate` is now skills-first. The plugin no longer bundles Figma, GitLab, or Atlassian MCP connections globally. Projects configure only the integrations they need through `configure-mcp` or the supplied project templates.
 
-The setup wizard now validates existing official CLIs and MCP connections before changing anything. GitLab workflows always use the official `glab` CLI and no GitLab MCP template is shipped. GitHub and Jira can save a CLI/MCP preference in `AGENTS.md`; Confluence and Figma keep using MCP where no equivalent CLI exists. Sentry uses MCP for investigations and `sentry-cli` for release assets.
+The setup wizard now validates existing official CLIs and MCP connections before changing anything. GitLab workflows always use the official `glab` CLI and no GitLab MCP template is shipped. GitHub and Jira save preferred and fallback routes in `AGENTS.md`; skills automatically try the fallback instead of asking again. Confluence and Figma keep using MCP where no equivalent CLI exists. Sentry uses MCP for investigations and `sentry-cli` for release assets.
 
 ### Breaking change
 
@@ -22,9 +22,10 @@ The setup wizard now validates existing official CLIs and MCP connections before
 4. If the MCP host retains the old plugin-owned `figma`, `gitlab`, or `atlassian/atlassian-mcp-server` entries, remove or disconnect those old entries in the host.
 5. In every client checkout, run `configure-mcp`.
 6. Keep the detected working project integrations or select GitLab/GitHub and optional Atlassian, Figma, and Sentry integrations.
-7. Save `Automatic`, `Prefer CLI`, or `Prefer MCP` for GitHub and Jira when prompted, so skills do not ask again.
-8. Reload or restart the MCP host when requested.
-9. Complete OAuth for each newly named MCP connection.
+7. Choose `Automatic`, `Prefer CLI`, or `Prefer MCP` for GitHub and Jira so the wizard can save explicit preferred and fallback routes.
+8. For Claude Code, let the wizard add `@AGENTS.md` to `CLAUDE.md` when that import is missing.
+9. Reload or restart the MCP host when requested.
+10. Complete OAuth for each newly named MCP connection.
 
 Project configuration must not contain real tokens. Self-hosted Sentry uses a
 secret input placeholder; hosted MCP connections use host-managed OAuth.

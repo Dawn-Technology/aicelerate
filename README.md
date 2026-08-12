@@ -144,25 +144,28 @@ For the full reference on placement and format, see the [GitHub Copilot CLI docu
 
 For task-specific or context-specific guidance, use skills or agents instead. That way rules are only loaded when relevant.
 
-#### Add Aimate tool preferences and Jira configuration
+#### Add Aimate tool routing and Jira configuration
 
-The `configure-mcp` wizard can add these marked blocks automatically. They keep the project route stable without asking each developer on every invocation; an explicit instruction still overrides them.
+The `configure-mcp` wizard can add these marked blocks automatically. They keep preferred and fallback routes stable without asking each developer on every invocation; an explicit instruction still overrides them.
 
 ```markdown
-<!-- aimate:tool-preferences:start -->
-## Aimate tool preferences
+<!-- aimate:tool-routing:start -->
+## Aimate tool routing
 
-- Repository operations: `auto`
-- Jira operations: `auto`
-- GitLab operations always use the official `glab` CLI.
-- Do not ask for these preferences again while the selected route is available and authenticated.
-- An explicit instruction in the current request overrides these project defaults.
-<!-- aimate:tool-preferences:end -->
+| Capability | Preferred route | Fallback route |
+| --- | --- | --- |
+| GitHub repository operations | `gh` | `github-client` MCP |
+| GitLab repository operations | `glab` | none |
+| Jira operations | `acli` | `atlassian-client` MCP |
+
+- An explicit instruction in the current request overrides this table.
+- Use the configured fallback without asking when the preferred route is unavailable.
+- Reconcile remote state before changing routes after an ambiguous write.
+<!-- aimate:tool-routing:end -->
 
 <!-- aimate:jira:start -->
 ## Jira
 
-- Preferred route: `auto` (`acli` or the `atlassian-client` MCP server).
 - Jira site: `https://client.atlassian.net`
 - Default project key: `CLIENT`
 - Confirm the project key before creating, updating, or transitioning issues.
@@ -255,7 +258,7 @@ The plugin intentionally does **not** include a pre-configured coding agent. Pro
 
 The stages below describe the recommended workflow and which skills and MCP servers to use at each step. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
 
-`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save the project route preference. Skills reuse that preference without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance.
+`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance.
 
 > [!NOTE]
 > [Spec-Driven Development](https://specdriven.ai/) is a methodology not yet solidified. See [Understanding Spec-Driven Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)

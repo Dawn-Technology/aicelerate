@@ -16,7 +16,7 @@ If a skill behaves inconsistently, invokes the wrong workflow, or appears to ign
 
 > Validate and configure project-specific GitLab, GitHub, Jira/Confluence, Figma, and Sentry integrations through a short wizard.
 
-Detects working official CLIs and existing MCP connections before asking questions. GitLab always uses `glab`; GitHub and Jira can store a project route preference. The wizard safely merges only the required servers into `.mcp.json` and uses client-specific server names so multiple clients can coexist in one workspace. Also registered as a named agent in Copilot CLI's agent picker (`agents/openai.yaml`).
+Detects working official CLIs and existing MCP connections before asking questions. GitLab always uses `glab`; GitHub and Jira store preferred and fallback routes in `AGENTS.md`. The wizard safely merges only the required servers into `.mcp.json` and uses client-specific server names so multiple clients can coexist in one workspace. Also registered as a named agent in Copilot CLI's agent picker (`agents/openai.yaml`).
 
 **Trigger phrases:** "configure MCP", "set up GitLab for this project", "connect Jira", "install the Figma MCP"
 
@@ -161,7 +161,7 @@ Leest Jira-epics en -issues via `acli` of Atlassian MCP, scant de applicatiecode
 
 `aimate` is skills-first and does not bundle MCP servers. Configure only the integrations a project or client needs in that checkout's `.mcp.json` or equivalent host project configuration.
 
-Run the `configure-mcp` skill to inspect existing project configuration, validate installed official CLIs and MCP connections, and configure GitLab or GitHub plus optional Atlassian, Figma, and Sentry integrations. It saves supported CLI/MCP preferences in `AGENTS.md`, safely merges configuration, and uses client-specific MCP names such as `atlassian-acme`.
+Run the `configure-mcp` skill to inspect existing project configuration, validate installed official CLIs and MCP connections, and configure GitLab or GitHub plus optional Atlassian, Figma, and Sentry integrations. It saves preferred and fallback routes in `AGENTS.md`, safely merges configuration, and uses client-specific MCP names such as `atlassian-acme`.
 
 This avoids prompting every user to connect accounts they do not have and allows different client checkouts to use different GitLab instances or Atlassian sites.
 
@@ -203,8 +203,9 @@ Copy-paste templates are available in [`skills/configure-mcp/assets/templates`](
 - Figma
 - Sentry Cloud and self-hosted Sentry
 - combined example project configuration
-- `AGENTS.md` tool-preference block
+- `AGENTS.md` tool-routing block
 - optional Jira guidance for `AGENTS.md`
+- a minimal Claude Code import for `CLAUDE.md`
 
 The capability routing, selected implementations, validation commands, wizard questions, and version policy are documented in [`mcp-catalog.md`](skills/configure-mcp/references/mcp-catalog.md).
 
@@ -217,7 +218,7 @@ The capability routing, selected implementations, validation commands, wizard qu
 - Figma design context requires Figma MCP.
 - Sentry investigations use Sentry MCP; releases, source maps, and debug symbols use `sentry-cli`.
 
-An explicit instruction in the current request overrides the project preference. Skills do not ask again while the saved route is working.
+An explicit instruction in the current request overrides the project routing. Skills automatically try its configured fallback and do not ask again while either route works. Claude Code projects can import the same policy from `CLAUDE.md` with `@AGENTS.md`.
 
 ### GitLab CLI prerequisite
 
