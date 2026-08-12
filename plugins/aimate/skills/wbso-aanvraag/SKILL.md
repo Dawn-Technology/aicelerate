@@ -7,7 +7,7 @@ description: >
   Gebruik deze skill wanneer de gebruiker vraagt om een WBSO-aanvraag, S&O-aanvraag, of WBSO-formulier op te stellen.
 metadata:
   author: "Tim Dinh <tim.dinh@dawn.tech>"
-  version: 2.2.0
+  version: 2.3.0
   language: nl
 argument-hint: "Geef optioneel een Jira-projectsleutel of projectnaam mee, en het totale projectbudget in uren"
 ---
@@ -51,10 +51,9 @@ Laad de volgende bestanden uit de skill workspace vóór je begint:
 **Stap 1.1 — Jira inlezen (indien beschikbaar)**
 
 Los eerst de Jira-route op zonder de gebruiker naar een voorkeur te vragen:
-- Een expliciete instructie in de huidige aanvraag gaat voor.
-- Gebruik daarna `Jira operations` uit het `aimate:tool-preferences` blok in `AGENTS.md`, als dat bestaat en de route werkt.
-- Valideer `acli` met `acli jira auth status`; valideer Atlassian MCP met een onschadelijke read-only discovery call.
-- Zonder opgeslagen voorkeur: gebruik werkende `acli`, daarna een werkende Atlassian MCP.
+- Volg het `aimate:tool-routing` blok in `AGENTS.md`: expliciete aanvraag, voorkeursroute en daarna de vastgelegde fallback.
+- Zonder routingblok: gebruik werkende `acli`, daarna een werkende Atlassian MCP.
+- Valideer `acli` met `acli jira auth status`; valideer Atlassian MCP met een onschadelijke read-only discovery call. Meld een gebruikte fallback kort.
 
 Als `acli` of Atlassian MCP beschikbaar is:
 - Vraag de gebruiker om een Jira-projectsleutel of sprint-naam (als niet al meegegeven).

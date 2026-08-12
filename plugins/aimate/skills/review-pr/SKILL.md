@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.3.0
+  version: 4.4.0
 ---
 
 # PR/MR Review Workflow Skill
@@ -45,12 +45,9 @@ Before proceeding:
    - If ambiguous, ask the user.
 
 2. **Resolve an authenticated route** for the detected provider:
-   - For GitHub, read `Repository operations` from the `aimate:tool-preferences` block in the project's `AGENTS.md` when present. An explicit instruction in the current request overrides it. GitLab ignores this preference and always uses `glab`.
-   - **GitHub CLI**: verify `gh` and run `gh auth status --active --hostname <pr-host>`. Never use `--show-token`.
-   - **GitLab**: require the official `glab` CLI and run `glab auth status --hostname <mr-host>`. If `glab` is missing, point to the official installation documentation; on macOS or Homebrew-enabled Linux use `brew install glab`. Never configure or fall back to GitLab MCP.
-   - **GitHub MCP**: discover the matching tools and make one harmless read-only metadata call when authentication still needs confirmation.
-   - For GitHub, resolve in this order: explicit request, saved project preference, working `gh`, working GitHub MCP. For GitLab, always set `provider_route = "cli"`.
-   - If no supported route works, stop before creating a worktree. Point to `gh auth login --hostname <host>` or `glab auth login --hostname <host>` as appropriate. Point to Aimate's `configure-mcp` skill only for a missing GitHub MCP configuration. Never ask for a token in chat.
+   - Follow the project's `aimate:tool-routing` block in `AGENTS.md`: explicit request, preferred route, then configured fallback. Do not ask again when the fallback works. Without a block, default to authenticated `gh` and then GitHub MCP for GitHub; GitLab always uses `glab` and never GitLab MCP.
+   - Validate CLI routes with `gh auth status --active --hostname <pr-host>` or `glab auth status --hostname <mr-host>`. Never use `--show-token`. Validate MCP with discovery and one harmless read-only metadata call only when needed.
+   - Store the working route as `provider_route` and mention a fallback briefly in the final report. If neither route works, stop before creating a worktree and point to the relevant login command or Aimate's `configure-mcp` skill. Never ask for a token in chat.
    - Do not call tools from another provider or use a GitLab.com route for a self-hosted MR.
 
 3. Verify terminal access is available (required for git worktree operations in Step 2).
