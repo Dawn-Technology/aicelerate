@@ -1,6 +1,6 @@
 ---
 name: configure-mcp
-description: Validate and configure project- or client-specific GitHub, GitLab, Jira/Confluence, Figma, and Sentry tooling through a short interactive wizard, choosing CLI or MCP where both support the capability. Use when a user asks to install, set up, configure, repair, change, or onboard Aimate integrations or save project tool preferences.
+description: Validate and configure project- or client-specific GitHub, GitLab, Jira/Confluence, Figma, and Sentry tooling through a short interactive wizard, choosing CLI or MCP where both support the capability. Use when a user asks to install, set up, configure, repair, change, or onboard Aimate integrations or save project tool routing.
 metadata:
   author: "Janne de Vos <janne.de.vos@dawn.tech>"
   version: 1.0.0
@@ -32,18 +32,18 @@ Use this matrix to select tooling. A dash means Aimate does not support that rou
 Resolve a route in this order:
 
 1. Follow an explicit instruction in the current request when the matrix supports it.
-2. Reuse a working project preference from `AGENTS.md`.
-3. Use the default from the matrix.
-4. Use the other supported route when the preferred route is unavailable or unauthenticated.
+2. Reuse the preferred route from the project's `aimate:tool-routing` block when it works.
+3. Use the configured fallback when the preferred route is unavailable or unauthenticated.
+4. Without project routing, use the default and then the other supported route from the matrix.
 
-Never ask again while the resolved route works. Never fall back to a route shown as unsupported. After an ambiguous remote write failure, reconcile remote state before retrying or changing routes.
+Never ask again while the resolved route works. Use the configured fallback automatically and report it briefly. Never fall back to a route shown as unsupported. After an ambiguous remote write failure, reconcile remote state before retrying or changing routes.
 
 ## Preflight
 
 Validate the current project before asking configuration questions. Keep this phase read-only.
 
 1. Find the project root from Git when available; otherwise use the current workspace root.
-2. Inspect `AGENTS.md` for an existing `aimate:tool-preferences` block and treat valid values as the saved project preference. Do not ask again while its selected route works.
+2. Inspect `AGENTS.md` for an existing `aimate:tool-routing` block. Treat its primary and fallback values as project policy. Recognize the older `aimate:tool-preferences` block and offer to migrate it without losing valid choices.
 3. Detect the relevant CLIs from the catalog. For each detected executable:
    - Read its version without installing or upgrading anything.
    - Run only the catalog's non-secret authentication/status check. Never use flags that display a token.
@@ -79,7 +79,7 @@ Use the preflight results and the question matrix in `references/mcp-catalog.md`
 1. Ask one repository-provider question: **GitLab**, **GitHub**, or **none** only when the Git remote and working configuration do not already answer it. Do not ask separate GitLab and GitHub yes/no questions because they serve the same purpose.
    - When GitLab is selected, require `glab`. If it is missing, offer the official installation step for the platform but never install it without user confirmation. After installation, guide `glab auth login` and verify with `glab repo list --member`.
 2. Ask one multi-select additional-integrations question for **Atlassian**, **Figma**, and **Sentry**, with **none** as an exclusive option. Clearly mark integrations already configured and default to keeping them. If the host cannot render multi-select questions, ask for a comma-separated selection in one conversational question; do not ask three separate yes/no questions.
-3. Ask one shared route-preference question only when GitHub or Jira is selected, both routes could satisfy the selected capability, and no saved preference answers it: **Automatic**, **Prefer CLI**, or **Prefer MCP**. GitLab always uses `glab` and is not part of this question.
+3. Ask one shared route-preference question only when GitHub or Jira is selected, both routes could satisfy the selected capability, and no saved routing policy answers it: **Automatic**, **Prefer CLI**, or **Prefer MCP**. GitLab always uses `glab` and is not part of this question. Convert the answer into an explicit preferred route and fallback for each selected capability.
 4. When Atlassian is selected, ask whether the project needs **Jira only**, **Confluence only**, or **Jira and Confluence**. Confluence always requires MCP; Jira can use `acli` or MCP.
 5. Ask only for details required by the selected variants:
    - GitLab: derive the hostname from the Git remote. Ask **GitLab.com** or **self-hosted** only when no remote answers it.
@@ -102,8 +102,9 @@ Use the template selected by `references/mcp-catalog.md` from `assets/templates/
 - `sentry-cloud.mcp.json`
 - `sentry-self-hosted.mcp.json`
 - `project.mcp.example.json` for the combined shape
-- `agents-tool-preferences.md` for the saved project route
+- `agents-tool-routing.md` for saved project routes and fallback behavior
 - `agents-jira.md` for optional Jira project guidance
+- `claude-agents-import.md` when Claude Code needs to import `AGENTS.md`
 
 Replace `client` in server names with the normalized client slug. Use lowercase letters, digits, and hyphens. This makes multiple client connections distinguishable in one workspace, for example `atlassian-acme` and `atlassian-contoso`.
 
@@ -116,9 +117,11 @@ Create or update `.mcp.json` in the project root:
 - Never put a real token, password, or secret in the file. Retain `${input:...}` placeholders.
 - Add an input only when its selected server uses it, and do not duplicate an input with the same `id`.
 
-Offer to append the preferences from `assets/templates/agents-tool-preferences.md` to the project's `AGENTS.md`. Replace `auto` with `cli` or `mcp` when selected, preserve existing instructions, and update the marked block instead of duplicating it. Explain that the saved project preference prevents later skills from asking again and that an explicit user instruction still overrides it.
+Offer to append the routing policy from `assets/templates/agents-tool-routing.md` to the project's `AGENTS.md`. Keep only selected capabilities, replace every placeholder with an explicit CLI, named MCP server, or `none`, and order supported alternatives according to the chosen preference. Preserve existing instructions and update the marked block instead of duplicating it. Explain that skills will try the configured fallback without asking again and that an explicit user instruction still overrides the table.
 
-When Jira is selected, offer to append the Jira guidance from `assets/templates/agents-jira.md` to the project's `AGENTS.md`. Replace placeholders and the preferred route, preserve existing instructions, and update the marked block instead of duplicating it.
+Claude Code reads `CLAUDE.md` instead of `AGENTS.md`. When Claude Code compatibility is requested or detected, inspect `CLAUDE.md`. If it does not already import `AGENTS.md`, offer to add the single `@AGENTS.md` line from `assets/templates/claude-agents-import.md`. Preserve all existing Claude-specific instructions and never replace or symlink an existing file.
+
+When Jira is selected, offer to append the Jira guidance from `assets/templates/agents-jira.md` to the project's `AGENTS.md`. Replace the site and project placeholders, preserve existing instructions, and update the marked block instead of duplicating it.
 
 ## Verify and hand off
 
@@ -127,7 +130,7 @@ Repeat the preflight checks after writing. Reload/restart the MCP host when the 
 - which named servers were added or already present;
 - which CLIs were found and authenticated for the matching host;
 - where the project configuration lives;
-- which route preference was saved in `AGENTS.md`;
+- which preferred and fallback routes were saved in `AGENTS.md`;
 - each integration's final status using the preflight classifications;
 - which connections still require host authentication or a token prompt;
 - whether the MCP host must reload the project or restart before discovering new servers.

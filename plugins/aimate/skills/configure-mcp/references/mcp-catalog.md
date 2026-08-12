@@ -60,7 +60,7 @@ Ask once only when GitHub or Jira is selected, both routes could satisfy the sel
 - **Prefer CLI** — Prefer `gh` or `acli`; use MCP for capabilities without a CLI equivalent.
 - **Prefer MCP** — Prefer the matching MCP; keep local Git and CLI-only release/build operations on CLI.
 
-GitLab always uses `glab`, regardless of this preference. Save the preference once in the marked `AGENTS.md` block when the user agrees. Do not ask separate GitHub/Jira preference questions.
+GitLab always uses `glab`, regardless of this preference. Translate the answer into explicit preferred and fallback routes in the marked `AGENTS.md` block when the user agrees. Do not ask separate GitHub/Jira preference questions.
 
 ### Q2b — Atlassian capabilities
 
@@ -101,7 +101,7 @@ Show the proposed lowercase slug. Reuse it for every selected server. Never ask 
 
 Ask when a route preference is selected:
 
-> Should I save this tool preference in `AGENTS.md` so Aimate skills do not ask again?
+> Should I save these preferred and fallback routes in `AGENTS.md` so Aimate skills do not ask again?
 
 When Jira is selected, combine that with:
 
