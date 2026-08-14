@@ -62,6 +62,18 @@ Produces a deterministic, execution-ready implementation plan with atomic tasks,
 
 ---
 
+### `ticket-estimation`
+
+> Estimate software tickets with a complete, configurable relative-sizing workflow.
+
+Provides a complete built-in approach for projects without local estimation rules, while also supporting project-defined scales and exceptions or a one-off custom scale. It uses repository and historical context to calibrate estimates, explains the size drivers, and recommends splitting oversized work. It does not convert points to hours.
+
+**Trigger phrases:** "size this story", "assign story points", "check this estimate", "estimate work item"
+
+When a dedicated project-specific estimation skill applies, that skill takes precedence and this skill should not interfere. When a project has only local rules, this skill applies those rules over its built-in defaults.
+
+---
+
 ### `write-prd`
 
 > Create a PRD and user stories through user interview, codebase exploration, and component design.
