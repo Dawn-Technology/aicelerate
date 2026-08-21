@@ -21,7 +21,8 @@
     "user-stories",
     "estimation",
     "wbso",
-    "wbso-aanvraag"
+    "wbso-aanvraag",
+    "write-readme"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json"

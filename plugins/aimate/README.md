@@ -72,6 +72,20 @@ Guides you through building a complete Product Requirements Document by intervie
 
 ---
 
+### `write-readme`
+
+> Generate a consistent, high-level README for any codebase or repository.
+
+Explores the repository structure and produces a README following a
+fixed section order — title, dev setup, overview, project structure,
+database, configuration, testing, and CI/CD. Skips sections that don't
+apply. One predictable layout across all company projects.
+
+**Trigger phrases:** "write a readme", "generate readme", "create readme",
+"project is missing documentation"
+
+---
+
 ### `wbso-aanvraag`
 
 > Analyseer een project op WBSO-waardigheid en genereer de technische projectbeschrijving, S&O-uren schatting en Jira-labeladvies.
