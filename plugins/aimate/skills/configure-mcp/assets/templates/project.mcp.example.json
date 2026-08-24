@@ -15,6 +15,12 @@
     "sentry-client": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp"
+    },
+    "playwright-client": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.79"],
+      "tools": ["*"]
     }
   }
 }

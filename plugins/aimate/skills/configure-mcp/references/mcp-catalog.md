@@ -46,9 +46,12 @@ Ask as one multi-select question:
 - **Atlassian** — Add Jira/Confluence access.
 - **Figma** — Add design access.
 - **Sentry** — Add error, issue, trace, and performance diagnostics.
+- **Playwright** — Add local browser automation and inspection for an agent session.
 - **None** — Add none; this option is exclusive.
 
-Allow any combination of Atlassian, Figma, and Sentry. Clearly show already configured integrations and default to retaining them. If the host has no multi-select UI, ask for a comma-separated selection in one question instead of three yes/no questions.
+Allow any combination of Atlassian, Figma, Sentry, and Playwright. Clearly show already configured integrations and default to retaining them. If the host has no multi-select UI, ask for a comma-separated selection in one question instead of four yes/no questions.
+
+Playwright has no authentication step and no CLI/MCP route choice: selecting it always adds the Playwright MCP server. Detect the Playwright CLI separately during preflight; it does not depend on this selection.
 
 ### Q2a — Shared route preference
 
@@ -168,6 +171,27 @@ Do not list removals unless the user explicitly requested them.
 - **Capabilities:** Releases, source maps, debug symbols, and build/release automation. Do not treat it as equivalent to Sentry MCP for agent-led investigation.
 - **Safe validation:** Verify `sentry-cli` exists and run `sentry-cli --version`. Run `sentry-cli info` only when Sentry CLI operations are actually selected and it will not expose credentials.
 - **Official source:** https://github.com/getsentry/sentry-cli
+
+### Playwright CLI
+
+- **Selected implementation:** Playwright's official `playwright` CLI.
+- **Version policy:** Use a maintained installed version that provides `playwright test`, `playwright codegen`, and `playwright show-report`; do not auto-install or auto-upgrade it. Detected release line at last verification: `1.62.x`.
+- **Capabilities:** Running and generating end-to-end tests, opening trace/report viewers, and installing browser binaries on explicit user request.
+- **Authentication:** None.
+- **Safe validation:** Verify `playwright` (or the project's local `npx playwright`) exists and run `playwright --version`. Do not run `playwright install` or execute a test suite during preflight.
+- **Official source:** https://playwright.dev/docs/test-cli
+
+### Playwright MCP
+
+- **Selected implementation:** Playwright's official `@playwright/mcp` stdio package.
+- **Pinned package version:** `0.0.79`. Use `@playwright/mcp@0.0.79`; do not use `latest` or an unpinned package.
+- **Transport:** stdio through `npx`.
+- **Authentication:** None; it launches a local or configured browser session directly.
+- **Capabilities:** Live, agent-driven browser navigation, interaction, and accessibility-tree snapshots during a session. Not a replacement for the Playwright CLI's test running or codegen.
+- **Template:** `playwright.mcp.json`
+- **Recognize by:** Package `@playwright/mcp`, or discovered navigate/click/snapshot browser tools.
+- **Safe validation:** Verify `npx`, discover tools, then read the current page/tab state only; never navigate to an unrequested URL or submit a form during validation.
+- **Official source:** https://github.com/microsoft/playwright-mcp
 
 ### GitHub Cloud
 

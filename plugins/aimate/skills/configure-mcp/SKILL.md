@@ -1,6 +1,6 @@
 ---
 name: configure-mcp
-description: Validate and configure project- or client-specific GitHub, GitLab, Jira/Confluence, Figma, and Sentry tooling through a short interactive wizard, choosing CLI or MCP where both support the capability. Use when a user asks to install, set up, configure, repair, change, or onboard Aimate integrations or save project tool routing.
+description: Validate and configure project- or client-specific GitHub, GitLab, Jira/Confluence, Figma, Sentry, and Playwright tooling through a short interactive wizard, choosing CLI or MCP where both support the capability. Use when a user asks to install, set up, configure, repair, change, or onboard Aimate integrations or save project tool routing.
 metadata:
   author: "Janne de Vos <janne.de.vos@dawn.tech>"
   version: 1.0.0
@@ -28,6 +28,8 @@ Use this matrix to select tooling. A dash means Aimate does not support that rou
 | Figma design context and canvas operations | — | Figma MCP | MCP, only when selected |
 | Sentry issue, event, trace, and performance investigation | — | Sentry MCP | MCP, only when selected |
 | Sentry releases, source maps, and debug symbols | `sentry-cli` | — | CLI |
+| Running/generating Playwright tests, viewing traces and reports | `playwright` | — | CLI |
+| Live, agent-driven browser navigation, interaction, and inspection | — | Playwright MCP | MCP, only when selected |
 
 Resolve a route in this order:
 
@@ -78,7 +80,7 @@ Use the preflight results and the question matrix in `references/mcp-catalog.md`
 
 1. Ask one repository-provider question: **GitLab**, **GitHub**, or **none** only when the Git remote and working configuration do not already answer it. Do not ask separate GitLab and GitHub yes/no questions because they serve the same purpose.
    - When GitLab is selected, require `glab`. If it is missing, offer the official installation step for the platform but never install it without user confirmation. After installation, guide `glab auth login` and verify with `glab repo list --member`.
-2. Ask one multi-select additional-integrations question for **Atlassian**, **Figma**, and **Sentry**, with **none** as an exclusive option. Clearly mark integrations already configured and default to keeping them. If the host cannot render multi-select questions, ask for a comma-separated selection in one conversational question; do not ask three separate yes/no questions.
+2. Ask one multi-select additional-integrations question for **Atlassian**, **Figma**, **Sentry**, and **Playwright**, with **none** as an exclusive option. Clearly mark integrations already configured and default to keeping them. If the host cannot render multi-select questions, ask for a comma-separated selection in one conversational question; do not ask four separate yes/no questions. Playwright has no authentication or route-preference question; selecting it always adds the Playwright MCP server.
 3. Ask one shared route-preference question only when GitHub or Jira is selected, both routes could satisfy the selected capability, and no saved routing policy answers it: **Automatic**, **Prefer CLI**, or **Prefer MCP**. GitLab always uses `glab` and is not part of this question. Convert the answer into an explicit preferred route and fallback for each selected capability.
 4. When Atlassian is selected, ask whether the project needs **Jira only**, **Confluence only**, or **Jira and Confluence**. Confluence always requires MCP; Jira can use `acli` or MCP.
 5. Ask only for details required by the selected variants:
@@ -87,7 +89,7 @@ Use the preflight results and the question matrix in `references/mcp-catalog.md`
    - Sentry: ask **Sentry Cloud** or **self-hosted**. For self-hosted, ask for the HTTPS host name.
    - GitHub, Figma, Sentry Cloud, and GitLab.com need no further URL question.
 6. For each **Broken** or **Needs authentication** route, explain whether the next action is repair, authentication, or replacement. Do not replace a working route just because its name or version differs from the templates.
-7. Derive the actual routes using the catalog. GitLab always uses `glab`; never add GitLab MCP. Do not add GitHub MCP when its selected CLI route is working. Do not add Atlassian MCP for Jira-only when the selected `acli` route is working. Figma design context, Confluence, and Sentry investigation require MCP.
+7. Derive the actual routes using the catalog. GitLab always uses `glab`; never add GitLab MCP. Do not add GitHub MCP when its selected CLI route is working. Do not add Atlassian MCP for Jira-only when the selected `acli` route is working. Figma design context, Confluence, Sentry investigation, and live browser automation require MCP. Playwright's CLI and MCP are complementary, not alternate routes for the same capability: detect the CLI independently of whether the MCP server is selected.
 8. Show a concise summary of additions, repairs, preserved servers, saved preferences, and removals. Never remove an existing server unless the user explicitly requests it. Write after confirmation. If the user's initial request already specifies every choice, skip answered questions and confirmation.
 
 If structured questions are unavailable, ask the same questions conversationally in one compact message.
@@ -101,6 +103,7 @@ Use the template selected by `references/mcp-catalog.md` from `assets/templates/
 - `figma.mcp.json`
 - `sentry-cloud.mcp.json`
 - `sentry-self-hosted.mcp.json`
+- `playwright.mcp.json`
 - `project.mcp.example.json` for the combined shape
 - `agents-tool-routing.md` for saved project routes and fallback behavior
 - `agents-jira.md` for optional Jira project guidance
