@@ -1,9 +1,9 @@
 ---
-name: ticket-estimation
+name: estimate-size
 description: Estimate software tickets and work items with a configurable relative-sizing workflow. Respect dedicated estimators and local project rules, and use the built-in defaults when no local rules are provided.
 ---
 
-# Ticket Estimation
+# Estimate Size
 
 Estimate the relative size of a software ticket, issue, story, bug, spike, or other work item. Produce a transparent estimate grounded in the actual scope, complexity, uncertainty, dependencies, and validation effort.
 
