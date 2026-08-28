@@ -1,10 +1,15 @@
 ---
 name: scope-plan
-description: Create technical implementation plan and time estimate. Use this for planning and estimation when user asks to create an implementation plan or estimate.
+description: "[DEPRECATED] Superseded by write-plan and estimate-time. Do not use for new work."
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 6.4.0
+  version: 6.5.0
 ---
+
+> [!WARNING]
+> `scope-plan` is deprecated. Use `write-plan` for the implementation plan and `estimate-time` for the hour estimate. This skill is kept for existing references and is no longer maintained.
+
+**First, before any planning work, tell the user:** "`scope-plan` is deprecated — its replacements are `write-plan` (planning) and `estimate-time` (estimation). Continuing with `scope-plan` for now." Print this every time the skill runs, then proceed.
 
 # Plan & Estimate tasks
 
