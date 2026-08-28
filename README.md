@@ -253,6 +253,7 @@ Before writing a line of spec, stress-test the problem statement and approach. P
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
+| `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
 
 ---
@@ -282,18 +283,19 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 ### Stage 4 — Plan
 
-Break down the spec into an atomic, dependency-mapped implementation plan with effort estimates. Commit the plan alongside the PRD in the repo, and sync only the estimate and status back to Jira. Use the estimate for planning and sales.
+Break down the spec into an atomic, dependency-mapped implementation plan with effort estimates. Commit the plan alongside the PRD in the repo, and sync the time estimate and status back to Jira. Use the estimate for planning and sales.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
-| `scope-plan` | aimate | Generate execution-ready implementation plan and time estimate |
+| `write-plan` | aimate | Generate an execution-ready implementation plan with sized tasks |
+| `estimate-time` | aimate | Add an hour estimate to the plan when a time forecast is needed |
 | Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
 
 ---
 
 ### Stage 5 — Implement
 
-Hand off the result of the scope-plan or spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
+Hand off the result of write-plan (and estimate-time, if a time forecast is needed) or the spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
@@ -350,7 +352,7 @@ The common worry is that `docs/specs/` becomes a swamp of stale files. That happ
 
 #### Why we keep retired specs
 
-While the change is being built, the spec is the truth about what we are building — what `scope-plan` estimates against, what `review-pr` checks, and what a second dev reads to understand what "done" means. That job ends when the ticket closes.
+While the change is being built, the spec is the truth about what we are building — what `write-plan` plans against and `estimate-time` estimates against, what `review-pr` checks, and what a second dev reads to understand what "done" means. That job ends when the ticket closes.
 
 Once the code merges, the truth about what the system *does* moves to the code itself, because the code is the running, tested answer. So we take the spec out of the active folder; as a live document it would start to mislead the moment the next change touches that area. But the spec still holds one thing the code never will: the *why*, including the alternatives that were rejected. That record has value beyond the change, which is why we keep it in `done/` rather than delete it.
 
