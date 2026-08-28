@@ -7,7 +7,7 @@ description: Estimate software tickets and work items with a configurable relati
 
 Estimate the relative size of a software ticket, issue, story, bug, spike, or other work item. Produce a transparent estimate grounded in the actual scope, complexity, uncertainty, dependencies, and validation effort.
 
-This skill is for relative sizing such as story points or an equivalent team scale. It is not a time-registration or delivery-date calculator. For an execution-ready implementation plan with hour estimates, use `scope-plan` instead.
+This skill is for relative sizing such as story points or an equivalent team scale. It sizes a whole work item in points; it does not size the subtasks inside a plan (that is `write-plan`), and it is not a time-registration or delivery-date calculator. For an implementation plan use `write-plan`, and for an hour estimate of that plan use `estimate-time`.
 
 ## Scope and Precedence
 
