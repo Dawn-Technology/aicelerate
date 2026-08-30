@@ -42,11 +42,25 @@ Analyzes the diff, identifies what changed, and writes a guide a real person can
 
 ---
 
+### `write-commit-message`
+
+> Write a high-quality git commit message following the seven rules of great commit messages, and commit it.
+
+Reads the staged diff, picks up a Jira key from the branch name, and writes a message with an imperative subject and a body that explains the observable problem and the approach taken. It triggers on its own whenever a commit is being authored, including mid-task when an agent is about to run `git commit`, so you rarely have to ask for it by name.
+
+The skill is autonomous end to end — it drafts, commits, and reports the SHA and message afterwards. It never pauses for approval or asks what to stage; correct anything you dislike with `git commit --amend`.
+
+The format rules live in one shared file, [`references/commit-message-rules.md`](skills/write-commit-message/references/commit-message-rules.md) — maintain them there and every path picks them up. This skill reads it, the repo-root [`commit-message.instructions.md`](../../commit-message.instructions.md) that serves VS Code's Generate Commit Message button forwards to it, and every other skill that commits delegates to this skill.
+
+**Trigger phrases:** "commit this", "git commit", "write a commit message"
+
+---
+
 ### `create-gitlab-mr`
 
 > Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitLab Merge Request using the GitLab MCP server.
 
-Automates the full workflow from local changes to a published GitLab MR: creates a branch, stages and commits changes, pushes, and opens the MR — all in one step.
+Automates the full workflow from local changes to a published GitLab MR: creates a branch, stages and commits changes, pushes, and opens the MR — all in one step. The commit message itself comes from `write-commit-message`.
 
 **Trigger phrases:** "create a gitlab MR", "open a merge request", "push and create MR"
 
