@@ -157,29 +157,34 @@ Copilot won't infer Jira context from your codebase. Add this block manually so 
 - Allowed types: Taak, Story, Bug, Subtaak, Epic.
 ```
 
-### Commit Message Instructions
+### Commit Messages
 
-The repo ships a [`commit-message.instructions.md`](commit-message.instructions.md) file that defines a strict [Conventional Commits](https://www.conventionalcommits.org/) format with impact analysis and footer metadata. It is used in three ways:
+Commit messages come from the [`write-commit-message`](plugins/aimate/skills/write-commit-message/SKILL.md) skill. It ships with the plugin, so there is nothing to configure per project. The skill triggers on its own whenever a commit is being authored — when you ask ("commit this") and when an agent reaches `git commit` partway through a task. It reads the staged diff, picks up a Jira key from the branch name, drafts an imperative subject with a body explaining the observable problem and the approach taken, and commits.
 
-- **VS Code** — Copilot uses it automatically when generating commit messages via the Source Control panel.
-- **Copilot CLI agents** — Agents reference it when crafting commits, so the same standard applies whether you commit manually or via an automated skill.
-- **Skills and prompts** — Any skill that produces commits (e.g. `create-gitlab-mr`) can reference it explicitly to ensure consistent output.
+It runs autonomously: no approval step, no "shall I proceed", no questions about what to stage. It commits and then reports the SHA and the message it wrote. If something needs changing, `git commit --amend` is the fix.
 
-#### VS Code setup
+Skills that produce commits, such as `create-gitlab-mr`, delegate the message to this skill, so the same standard applies whether you commit by hand or through an automated workflow.
 
-Add the following to your project's `.vscode/settings.json` (or user `settings.json` to apply globally):
+#### One shared rules file
+
+The format itself — the seven rules, what belongs in each paragraph, the self-check, the worked examples — lives in a single maintained file: [`commit-message-rules.md`](plugins/aimate/skills/write-commit-message/references/commit-message-rules.md), inside the skill so it ships with the plugin. The skill reads it, and so does anything else that writes a commit message. Change the rules there and every path picks them up; nothing restates them.
+
+#### VS Code's Generate Commit Message button
+
+The button in the Source Control panel reads its instructions from a file and cannot invoke a skill, so it has its own entry point: [`commit-message.instructions.md`](commit-message.instructions.md). That file holds no rules of its own — it forwards to the shared rules, so the button and the skill produce the same message.
+
+Point the setting at both files. The button's generation call has no tools and cannot open a linked file, so the rules have to be in the prompt next to the instructions that reference them:
 
 ```json
 "github.copilot.chat.commitMessageGeneration.instructions": [
-    { "file": "commit-message.instructions.md" }
+    { "file": "commit-message.instructions.md" },
+    { "file": "plugins/aimate/skills/write-commit-message/references/commit-message-rules.md" }
 ]
 ```
 
-With this in place, the **Generate Commit Message** button in the Source Control panel will follow the Conventional Commits format defined in the file.
+Copilot chat and agent mode open the linked file themselves and need only the first entry.
 
-#### Copilot CLI and agents
-
-The file is automatically picked up by the Copilot CLI when it is present at the repo root. No extra configuration is required — agents will apply the commit conventions whenever they stage and commit changes.
+In another project, copy both files in and adjust the second path. Committing from chat avoids the copy entirely — `write-commit-message` reads the rules from the installed plugin, so it never goes stale.
 
 ### Tone of Voice
 
@@ -324,6 +329,7 @@ Produce a manual test guide and open the merge request. The GitLab MCP handles b
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `test-pr-guide` | aimate | Step-by-step manual testing guide for a branch or MR |
+| `write-commit-message` | aimate | Draft the commit message from the staged diff — triggers automatically on every commit |
 | `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step — uses GitLab MCP under the hood |
 | GitLab MCP | aimate (bundled) | Create the remote branch, push commits, and open the MR with description and labels |
 

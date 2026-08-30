@@ -1,103 +1,27 @@
-# Commit Message Guidelines
+# Commit Message Instructions
 
-## Core Principles
+Follow these instructions whenever you generate a git commit message.
 
-- **Clarity**: Messages must clearly explain _what_ changed and _why_.
-- **Security**: 🚫 NEVER include secrets, API keys, credentials, or PII in commit messages.
-- **Consistency**: Follow the Conventional Commits specification strictly.
+## Apply the shared rules
 
-## Format Structure
+The format is maintained in one file, and this file does not restate it:
 
-All commit messages MUST strictly follow this format:
+[`plugins/aimate/skills/write-commit-message/references/commit-message-rules.md`](plugins/aimate/skills/write-commit-message/references/commit-message-rules.md)
 
-```text
-<type>(<scope>)[!]: <subject>
-
-<body>
-
-<impact-analysis>
-
-<footer/metadata>
-```
-
-## 1. Header Line
-
-The header must be **72 characters or less**.
-
-For **Breaking Changes**, append `!` after the type/scope (e.g., `feat!: drop support for Node 12`) to signal a Major version bump.
-
-### Types
-
-Select the most specific type:
-
-- `feat`: 🚀 New feature (correlates with MINOR in semantic versioning)
-- `fix`: 🐛 Bug fix (correlates with PATCH in semantic versioning)
-- `docs`: 📚 Documentation changes
-- `style`: 💎 Code style/formatting (no logic change, whitespace, semi-colons)
-- `refactor`: 📦 Code refactoring (no functional change, no api change)
-- `perf`: ⚡ Performance improvements
-- `test`: 🚨 Adding or updating tests
-- `chore`: 🛠️ Maintenance tasks, dependencies, build scripts
-- `ci`: ⚙️ CI/CD configuration changes
-- `sec`: 🔒 Security fixes or improvements
-- `revert`: ⏪ Revert a previous commit
-
-### Scope (Optional)
-
-Use the affected module/component (folder) name (lowercase, kebab-case):
-
-- Core: `api`, `auth`, `data`, `utils`
-- Infra: `ci`, `config`, `deploy`, `scripts`
-- UI: `components`, `styles`, `views`, `assets`
-
-**Constraints**:
-
-- Select exactly **one** scope that best represents the primary change.
-- If a change touches more than two distinct scopes, omit the scope entirely or use `core`.
-- Do not use comma-separated scopes.
-
-### Subject
-
-- Use **imperative mood** ("Add feature" NOT "Added feature").
-- Capitalize the first letter.
-- Do not end with a period.
-- Be concise but descriptive.
-
-## 2. Body
-
-- **Mandatory** for all `feat`, `fix`, and complex `refactor` changes.
-- Separate from subject with a blank line.
-- Wrap lines at 72 characters.
-- Start with "This change..." to contextualize the description.
-- Explain the **motivation** for the change and contrast with previous behavior.
-- Use bullet points (`-`) for lists.
-
-## 3. Impact Analysis
-
-Instead of listing file changes, list significant side effects or impacts that may not be visible in the code diff.
-
-- **Migrations**: Database schema changes or data migrations?
-- **Deprecations**: Are any APIs or features deprecated?
-- **Dependencies**: New external libraries added?
-- **Configuration**: Changes to ENV variables or config files?
-
-## 4. Footer / Metadata
-
-- Reference issue tracker IDs explicitly (e.g., Jira, GitHub Issues).
-- Format: `Ref: #123` or `Fixes: ISSUE-123`.
-- Mention breaking changes if any: `BREAKING CHANGE: <description>\`.
-
-### Example
+Read that file and apply it in full — the format, the seven rules, what belongs in each paragraph, the self-check, and the worked examples. If it is not reachable from where you are running, read it from the raw source instead:
 
 ```text
-feat(auth): Add login rate limiting
-
-Implement rate limiting on the login endpoint to prevent brute
-force attacks. Users are now locked out after 5 failed attempts.
-
-Impact:
-- Configuration: Added `SECURITY_MAX_ATTEMPTS` to config.yaml
-- Security: Enforces 5-attempt limit per IP
-
-Ref: ISSUE-456
+https://raw.githubusercontent.com/Dawn-Technology/aicelerate/main/plugins/aimate/skills/write-commit-message/references/commit-message-rules.md
 ```
+
+## Writing the message
+
+- Ground the message in the staged diff. Describe what changed and why, never a file-by-file listing.
+- Output only the finished commit message — no headings, labels, prompt lines, commentary, or surrounding prose.
+- Take the ticket key from the branch name using the pattern `[A-Z]+-\d+` and put it on the last line. Omit that line entirely when the branch holds no key; never invent one.
+- Never start a line with `#` — git strips such lines under `--cleanup=strip`. Write `Ref: #123` instead of a bare `#123`.
+- Never include secrets, API keys, credentials, or PII.
+
+## Committing from chat or the CLI
+
+Use the `write-commit-message` skill instead. It reads the same rules file and also stages, commits, and reports the result.
