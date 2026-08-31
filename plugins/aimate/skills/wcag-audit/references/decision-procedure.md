@@ -6,6 +6,8 @@ Apply this procedure to every CSV row in order. Evaluate the declared scope, not
 
 Identify the feature governed by the criterion and enumerate candidate instances across all in-scope production sources. Record searched paths, file types, framework constructs, and search signals.
 
+Separate source-controlled values from values supplied by a CMS, API, translation catalog, menu tree, or external media service. A template candidate is not fully evaluated when its accessibility outcome depends on unavailable content.
+
 - If a bounded search proves the feature is absent, assign **⚪ N/A**.
 - If absence cannot be established because markup is dynamic, external, sampled, or outside the selected scope, assign **⚠️ NEEDS_REVIEW**, not N/A.
 - If present, continue.
@@ -31,7 +33,8 @@ For each candidate:
 1. Check native HTML behavior or a documented framework/component default.
 2. Search for wrappers, prop combinations, CSS, event handlers, or overrides that bypass that behavior.
 3. Verify the relevant implementation and generated semantics as far as source permits.
-4. Classify the instance as proven valid, definite violation, or unresolved.
+4. Evaluate normative exceptions and alternatives before calling an apparent violation a FAIL.
+5. Classify the instance as proven valid, definite violation, or unresolved.
 
 A native control proves only itself. A `<button>` does not establish that every application control satisfies Keyboard or Name, Role, Value. A `<label for>` does not establish that every form input is labeled.
 
@@ -60,7 +63,8 @@ Every criterion ledger entry must include:
 
 For dynamic collections where an exact total cannot be determined, write `at least N` and mark unresolved coverage. Never invent a precise count.
 
+For a reusable loop or template with unavailable production data, count the source pattern separately from rendered instances: for example, `patterns=1; rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
+
 ## 6. Assign severity or review priority
 
 Use [`severity-guidance.md`](./severity-guidance.md). Severity describes user impact, not WCAG level. NEEDS_REVIEW has a review priority rather than a confirmed defect severity.
-

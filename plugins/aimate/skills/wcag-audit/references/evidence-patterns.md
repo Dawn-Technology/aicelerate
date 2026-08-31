@@ -10,7 +10,7 @@ Evidence must be specific, sanitized, and traceable. Prefer a source location pl
 | Selector or style | `<path>:<line> <selector> <relevant declaration>` | `styles/base.css:118 .menu:focus { outline: none; }` |
 | Framework default | `framework:<name>:<feature> at <path>:<line>` | `framework:HTML:button-keyboard-semantics at src/Nav.jsx:42` |
 | Missing requirement | `missing:<requirement>; searched <paths/signals>` | `missing:label for 3 inputs; searched src/forms/**/*.{tsx,css}` |
-| N/A | `N/A - <feature absent>; searched <paths/signals>` | `N/A - no synchronized media; searched src/, templates/ for video, audio, track` |
+| N/A | `N/A - <feature absent>; Coverage: paths=<paths>; searched <signals>; candidates=0; evaluated=0; unresolved=0` | `N/A - no synchronized media; Coverage: paths=src/,templates/; searched video,audio,track; candidates=0; evaluated=0; unresolved=0` |
 | Needs review | `NEEDS_REVIEW - <limitation>; verify <exact steps>` | `NEEDS_REVIEW - rendered contrast unresolved; verify .btn-primary in every theme and state with a contrast analyzer` |
 | Monorepo | `[<component>] <canonical form>` | `[checkout] src/Payment.tsx:76 <div onClick> lacks keyboard handler` |
 
@@ -30,7 +30,7 @@ Coverage: paths=src/widgets/; candidates=at least 12; evaluated=10;
 violations=0; unresolved=2 generated at runtime
 ```
 
-The latter cannot yield PASS.
+The latter cannot yield PASS. N/A uses the same manifest with `candidates=0; evaluated=0; unresolved=0` and must state the searched signals.
 
 ## Representative-instance rule
 
@@ -46,8 +46,19 @@ For FAIL and NEEDS_REVIEW:
 
 - `PASS: src/Nav.jsx:42 <button aria-label="Close">; coverage candidates=8 evaluated=8 unresolved=0`
 - `FAIL: templates/card.twig:12 <img> missing alt; showing 1 of 6 instances`
-- `N/A - no live synchronized media; searched src/, templates/, content/ for live players and caption providers`
+- `N/A - no live synchronized media; Coverage: paths=src/,templates/,content/; searched=live players,streams,caption providers; candidates=0; evaluated=0; unresolved=0`
 - `NEEDS_REVIEW - focus may be obscured by .sticky-header; verify keyboard focus at 320px width on /checkout steps 1-3`
 
 Never include secrets, PII, full user content, or unrelated source excerpts.
 
+Preserve source code exactly. Evidence containing template syntax such as `{{ title }}` is valid and must not be altered for report validation.
+
+## External evidence provenance
+
+Prefix evidence not produced by the static audit:
+
+- `EXTERNALLY_REPORTED - <source supplied by user or prior tool>`
+- `SOURCE_CORROBORATED - <what the inspected source independently establishes>`
+- `NOT_INDEPENDENTLY_VERIFIED - <rendered behavior requiring runtime access>`
+
+An externally reported rendered count is not a source candidate count.
