@@ -1,6 +1,6 @@
 {
   "name": "aimate",
-  "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security auditing, repository workflows, integration setup, and development planning.",
+  "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security and accessibility auditing, repository workflows, integration setup, and development planning.",
   "version": "2.0.0",
   "author": {
     "name": "Dawn Technology",
@@ -12,6 +12,9 @@
     "security",
     "owasp",
     "asvs",
+    "accessibility",
+    "wcag",
+    "a11y",
     "gitlab",
     "github",
     "code-review",

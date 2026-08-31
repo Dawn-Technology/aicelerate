@@ -2,7 +2,7 @@
 
 AI Automation Teamate.
 
-AI Acceleration supporting SDLC — reusable skills for security auditing, repository workflows, project integration setup, and development planning.
+AI Acceleration supporting SDLC — reusable skills for security and accessibility auditing, repository workflows, project integration setup, and development planning.
 
 ## Compatibility Note
 
@@ -29,6 +29,16 @@ Detects working official CLIs and existing MCP connections before asking questio
 Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requirements. Produces structured reports with evidence-backed PASS/FAIL/N/A classifications and severity-rated findings.
 
 **Trigger phrases:** "security audit", "asvs audit", "vulnerability scan", "compliance review", "pentest"
+
+---
+
+### `wcag-audit`
+
+> WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting and evidence-backed findings.
+
+Reviews application source against every WCAG 2.2 A/AA success criterion, distinguishes definite failures from rendering-dependent manual review, and writes a compliance-style report without claiming certified conformance.
+
+**Trigger phrases:** "accessibility audit", "a11y audit", "WCAG audit", "accessibility compliance review"
 
 ---
 
