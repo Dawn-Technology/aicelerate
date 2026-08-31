@@ -73,6 +73,12 @@ REQUIRED_COLUMNS = [
     "sc_id", "name", "level", "wcag_version", "static_analyzable", "check_hint"
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
+DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
 
 
 def validate_csv(path: Path) -> list[str]:
@@ -118,7 +124,7 @@ def validate_csv(path: Path) -> list[str]:
     return errors
 
 
-def validate_report(path: Path) -> list[str]:
+def validate_report(path: Path, criteria_rows: list[dict[str, str]]) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
     ledger_match = re.search(
@@ -127,25 +133,58 @@ def validate_report(path: Path) -> list[str]:
     if not ledger_match:
         return ["report is missing a bounded Conformance criteria ledger section"]
 
-    rows: list[tuple[str, str]] = []
+    rows: list[dict[str, str]] = []
     for line in ledger_match.group(1).splitlines():
         cells = [cell.strip() for cell in line.split("|")]
         if len(cells) >= 7 and re.fullmatch(r"\d+\.\d+\.\d+", cells[1]):
-            rows.append((cells[1], cells[4]))
+            rows.append({
+                "sc_id": cells[1],
+                "name": cells[2],
+                "level": cells[3],
+                "verdict": cells[4],
+                "evidence": " | ".join(cells[5:-1]).strip(),
+            })
 
-    ids = [item[0] for item in rows]
+    ids = [row["sc_id"] for row in rows]
     if len(rows) != 55:
         errors.append(f"report ledger row count {len(rows)} != 55")
     if ids != EXPECTED_IDS:
         errors.append("report ledger IDs or order differ from the canonical checklist")
-    if any(token not in VERDICT_TOKENS for _, token in rows):
+    if any(row["verdict"] not in VERDICT_TOKENS for row in rows):
         errors.append("report contains an invalid verdict token")
-    if "{{" in text or "}}" in text:
+    report_criteria = [(row["sc_id"], row["name"], row["level"]) for row in rows]
+    expected_report_criteria = [criterion[:3] for criterion in EXPECTED_CRITERIA]
+    if report_criteria != expected_report_criteria:
+        errors.append("report ledger names or levels differ from the canonical checklist")
+
+    if re.search(r"\[\[[a-z][a-z0-9_]*\]\]", text):
         errors.append("report contains unfilled template placeholders")
     if "not a certification or WCAG conformance claim" not in text:
         errors.append("report is missing the required static-audit disclaimer")
 
-    verdict_counts = Counter(verdict for _, verdict in rows)
+    static_by_id = {
+        row["sc_id"]: row["static_analyzable"]
+        for row in criteria_rows
+        if row.get("sc_id")
+    }
+    for row in rows:
+        sc_id = row["sc_id"]
+        verdict = row["verdict"]
+        evidence = row["evidence"]
+        if static_by_id.get(sc_id) == "no" and verdict == "✅ PASS":
+            errors.append(f"report gives forbidden static PASS for static_analyzable=no criterion {sc_id}")
+        if verdict == "✅ PASS":
+            required = ("Coverage:", "candidates=", "evaluated=", "unresolved=0")
+            if any(token not in evidence for token in required):
+                errors.append(f"PASS {sc_id} lacks the complete bounded coverage manifest")
+            if "sampled" in evidence.lower():
+                errors.append(f"PASS {sc_id} relies on sampling rather than exhaustive coverage")
+        if verdict == "⚪ N/A":
+            required = ("N/A -", "Coverage:", "searched", "candidates=0", "unresolved=0")
+            if any(token not in evidence for token in required):
+                errors.append(f"N/A {sc_id} lacks bounded negative evidence")
+
+    verdict_counts = Counter(row["verdict"] for row in rows)
     summary_labels = {
         "✅ PASS": "PASS",
         "⚪ N/A": "N/A",
@@ -161,11 +200,44 @@ def validate_report(path: Path) -> list[str]:
                 f"report summary {label} count {summary.group(1)} != ledger count {verdict_counts[verdict]}"
             )
 
-    for sc_id, verdict in rows:
-        if verdict in {"⚠️ NEEDS_REVIEW", "❌ FAIL"}:
-            heading = rf"^###\s+{re.escape(verdict)}\s+{re.escape(sc_id)}\s+—"
-            if not re.search(heading, text, re.MULTILINE):
-                errors.append(f"report is missing a detailed section for {verdict} {sc_id}")
+    severity_counts: dict[str, int] = {}
+    for severity in ("Critical", "Serious", "Moderate", "Minor"):
+        match = re.search(rf"^\|\s*{severity}\s*\|\s*(\d+)\s*\|$", text, re.MULTILINE)
+        if not match:
+            errors.append(f"report severity summary is missing numeric {severity} count")
+        else:
+            severity_counts[severity] = int(match.group(1))
+    if severity_counts and sum(severity_counts.values()) != verdict_counts["❌ FAIL"]:
+        errors.append("report severity counts do not sum to the FAIL ledger count")
+
+    detail_match = re.search(
+        r"^## Detailed findings and required review\s*$([\s\S]*?)^## (?:Supplemental observations|Regulatory context)\s*$",
+        text,
+        re.MULTILINE,
+    )
+    if not detail_match:
+        errors.append("report is missing a bounded detailed findings section")
+        return errors
+
+    expected_details = [
+        (row["verdict"], row["sc_id"], row["name"])
+        for row in rows
+        if row["verdict"] in DETAIL_VERDICTS
+    ]
+    actual_details: list[tuple[str, str, str]] = []
+    for line in detail_match.group(1).splitlines():
+        if not line.startswith("### "):
+            continue
+        exact = re.fullmatch(
+            r"### (⚠️ NEEDS_REVIEW|❌ FAIL) (\d+\.\d+\.\d+) — (.+)", line
+        )
+        if not exact:
+            errors.append(f"unexpected or malformed verdict heading in detailed section: {line}")
+            continue
+        actual_details.append((exact.group(1), exact.group(2), exact.group(3)))
+
+    if actual_details != expected_details:
+        errors.append("detailed sections must match FAIL/NEEDS_REVIEW ledger rows exactly once and in CSV order")
     return errors
 
 
@@ -177,7 +249,7 @@ def main() -> int:
 
     errors = validate_csv(args.csv_path)
     if args.report:
-        errors.extend(validate_report(args.report))
+        errors.extend(validate_report(args.report, read_csv(args.csv_path)))
     if errors:
         print("validate_audit: FAIL", file=sys.stderr)
         for error in errors:
