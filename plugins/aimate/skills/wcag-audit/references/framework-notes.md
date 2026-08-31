@@ -32,8 +32,10 @@ Use only the section matching the detected stack. Framework conventions provide 
 - Trace template inheritance, includes, macros, blocks, conditions, and data-provided attributes to the final HTML shape.
 - Treat escaped output as security behavior, not accessibility evidence. Inspect whether content variables provide meaningful names, labels, alternatives, and language.
 - Search every caller of a macro before treating the macro's default markup as exhaustive coverage.
+- Preserve Twig evidence verbatim. `{{ value }}` must never be rewritten as `{ { value } }`.
+- In Drupal Twig, insert variables inside a `{% trans %}` body, for example `{% trans %}Show submenu for {{ item_title }}{% endtrans %}`. Alternatively use the translation filter with a placeholder map. Do not assume `{% trans with {'@label': value} %}...@label{% endtrans %}` performs token substitution; `with` is for translation options such as context and language.
+- A Twig loop proves an affected pattern, not an exact rendered instance count, unless the menu/content data used by that render is also inspected.
 
 ## Unknown or mixed stacks
 
 Audit generic rendered-HTML semantics. Identify templates and component boundaries by imports, includes, naming, and output construction. If final semantics cannot be traced, classify affected instances as unresolved rather than assuming a framework default.
-
