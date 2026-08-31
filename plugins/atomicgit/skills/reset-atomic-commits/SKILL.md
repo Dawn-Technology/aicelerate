@@ -113,10 +113,11 @@ first one found instead of the default style below:
 - `.github/copilot-instructions.md`
 - `CONTRIBUTING.md` (only if it defines a commit message format)
 
-**Default style (used only if none of the above define a convention):**
-Conventional Commits, atomic per commit — `<type>(<scope>): <subject>`,
-imperative mood, one logical change per commit, short body explaining the
-*why* when the change isn't self-evident.
+**Default style (used only if none of the above define a convention):** see
+[`./references/atomic-commits.md`](./references/atomic-commits.md) — Conventional
+Commits, atomic per commit — `<type>(<scope>): <subject>`, imperative mood,
+one logical change per commit, short body explaining the *why* when the
+change isn't self-evident.
 
 ### Step 5 — Plan the atomic commits
 
@@ -125,7 +126,9 @@ by file and not by directory — the same way a developer would split a large
 change for review: e.g. "add feature X", "refactor Y to support X", "update
 tests for X", "update docs/config". A single file may end up split across
 multiple commits if it contains unrelated hunks; a single commit may span
-multiple files if they belong to the same concern.
+multiple files if they belong to the same concern. See
+[`./references/atomic-commits.md`](./references/atomic-commits.md) for the
+full method and a self-check to apply before committing.
 
 Order commits so the branch is buildable/reviewable at every step (e.g.
 foundational/shared code before the code that uses it, implementation before
