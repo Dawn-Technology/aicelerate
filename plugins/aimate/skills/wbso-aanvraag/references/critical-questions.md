@@ -79,7 +79,7 @@ kunt afleiden, en bundel maximaal 3 vragen per bericht.
     - (Kan worden ingelezen als aanvullende context)
 
 21. **Zijn er Jira-epics of user stories die het technische werk beschrijven?**
-    - (Worden ingelezen via Jira MCP als beschikbaar)
+    - (Worden ingelezen via de geconfigureerde Jira CLI- of MCP-route als beschikbaar)
 
 22. **Heb je eerder een WBSO-aanvraag gedaan voor dit of een vergelijkbaar project?**
     - Zo ja: wat was de uitkomst? Zijn er afkeuringen of opmerkingen van RVO?

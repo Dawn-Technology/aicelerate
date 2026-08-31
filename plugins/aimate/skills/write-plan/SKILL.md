@@ -1,17 +1,12 @@
 ---
-name: scope-plan
-description: "[DEPRECATED] Superseded by write-plan and estimate-time. Do not use for new work."
+name: write-plan
+description: Create a technical implementation plan broken into small, executable, sized tasks. Use when user asks to create an implementation plan, break down a ticket, or scope work.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 6.5.0
+  version: 1.0.0
 ---
 
-> [!WARNING]
-> `scope-plan` is deprecated. Use `write-plan` for the implementation plan and `estimate-time` for the hour estimate. This skill is kept for existing references and is no longer maintained.
-
-**First, before any planning work, tell the user:** "`scope-plan` is deprecated — its replacements are `write-plan` (planning) and `estimate-time` (estimation). Continuing with `scope-plan` for now." Print this every time the skill runs, then proceed.
-
-# Plan & Estimate tasks
+# Plan tasks
 
 ## 1. Role & Objective
 
@@ -19,7 +14,6 @@ You are an expert **Principal Software Engineer**. Produce a deterministic, exec
 
 1. Resolves the full design tree before implementation planning.
 2. Breaks work into small, testable tasks with clear subagent boundaries.
-3. Produces a defensible time estimate derived from those tasks.
 
 Name all files, types, tests, conventions, and docs explicitly so that an engineer or subagent with limited codebase context can execute each task.
 
@@ -43,7 +37,7 @@ Treat this as a **full design tree** exercise. Explicitly map each branch needed
 - **Decision** — explicitly chosen by the user.
 - **Assumption** — planner default with rationale because it is non-blocking.
 
-Planning may only begin when every branch that affects architecture, contracts, task boundaries, or estimates has been closed.
+Planning may only begin when every branch that affects architecture, contracts, task boundaries, or scope has been closed.
 
 Decision areas to consider:
 
@@ -72,7 +66,7 @@ Use these statuses consistently in the design tree:
 Stop discovery only when:
 
 - all branches in the design tree are closed as **Observed**, **Decision**, or **Assumption**
-- no unresolved question would materially change contracts, schema, integration choices, task boundaries, or estimates
+- no unresolved question would materially change contracts, schema, integration choices, task boundaries, or scope
 - requirements are clear and explicitly documented
 
 #### Step 3: Summarize and validate before planning
@@ -81,7 +75,7 @@ Compile a single **Design Tree** summary that lists each branch, its status (**O
 
 Validate the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
 
-### Phase 2: Planning & Estimation
+### Phase 2: Planning
 
 Before defining tasks, derive a functional requirements list. Each requirement must be written so that a product owner can review and validate quickly. Describe expected user-visible behavior, business rules, or outcomes rather than implementation details. Each requirement must be one sentence, use plain language, and avoid technical jargon unless the term is already part of the product domain. Use checkboxes (`- [ ]`). Place this list under **Requirements** in Section 1 of the output.
 
@@ -124,45 +118,34 @@ Output economy:
 
 - Subtask descriptions must use bulleted **Acceptance Criteria** (e.g., Given/When/Then or concrete verification steps) detailing exact behavior. Avoid vague prose.
 - **Explicit Contracts Required (Bounded Context):** Apply the task invariants. If no contract file exists before the subtask starts, embed the exact contract fragment in its Acceptance Criteria and name the destination file. Prefer repetition over ambiguity.
-- `Docs / References`, `Depends on`, and `Estimate` appear once at the task level only.
+- `Docs / References` and `Depends on` appear once at the task level only.
 - Every file must be annotated `(create)` or `(modify)`.
 - **Context Boundaries:** Every task must include a **Required Context to Read** list specifying the exact file paths the developer or agent must read before starting the work (e.g., related models, interfaces, utility functions). Default to the smallest sufficient context. Use 1-3 files unless more are essential. Only add a subtask-level **Required Context to Read** section when that subtask needs additional or different context from the parent task. Do not list plan sections here; only repository file paths are allowed.
 - **Contract Inputs:** Every task must list repository contract files it consumes, or `None`. Never list plan sections. If a contract file does not exist before the task starts, embed the exact contract excerpt in the relevant subtask Acceptance Criteria instead.
 - **Context to Preserve:** Every task must list existing behavior, contracts, files, or conventions the subagent must not change while completing the task.
 - Every code-changing task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, identifying the test harness to use, and listing the exact validation command to run. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope. If the command is unknown, state that the subagent must inspect the repository test configuration before editing code.
-- No subtask may exceed 4h. Break it down further if needed.
-- **Estimation fallback:** If a task's scope is highly uncertain, replace it with a 2h Spike task and define the expected output (e.g., 'Sequence Diagram' or 'Interface Proposal'). If an unresolved branch would materially change contracts, schema, integration choice, or task breakdown, insert a Spike before estimating downstream implementation work.
+- Every subtask carries a size label — `S`, `M`, or `L` (defined under **Subtask sizing** below). `L` is the ceiling: split anything larger, or replace it with a Spike task.
+- **Spike fallback:** If a task's scope is too uncertain to size, make it a Spike task — its name prefixed `Spike — ` (e.g. `Task 3 — Spike — Auth flow`) — that emits a defined output artifact (e.g. 'Sequence Diagram' or 'Interface Proposal'). A Spike's subtasks carry no size label.
 - **Integration review:** Every plan using two or more subagent-executable tasks must include a near-final **Integration Review** task before Documentation/Rework to reconcile outputs, shared contracts, overlapping edits, and validation results.
 - **Final task:** Every plan must include a final task named **Documentation/Rework** with subtasks for **Documentation updates** and **Rework**.
 
-**Estimation.** Assign each subtask one fixed bucket, sum subtask totals to get the task estimate, then multiply by the risk factor.
+**Subtask sizing.** Assign every subtask a size label. These sizes describe the shape of a subtask within a plan; they are not story points (that is `estimate-size`) and carry no hours here (that is `estimate-time`).
 
-- **Trivial (0.25h):** Mechanical/no logic.
-- **Tiny (0.5h):** Focused 1-file change.
-- **Small (1h):** Self-contained 1-3 files.
-- **Medium (2h):** Feature slice across layers.
-- **Large (4h):** Complex vertical slice; split anything larger.
-
-If a subtask would exceed 4h, split it.
-
-**Risk multipliers:**
-
-- Low (1.0x): Scope is fully known. All files identified.
-- Medium (1.5x): Touching shared code or unclear integration points.
-- High (2.0x): Unfamiliar architecture or fuzzy scope boundaries.
+- **S:** single file, mechanical or narrowly-scoped logic.
+- **M:** self-contained change across 2-3 files, one layer or responsibility.
+- **L:** vertical slice touching multiple layers (e.g. API + service + data). This is the ceiling — split anything larger, or emit a Spike task.
 
 ### Phase 3: Review
 
 Validate the plan and ensure:
 
-1. Math is correct (Base x Multiplier = Total).
-2. All files are marked `(create)` or `(modify)`.
-3. No vague placeholders (like `[...]`) remain.
-4. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
-5. Every task satisfies the task invariants.
-6. No task or subtask refers to Section 4, Section 4.1, Technical Approach, Design Tree, "above", "below", or any other plan section as required execution context.
-7. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
-8. Every parallel-safe task has non-overlapping allowed modification scope.
+1. All files are marked `(create)` or `(modify)`.
+2. No vague placeholders (like `[...]`) remain.
+3. The final task is named `Documentation/Rework` and includes `Documentation updates` and `Rework` subtasks.
+4. Every task satisfies the task invariants.
+5. No task or subtask refers to Section 4, Section 4.1, Technical Approach, Design Tree, "above", "below", or any other plan section as required execution context.
+6. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
+7. Every parallel-safe task has non-overlapping allowed modification scope.
 
 Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 
@@ -170,7 +153,9 @@ Do a rubber-duck review and critique the plan. Resolve any issues before continu
 
 Save the plan to `docs/plans/[ticket-id]-[slug].md`. If no ticket ID is provided, use `docs/plans/[YYYY-MM-DD]-[slug].md`. Create the folder if missing. If the target file already exists, create a new file with a `-HHMM` suffix unless the user explicitly requests overwrite.
 
-Confirm the plan is saved and provide a summary of the estimation breakdown.
+Confirm the plan is saved and report its file path.
+
+Then ask the user whether they also want a time estimate added. If yes, chain into `estimate-time`, passing the saved plan's file path. Do not produce an estimate unless asked — a plan is complete without one.
 
 Ask the user whether to review the plan or proceed with implementation.
 
@@ -229,7 +214,6 @@ Ask the user whether to review the plan or proceed with implementation.
 - **Depends on:** [Task number(s) that must complete first, or "None"]
 - **Execution Mode:** Parallel-safe | Sequential | Coordinator-only
 - **Allowed Scope:** `[Exact files or folders this task may modify]`
-- **Estimate:** [X.Xh base × risk multiplier = X.Xh]
 
 **Required Context to Read:**
 
@@ -249,7 +233,7 @@ Ask the user whether to review the plan or proceed with implementation.
 
 - `[Exact command, or command discovery note]`
 
-**1.1 [Subtask Name]** — `[File Path]` (create | modify)
+**1.1 [Subtask Name]** — `[File Path]` (create | modify) — `M`
 
 **Acceptance Criteria:**
 
@@ -262,7 +246,7 @@ Ask the user whether to review the plan or proceed with implementation.
   ```
 - [ ] [Criterion 3: Specific conventions, error handling, or edge cases]
 
-**1.2 Write tests for [feature]** — `[Test File Path]` (create)
+**1.2 Write tests for [feature]** — `[Test File Path]` (create) — `S`
 
 **Acceptance Criteria:**
 
@@ -282,7 +266,6 @@ Ask the user whether to review the plan or proceed with implementation.
 - **Depends on:** [All implementation tasks]
 - **Execution Mode:** Coordinator-only
 - **Allowed Scope:** `[Files needed to resolve integration conflicts]`
-- **Estimate:** [X.Xh base × risk multiplier = X.Xh]
 
 **Required Context to Read:**
 
@@ -300,7 +283,7 @@ Ask the user whether to review the plan or proceed with implementation.
 
 - `[Broadest relevant test, lint, or typecheck command]`
 
-**N−1.1 Reconcile subagent outputs** — `[affected files]` (modify)
+**N−1.1 Reconcile subagent outputs** — `[affected files]` (modify) — `M`
 
 **Acceptance Criteria:**
 
@@ -314,7 +297,6 @@ Ask the user whether to review the plan or proceed with implementation.
 - **Depends on:** Task N−1
 - **Execution Mode:** Coordinator-only
 - **Allowed Scope:** `[README / ADR / runbook paths and files touched during rework]`
-- **Estimate:** [X.Xh base × risk multiplier = X.Xh]
 
 **Required Context to Read:**
 
@@ -328,22 +310,11 @@ Ask the user whether to review the plan or proceed with implementation.
 
 - `[Docs check, test rerun, or final verification command]`
 
-**N.1 Rework** — `[affected files]` (modify)
+**N.1 Rework** — `[affected files]` (modify) — `M`
 Work through all comments from the peer code review: refactor as requested, fix logic issues, and resolve nitpicks.
 
-**N.2 Documentation updates** — `[README / ADR / runbook paths]` (modify)
+**N.2 Documentation updates** — `[README / ADR / runbook paths]` (modify) — `M`
 [List each file and what must change: updated endpoint descriptions, revised architecture diagrams, new runbook steps, etc.]
-
-## 6. Estimation
-
-| Component        | Task        | Estimate (Base \* Risk) | Risk                                    | Notes   |
-| ---------------- | ----------- | ----------------------- | --------------------------------------- | ------- |
-| [Frontend, etc.] | [Task Name] | [X.X]h                  | [Low (1.0x) / Med (1.5x) / High (2.0x)] | [Notes] |
-| **Total**        |             | **[Total]h**            |                                         |         |
-
-**Breakdown:**
-
-- [Component]: [X]h
 
 ````
 
