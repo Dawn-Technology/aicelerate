@@ -38,12 +38,11 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 ## N/A with bounded negative evidence
 
 ```markdown
-| 1.2.4 | Captions (Live) | AA | ⚪ N/A | N/A - no live synchronized media; searched `src/`, `templates/`, and `content/` for live players, streams, `video`, caption tracks, and caption-provider integrations |
+| 1.2.4 | Captions (Live) | AA | ⚪ N/A | N/A - no live synchronized media; Coverage: paths=`src/,templates/,content/`; searched=`live players,streams,video,caption tracks,caption providers`; candidates=0; evaluated=0; unresolved=0 |
 ```
 
 ## PASS with exhaustive coverage
 
 ```markdown
-| 3.1.1 | Language of Page | A | ✅ PASS | `src/layouts/Document.tsx:14 <html lang={locale}>`; routes=18, locale branches=4, evaluated=72, unresolved=0; invalid locale values fall back to `en` at `src/i18n/locale.ts:39` |
+| 3.1.1 | Language of Page | A | ✅ PASS | `src/layouts/Document.tsx:14 <html lang={locale}>`; Coverage: paths=`src/layouts/,src/i18n/`; signals=`html lang,locale`; candidates=72; evaluated=72; unresolved=0; invalid locale values fall back to `en` at `src/i18n/locale.ts:39` |
 ```
-
