@@ -3,7 +3,7 @@ name: test-pr-guide
 description: Use when the user wants to know how to manually test code changes on a branch or PR - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR".
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
-  version: 1.2.0
+  version: 1.3.0
 ---
 
 # Test PR Guide
@@ -24,21 +24,20 @@ The user has given a GitLab MR URL (e.g. `https://gitlab.com/org/repo/-/merge_re
 1. Detect provider from URL:
    - URL contains `gitlab.com` or a self-hosted GitLab domain → `provider = "gitlab"`
    - If ambiguous, ask the user
-2. Verify GitLab MCP tools are available in the current session.
-   If missing → **do not proceed silently**. Inform the user:
-   > GitLab MCP is not installed. Install it via your agent's MCP settings (search for "GitLab" in the MCP marketplace or follow your provider's docs), then re-run this skill with the MR URL.
-
-   If MCP is still unavailable → fall back to Mode B and notify the user.
+2. Verify the official `glab` CLI:
+   - If `glab` is missing, offer Mode B only when the matching branch and repository are available locally. Otherwise point to the official installation documentation; on macOS or Homebrew-enabled Linux use `brew install glab`.
+   - Validate authentication with `glab auth status --hostname <mr-host>`.
+   - If authentication is missing, point to `glab auth login --hostname <mr-host>`. Never ask for a token in chat and never fall back to GitLab MCP.
 
 3. Extract `project_path` and `merge_request_iid` from the URL.
-4. Fetch MR details using GitLab MCP:
+4. Fetch MR details with `glab mr` commands and authenticated `glab api` for details not exposed by a high-level command:
    - Title, description, source/target branches, author
    - The MR diff (changed files + hunks)
    - Existing discussion threads (to understand intent and any prior review context)
-5. Store `diff_source = "gitlab_mcp"` and proceed to Step 1 using the fetched diff.
+5. Store `diff_source = "gitlab_cli"` and proceed to Step 1 using the fetched diff.
 
 **Mode B — local branch (default)**
-No MR URL was provided, or GitLab MCP is unavailable.
+No MR URL was provided, or no authenticated remote route is available.
 
 Use git to obtain the diff locally:
 

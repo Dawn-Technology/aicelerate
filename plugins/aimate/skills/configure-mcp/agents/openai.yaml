@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure Aimate integrations"
+  short_description: "Choose and validate CLI or MCP integrations"
+  default_prompt: "Use $configure-mcp to set up the integrations and tool preferences for this client project."

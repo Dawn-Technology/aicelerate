@@ -3,7 +3,7 @@ name: review-pr
 description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.2.2
+  version: 4.4.0
 ---
 
 # PR/MR Review Workflow Skill
@@ -35,7 +35,7 @@ This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Reques
 
 Follow these steps in order. Do not skip a step.
 
-### Step 0 — Verify Capabilities & Detect Provider
+### Step 0 — Detect Provider & Resolve Tool Route
 
 Before proceeding:
 
@@ -44,9 +44,11 @@ Before proceeding:
    - URL contains `gitlab.com` or a self-hosted GitLab domain → `provider = "gitlab"`, use `{project_path, merge_request_iid}` as identifiers.
    - If ambiguous, ask the user.
 
-2. **Verify the required MCP capabilities** for the detected provider:
-   - **GitHub**: Requires GitHub MCP tools (reading PRs, discussions, diffs, posting reviews). If missing, stop and ask the user to install the GitHub MCP server.
-   - **GitLab**: Requires GitLab MCP tools (reading MRs, discussions, diffs, posting notes). If missing, stop and ask the user to install the GitLab MCP server.
+2. **Resolve an authenticated route** for the detected provider:
+   - Follow the project's `aimate:tool-routing` block in `AGENTS.md`: explicit request, preferred route, then configured fallback. Do not ask again when the fallback works. Without a block, default to authenticated `gh` and then GitHub MCP for GitHub; GitLab always uses `glab` and never GitLab MCP.
+   - Validate CLI routes with `gh auth status --active --hostname <pr-host>` or `glab auth status --hostname <mr-host>`. Never use `--show-token`. Validate MCP with discovery and one harmless read-only metadata call only when needed.
+   - Store the working route as `provider_route` and mention a fallback briefly in the final report. If neither route works, stop before creating a worktree and point to the relevant login command or Aimate's `configure-mcp` skill. Never ask for a token in chat.
+   - Do not call tools from another provider or use a GitLab.com route for a self-hosted MR.
 
 3. Verify terminal access is available (required for git worktree operations in Step 2).
 
@@ -56,7 +58,7 @@ Store `provider` — it will gate all provider-specific sub-steps throughout the
 
 ### Step 1 — Fetch PR/MR Details
 
-Retrieve all metadata needed for the review using the tools matching `provider`.
+Retrieve all metadata needed for the review using the tools matching `provider` and `provider_route`. Prefer the provider CLI's high-level PR/MR commands and use its authenticated `api` subcommand for missing fields. MCP is supported only for GitHub; use only the matching project server.
 
 **GitHub**:
 
@@ -110,7 +112,7 @@ Store the subagent's full response as your **review baseline** for code analysis
 
 ### Step 4 — Retrieve, Parse, and Trace the Diff
 
-1. Retrieve the diffs between the source and target branches using the MCP tools for `provider`.
+1. Retrieve the diffs between the source and target branches through `provider_route`. Use `gh pr diff`/`gh api`, GitHub MCP tools, or `glab mr diff`/`glab api`. Do not use raw `curl`.
 2. Build a file-change inventory: list each changed file with its change type (added / modified / deleted). **All changed files MUST be reviewed**; do not skip any files.
 3. Prioritise the review order to build context progressively:
    - **High priority**: core business logic, security-sensitive code, public APIs, data models.
@@ -177,7 +179,7 @@ If there are no findings, state that explicitly and mention any residual testing
 
 ### Step 7 — Execute Chosen Action (Only When Confirmed)
 
-Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider`.
+Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider` and use the already resolved `provider_route`. Do not ask for the preference again.
 
 #### 7-A: Post Comments
 
@@ -200,41 +202,37 @@ If comment submission or publication fails after some comments may already have 
 
 **GitHub**:
 
-- Start a pending review using `mcp_github_add_comment_to_pending_review` for each finding.
+- **CLI route:** Use authenticated `gh api` to create one pending review containing the approved inline comments, then submit it. Use `gh pr review` for approve/request-changes when it supports the requested action. Never use raw `curl`.
+- **MCP route:** Start a pending review using the matching GitHub add-comment-to-pending-review tool for each finding.
   - Provide `owner`, `repo`, `pull_number`, `commit_id` (use `head_sha`), `path`, `line`, and `body`.
   - For multi-line findings, use `start_line` and `line` to span the range.
 - Ensure the chosen `line` or range still belongs to the PR diff. If the exact target is not commentable on GitHub, move to the nearest stable diff line or fall back to a top-level PR comment.
-- After all comments are added, submit the review using `mcp_github_pull_request_review_write` with `event: "COMMENT"` and an empty or summary `body`.
-- **Fallback**: If inline positioning fails (the line is not part of the diff), fall back to a top-level PR comment using `mcp_github_add_issue_comment`, indicating the target file and line.
+- After all MCP comments are added, submit the pending review with event `COMMENT` and an empty or summary body.
+- **Fallback**: If inline positioning fails, use `gh pr comment` on CLI or the GitHub top-level issue-comment tool on MCP, indicating the target file and line.
 
 **GitLab**:
 
-- Create draft notes using `mcp_gitlab_create_draft_note` in a loop for each finding.
-  - You MUST provide `base_sha`, `start_sha`, and `head_sha` in the `position` object.
-  - **Position Mapping**: Added/modified lines → `new_line` + `new_path`. Deleted lines → `old_line` + `old_path`. Context lines → both `old_line` + `new_line`. Set `position_type: "text"`.
-  - This non-blank anchor rule matters especially on GitLab: a draft note on a blank line may be accepted during creation and then silently disappear when drafts are published.
-- After all draft notes are created, publish them in a single batch with `mcp_gitlab_bulk_publish_draft_notes`. The user expects published notes, not drafts.
-- If `mcp_gitlab_bulk_publish_draft_notes` errors, do not immediately publish every draft individually. GitLab can partially complete the batch before returning an error.
-  1. Fetch current MR notes to see which comments were already published.
-  2. List remaining draft notes to identify what is still pending.
-  3. Publish only the still-pending drafts individually.
-- **Fallback**: If inline positioning fails (e.g., "Line is out of bounds"), fall back to a general MR discussion note using `mcp_gitlab_create_merge_request_discussion_note`, indicating the target file and line.
+- Use `glab mr note create <mr> --file <path> --line <line> -m <body>` for added or modified lines.
+- Use `--line <start>:<end>` for a supported multi-line range and `--old-line <line>` for a removed line.
+- Use authenticated `glab api` only when the high-level command cannot represent a required position. For that fallback, provide `base_sha`, `start_sha`, and `head_sha` and map old/new paths and lines correctly. Never use raw `curl`.
+- After any ambiguous failure, fetch current MR discussions before retrying and submit only missing comments.
+- **Fallback**: If inline positioning fails, create a general MR note with `glab mr note create` and include the target file and line in the body.
 
 #### 7-B: Approve
 
 If the user requests approval, confirm there are no unresolved security violations first. If there are, explicitly confirm the user wants to proceed despite the risks.
 
-**GitHub**: Submit an approving review using `mcp_github_pull_request_review_write` with `event: "APPROVE"`.
+**GitHub**: Submit an approving review through `gh pr review --approve` or the matching MCP review tool with event `APPROVE`.
 
-**GitLab**: Approve the MR using `mcp_gitlab_approve_merge_request`.
+**GitLab**: Approve the MR through `glab mr approve`.
 
 #### 7-C: Request Changes
 
 Formally mark the PR/MR as requiring changes.
 
-**GitHub**: Submit a review using `mcp_github_pull_request_review_write` with `event: "REQUEST_CHANGES"` and a summary `body` covering the key findings.
+**GitHub**: Submit a review through `gh pr review --request-changes` or the matching MCP review tool with event `REQUEST_CHANGES` and a summary covering the key findings.
 
-**GitLab**: Proceed in two distinct steps.
+**GitLab**: Proceed in two distinct steps. Execute these GraphQL operations through authenticated `glab api graphql`.
 
 **Step 1 — Verify reviewer assignment**
 
@@ -344,7 +342,8 @@ Style rules:
 
 ## Guardrails
 
-- Never merge, alter code, or use API tools from the wrong provider (e.g., do not use GitLab MCP tools on a GitHub PR).
-- Do not use raw `curl` or `git` CLI commands for provider API interactions; use MCP tools only.
+- Never merge, alter code, or use API tools from the wrong provider.
+- Do not use raw `curl` for provider API interactions. Use `gh`, `glab`, or the matching MCP route. Use `git` only for local repository/worktree operations.
+- After an ambiguous remote write failure, reconcile published reviews/comments through the same route before retrying. Never silently switch routes and duplicate a mutation.
 - Keep findings tied to concrete diff evidence from the branch worktree.
 - If the workflow is interrupted (user cancels, agent crashes), manually run `git worktree prune` to clean orphaned entries and recover disk space.
