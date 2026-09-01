@@ -2,7 +2,7 @@
 name: code-review
 description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
-  author: "Martin Roest <martin.roest@dawn.tech>"
+  author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
   version: 1.0.1
   role: "reusable-review-core"
   dependencies: []
