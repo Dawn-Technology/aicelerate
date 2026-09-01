@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
+import math
 import re
 import sys
 from collections import Counter
@@ -74,8 +76,18 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
-SKILL_VERSION = "1.5.0"
+SKILL_VERSION = "1.6.0"
 PARTIAL_VERDICT = "⏳ NOT_EVALUATED"
+SEVERITY_LABELS = ("Critical", "Serious", "Moderate", "Minor")
+SEVERITY_RANK = {label: rank for rank, label in enumerate(reversed(SEVERITY_LABELS))}
+FAIL_SEVERITY_BASELINES = {
+    "1.1.1": "Serious",
+    "1.2.2": "Serious",
+    "1.4.3": "Serious",
+    "2.1.1": "Serious",
+    "2.4.7": "Serious",
+    "3.3.2": "Serious",
+}
 EXCLUDED_PATH_PARTS = {
     ".git", ".svn", ".hg", "node_modules", "vendor", "dist", "build",
     "out", "target", ".next", "coverage", ".nyc_output", "__pycache__",
@@ -131,9 +143,10 @@ def validate_csv(path: Path) -> list[str]:
     return errors
 
 
-def focus_suppression_count(target: Path) -> int:
-    """Count authored CSS/preprocessor focus-suppression candidates."""
-    authored_extensions = {".scss", ".sass", ".less"}
+def source_roots(target: Path, scopes: list[Path] | None = None) -> list[Path]:
+    """Resolve explicit audit roots or fall back to conventional custom-code roots."""
+    if scopes:
+        return scopes
     drupal_custom_roots = [
         candidate for candidate in (
             target / "web" / "themes" / "custom",
@@ -141,7 +154,13 @@ def focus_suppression_count(target: Path) -> int:
         )
         if candidate.is_dir()
     ]
-    search_roots = drupal_custom_roots or [target]
+    return drupal_custom_roots or [target]
+
+
+def focus_suppression_count(target: Path, scopes: list[Path] | None = None) -> int:
+    """Count authored CSS/preprocessor focus-suppression candidates."""
+    authored_extensions = {".scss", ".sass", ".less"}
+    search_roots = source_roots(target, scopes)
     files = [
         candidate for root in search_roots for candidate in root.rglob("*")
         if candidate.is_file()
@@ -167,16 +186,9 @@ def focus_suppression_count(target: Path) -> int:
     return count
 
 
-def markup_control_count(target: Path) -> int:
+def markup_control_count(target: Path, scopes: list[Path] | None = None) -> int:
     """Count raw authored form-control candidates before applicability filtering."""
-    drupal_custom_roots = [
-        candidate for candidate in (
-            target / "web" / "themes" / "custom",
-            target / "web" / "modules" / "custom",
-        )
-        if candidate.is_dir()
-    ]
-    search_roots = drupal_custom_roots or [target]
+    search_roots = source_roots(target, scopes)
     extensions = {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}
     pattern = re.compile(r"<(?:input|select|textarea)\b", re.IGNORECASE)
     count = 0
@@ -200,16 +212,10 @@ def authored_markup_count(
     target: Path,
     pattern: re.Pattern[str],
     path_fragment: str | None = None,
+    scopes: list[Path] | None = None,
 ) -> int:
     """Count raw authored markup candidates in production source roots."""
-    drupal_custom_roots = [
-        candidate for candidate in (
-            target / "web" / "themes" / "custom",
-            target / "web" / "modules" / "custom",
-        )
-        if candidate.is_dir()
-    ]
-    search_roots = drupal_custom_roots or [target]
+    search_roots = source_roots(target, scopes)
     extensions = {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}
     count = 0
     for root in search_roots:
@@ -229,16 +235,11 @@ def authored_markup_count(
     return count
 
 
-def authored_source_files(target: Path, extensions: set[str]) -> list[Path]:
+def authored_source_files(
+    target: Path, extensions: set[str], scopes: list[Path] | None = None
+) -> list[Path]:
     """Return bounded production source files using the audit's standard roots."""
-    drupal_custom_roots = [
-        candidate for candidate in (
-            target / "web" / "themes" / "custom",
-            target / "web" / "modules" / "custom",
-        )
-        if candidate.is_dir()
-    ]
-    search_roots = drupal_custom_roots or [target]
+    search_roots = source_roots(target, scopes)
     return [
         candidate for root in search_roots for candidate in root.rglob("*")
         if candidate.is_file()
@@ -246,15 +247,19 @@ def authored_source_files(target: Path, extensions: set[str]) -> list[Path]:
         and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
         and not re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
         and not candidate.name.endswith((".min.js", ".bundle.js", ".min.css", ".bundle.css"))
+        and not (candidate.suffix.lower() == ".css" and candidate.with_suffix(".scss").is_file())
     ]
 
 
 def source_signal_locations(
-    target: Path, extensions: set[str], pattern: re.Pattern[str]
+    target: Path,
+    extensions: set[str],
+    pattern: re.Pattern[str],
+    scopes: list[Path] | None = None,
 ) -> list[str]:
     """Return one location per raw source signal for inventory reconciliation."""
     locations: list[str] = []
-    for candidate in authored_source_files(target, extensions):
+    for candidate in authored_source_files(target, extensions, scopes):
         try:
             source = candidate.read_text(encoding="utf-8", errors="ignore")
         except OSError:
@@ -270,11 +275,11 @@ def report_candidate_count(row: dict[str, str], detail: str) -> int | None:
     return ledger_count if ledger_count is not None else candidate_count(detail)
 
 
-def uninvoked_resize_aria_handlers(target: Path) -> list[str]:
+def uninvoked_resize_aria_handlers(target: Path, scopes: list[Path] | None = None) -> list[str]:
     """Find ARIA resize handlers registered for future events but never initialized."""
     locations: list[str] = []
     declaration = re.compile(r"\bconst\s+(\w*[Rr]esize\w*)\s*=\s*(?:\([^)]*\)|\w+)\s*=>")
-    for candidate in authored_source_files(target, {".js", ".ts"}):
+    for candidate in authored_source_files(target, {".js", ".ts"}, scopes):
         try:
             source = candidate.read_text(encoding="utf-8", errors="ignore")
         except OSError:
@@ -295,7 +300,36 @@ def uninvoked_resize_aria_handlers(target: Path) -> list[str]:
     return locations
 
 
-def undersized_interactive_style_locations(target: Path) -> list[str]:
+def responsive_aria_initial_mismatch_locations(
+    target: Path, scopes: list[Path] | None = None
+) -> list[str]:
+    """Find component-local initial ARIA states contradicted by responsive CSS."""
+    mismatches: list[str] = []
+    for location in uninvoked_resize_aria_handlers(target, scopes):
+        js_path = Path(location.rsplit(":", 1)[0])
+        component_root = js_path.parent
+        markup = "\n".join(
+            candidate.read_text(encoding="utf-8", errors="ignore")
+            for candidate in component_root.rglob("*.twig")
+        )
+        styles = "\n".join(
+            candidate.read_text(encoding="utf-8", errors="ignore")
+            for extension in ("*.css", "*.scss", "*.sass", "*.less")
+            for candidate in component_root.rglob(extension)
+        )
+        script = js_path.read_text(encoding="utf-8", errors="ignore")
+        if (
+            re.search(r"aria-hidden\s*=\s*[\"']true[\"']", markup, re.IGNORECASE)
+            and re.search(r"(?:@media|breakpoint)[\s\S]{0,1200}display\s*:\s*(?:flex|block)", styles, re.IGNORECASE)
+            and re.search(r"setAttribute\(\s*[\"']aria-hidden[\"']\s*,\s*[\"']false[\"']", script)
+        ):
+            mismatches.append(location)
+    return mismatches
+
+
+def undersized_interactive_style_locations(
+    target: Path, scopes: list[Path] | None = None
+) -> list[str]:
     """Find raw sub-24px dimensions in style blocks whose selector looks interactive."""
     locations: list[str] = []
     selector_hint = re.compile(
@@ -303,7 +337,9 @@ def undersized_interactive_style_locations(target: Path) -> list[str]:
         re.IGNORECASE,
     )
     dimension = re.compile(r"\b(?:width|height)\s*:\s*(?:[1-9]|1\d|2[0-3])(?:\.\d+)?px\b", re.IGNORECASE)
-    for candidate in authored_source_files(target, {".css", ".scss", ".sass", ".less"}):
+    for candidate in authored_source_files(
+        target, {".css", ".scss", ".sass", ".less"}, scopes
+    ):
         try:
             source = candidate.read_text(encoding="utf-8", errors="ignore")
         except OSError:
@@ -318,16 +354,81 @@ def undersized_interactive_style_locations(target: Path) -> list[str]:
     return locations
 
 
-def suspicious_focus_suppressions(target: Path) -> list[str]:
-    """Find focus blocks that remove outline without a local visible replacement."""
-    drupal_custom_roots = [
-        candidate for candidate in (
-            target / "web" / "themes" / "custom",
-            target / "web" / "modules" / "custom",
-        )
-        if candidate.is_dir()
+def _hex_color(value: str, tokens: dict[str, str]) -> str | None:
+    value = value.strip().lower()
+    variable = re.fullmatch(r"var\(\s*(--[\w-]+)\s*\)", value)
+    if variable:
+        return _hex_color(tokens.get(variable.group(1), ""), tokens)
+    if value == "white":
+        return "ffffff"
+    if value == "black":
+        return "000000"
+    match = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value)
+    if not match:
+        return None
+    color = match.group(1)
+    return "".join(character * 2 for character in color) if len(color) == 3 else color
+
+
+def _relative_luminance(color: str) -> float:
+    channels = [int(color[index:index + 2], 16) / 255 for index in (0, 2, 4)]
+    linear = [
+        channel / 12.92 if channel <= 0.04045
+        else math.pow((channel + 0.055) / 1.055, 2.4)
+        for channel in channels
     ]
-    search_roots = drupal_custom_roots or [target]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def definite_low_text_contrast_locations(
+    target: Path, scopes: list[Path] | None = None
+) -> list[str]:
+    """Find authored text-like style blocks with a resolved contrast below 3:1."""
+    files = authored_source_files(target, {".css", ".scss", ".sass", ".less"}, scopes)
+    tokens: dict[str, str] = {}
+    for candidate in files:
+        source = candidate.read_text(encoding="utf-8", errors="ignore")
+        for match in re.finditer(
+            r"(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{3,6}|white|black|var\(\s*--[\w-]+\s*\))",
+            source,
+        ):
+            tokens[match.group(1)] = match.group(2)
+
+    locations: list[str] = []
+    text_selector = re.compile(r"(?:badge|button|label|title|text|link|tag|teaser)", re.IGNORECASE)
+    block_pattern = re.compile(r"([^{}]{0,300})\{([^{}]*)\}")
+    value_pattern = r"(#[0-9a-fA-F]{3,6}|white|black|var\(\s*--[\w-]+\s*\))"
+    for candidate in files:
+        source = candidate.read_text(encoding="utf-8", errors="ignore")
+        for match in block_pattern.finditer(source):
+            body = match.group(2)
+            foreground = re.search(rf"(?<![-\w])color\s*:\s*{value_pattern}", body, re.IGNORECASE)
+            background = re.search(
+                rf"background(?:-color)?\s*:\s*{value_pattern}", body, re.IGNORECASE
+            )
+            if not foreground or not background:
+                continue
+            context = source[max(0, match.start() - 500):match.start()] + match.group(1)
+            if not text_selector.search(context) or re.search(r"::?(?:before|after)", match.group(1)):
+                continue
+            foreground_hex = _hex_color(foreground.group(1), tokens)
+            background_hex = _hex_color(background.group(1), tokens)
+            if not foreground_hex or not background_hex:
+                continue
+            first = _relative_luminance(foreground_hex)
+            second = _relative_luminance(background_hex)
+            ratio = (max(first, second) + 0.05) / (min(first, second) + 0.05)
+            if ratio < 3:
+                line = source.count("\n", 0, match.start()) + 1
+                locations.append(
+                    f"{candidate}:{line} ({foreground_hex} on {background_hex}, {ratio:.2f}:1)"
+                )
+    return locations
+
+
+def suspicious_focus_suppressions(target: Path, scopes: list[Path] | None = None) -> list[str]:
+    """Find focus blocks that remove outline without a local visible replacement."""
+    search_roots = source_roots(target, scopes)
     block_pattern = re.compile(r"([^{}]*(?:focus|focus-visible)[^{}]*)\{([^{}]*)\}", re.IGNORECASE)
     suppression = re.compile(r"\boutline\s*:\s*(?:none|0)(?:\s*!important)?\s*;?", re.IGNORECASE)
     replacement = re.compile(
@@ -374,10 +475,112 @@ def raw_hit_count(evidence: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def validate_partial_report(path: Path, criteria_rows: list[dict[str, str]], target: Path | None) -> list[str]:
+def validate_model_provenance(text: str) -> list[str]:
+    """Require two explicitly identified, distinct evaluator models."""
+    errors: list[str] = []
+    author_match = re.search(
+        r"^\*\*Initial draft author:\*\*\s*(.+)$", text, re.MULTILINE
+    )
+    review_match = re.search(
+        r"^\*\*Independent review:\*\*\s*(.+)$", text, re.MULTILINE
+    )
+
+    unavailable = re.compile(r"\b(?:unavailable|not available|none|not performed|unknown)\b", re.IGNORECASE)
+
+    def identifier(value: str | None) -> str | None:
+        if value is None or "[[" in value or unavailable.search(value):
+            return None
+        parenthetical = re.findall(r"\(([^()]*)\)", value)
+        candidate = parenthetical[-1] if parenthetical else value
+        normalized = re.sub(r"[^a-z0-9]+", " ", candidate.lower()).strip()
+        return normalized or None
+
+    author_id = identifier(author_match.group(1) if author_match else None)
+    review_id = identifier(review_match.group(1) if review_match else None)
+    if author_id is None:
+        errors.append("initial draft author must identify its evaluator model")
+    if review_id is None:
+        errors.append("independent review must identify a second evaluator model")
+    if author_id is not None and review_id is not None and author_id == review_id:
+        errors.append("initial draft and independent review must use distinct model identifiers")
+    return errors
+
+
+def build_source_inventory(target: Path, scopes: list[Path] | None = None) -> dict[str, object]:
+    """Build deterministic raw inventories before evaluator classification."""
+    style_extensions = {".css", ".scss", ".sass", ".less"}
+    markup_extensions = {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}
+    signals: dict[str, list[str]] = {
+        "focus_suppressions": source_signal_locations(
+            target,
+            style_extensions,
+            re.compile(r"\boutline\s*:\s*(?:none|0(?=\s*(?:[;}!]|$)))", re.IGNORECASE),
+            scopes,
+        ),
+        "sticky_fixed": source_signal_locations(
+            target, style_extensions, re.compile(r"\bposition\s*:\s*(?:sticky|fixed)\b", re.IGNORECASE), scopes
+        ),
+        "visual_order": source_signal_locations(
+            target,
+            style_extensions,
+            re.compile(r"\b(?:grid-template-areas|grid-area|order)\s*:|flex-direction\s*:\s*(?:row|column)-reverse", re.IGNORECASE),
+            scopes,
+        ),
+        "animations": source_signal_locations(
+            target, style_extensions, re.compile(r"@keyframes\b|\banimation(?:-name)?\s*:", re.IGNORECASE), scopes
+        ),
+        "auth_entry_points": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"(?:user[-_/ ]login|user[-_/ ]password|password[-_/ ]reset|\bauthentication\b)", re.IGNORECASE),
+            scopes,
+        ),
+        "help_contact": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"(?:mailto:|tel:|contact[-_ ]card|contact[-_ ]mechanism|help[-_ ](?:link|center|centre)|\bchat(?:bot)?\b|faq[-_ ])", re.IGNORECASE),
+            scopes,
+        ),
+        "uninvoked_resize_aria_handlers": uninvoked_resize_aria_handlers(target, scopes),
+        "responsive_aria_initial_mismatches": responsive_aria_initial_mismatch_locations(target, scopes),
+        "definite_low_text_contrast": definite_low_text_contrast_locations(target, scopes),
+        "undersized_interactive_styles": undersized_interactive_style_locations(target, scopes),
+    }
+    interactive = authored_markup_count(
+        target, re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE), scopes=scopes
+    )
+    controls = markup_control_count(target, scopes)
+    aria_widgets = authored_markup_count(
+        target,
+        re.compile(
+            r"<(?:a|button|input|select|textarea)\b|\brole\s*=\s*[\"']|\baria-(?:expanded|hidden|selected|pressed|checked|controls|haspopup)\s*=",
+            re.IGNORECASE,
+        ),
+        scopes=scopes,
+    )
+    return {
+        "target": str(target),
+        "scopes": [str(scope) for scope in source_roots(target, scopes)],
+        "counts": {
+            "interactive_markup": interactive,
+            "form_controls": controls,
+            "aria_widget_signals": aria_widgets,
+            **{name: len(locations) for name, locations in signals.items()},
+        },
+        "locations": signals,
+    }
+
+
+def validate_partial_report(
+    path: Path,
+    criteria_rows: list[dict[str, str]],
+    target: Path | None,
+    scopes: list[Path] | None = None,
+) -> list[str]:
     """Validate an interim progress artifact without pretending unfinished rows have verdicts."""
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
+    errors.extend(validate_model_provenance(text))
     if not path.name.endswith("-PARTIAL.md"):
         errors.append("partial report filename must end with -PARTIAL.md")
     if not re.search(r"^# .*\[PARTIAL\]\s*$", text, re.MULTILINE):
@@ -438,7 +641,7 @@ def validate_partial_report(path: Path, criteria_rows: list[dict[str, str]], tar
             if any(token not in row["evidence"] for token in ("Coverage:", "candidates=", "evaluated=", "unresolved=0")):
                 errors.append(f"partial COMPLETE PASS {row['sc_id']} lacks bounded coverage")
         if progress == "COMPLETE" and verdict == "⚪ N/A":
-            if any(token not in row["evidence"] for token in ("N/A -", "Coverage:", "searched", "candidates=0", "unresolved=0")):
+            if any(token not in row["evidence"] for token in ("N/A -", "Coverage:", "searched", "candidates=0", "evaluated=0", "unresolved=0")):
                 errors.append(f"partial COMPLETE N/A {row['sc_id']} lacks bounded negative evidence")
         if progress == "INCOMPLETE" and not row["evidence"].strip():
             errors.append(f"partial INCOMPLETE row {row['sc_id']} lacks a remaining-work statement")
@@ -498,9 +701,22 @@ def validate_partial_report(path: Path, criteria_rows: list[dict[str, str]], tar
         for field in required_fields:
             if field not in detail:
                 errors.append(f"partial detailed finding {sc_id} is missing mandatory field {field}")
+        severity_match = re.search(
+            r"^[-*] \*\*Severity / review priority:\*\*\s*(\S+)",
+            detail,
+            re.MULTILINE,
+        )
+        if severity_match and severity_match.group(1) not in SEVERITY_LABELS:
+            errors.append(
+                f"partial detailed finding {sc_id} uses invalid severity/review priority "
+                f"{severity_match.group(1)!r}; use one of {', '.join(SEVERITY_LABELS)}"
+            )
 
     if target is not None and not target.is_dir():
         errors.append(f"target repository is not an accessible directory: {target}")
+    for scope in scopes or []:
+        if not scope.is_dir():
+            errors.append(f"audit scope is not an accessible directory: {scope}")
     return errors
 
 
@@ -508,11 +724,13 @@ def validate_report(
     path: Path,
     criteria_rows: list[dict[str, str]],
     target: Path | None = None,
+    scopes: list[Path] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
     if re.search(r"^# .*\[PARTIAL\]", text, re.MULTILINE | re.IGNORECASE):
-        return validate_partial_report(path, criteria_rows, target)
+        return validate_partial_report(path, criteria_rows, target, scopes)
+    errors.extend(validate_model_provenance(text))
     ledger_match = re.search(
         r"^## Conformance criteria ledger\s*$([\s\S]*?)^## ", text, re.MULTILINE
     )
@@ -585,7 +803,10 @@ def validate_report(
             if count == 0:
                 errors.append(f"PASS {sc_id} has candidates=0; absent governed features require N/A")
         if verdict == "⚪ N/A":
-            required = ("N/A -", "Coverage:", "searched", "candidates=0", "unresolved=0")
+            required = (
+                "N/A -", "Coverage:", "searched", "candidates=0",
+                "evaluated=0", "unresolved=0",
+            )
             if any(token not in evidence for token in required):
                 errors.append(f"N/A {sc_id} lacks bounded negative evidence")
 
@@ -782,7 +1003,11 @@ def validate_report(
         if not target.is_dir():
             errors.append(f"target repository is not an accessible directory: {target}")
         else:
-            source_suppressions = focus_suppression_count(target)
+            for scope in scopes or []:
+                if not scope.is_dir():
+                    errors.append(f"audit scope is not an accessible directory: {scope}")
+
+            source_suppressions = focus_suppression_count(target, scopes)
             focus_evidence = rows_by_id.get("2.4.7", {}).get("evidence", "")
             stated_match = re.search(r"\braw_hits=(\d+)", focus_evidence)
             if not stated_match:
@@ -802,7 +1027,7 @@ def validate_report(
                     f"report raw_hits={stated}, authored source occurrences={source_suppressions}"
                 )
 
-            suspicious_focus = suspicious_focus_suppressions(target)
+            suspicious_focus = suspicious_focus_suppressions(target, scopes)
             focus_detail_text = detail_for("2.4.7")
             if suspicious_focus and re.search(r"violations=0|every .*paired", focus_detail_text, re.IGNORECASE):
                 errors.append(
@@ -810,7 +1035,7 @@ def validate_report(
                     f"replacement remain (for example {suspicious_focus[0]})"
                 )
 
-            source_controls = markup_control_count(target)
+            source_controls = markup_control_count(target, scopes)
             labels_row = rows_by_id.get("3.3.2", {})
             labels_match = re.search(r"\braw_hits=(\d+)", labels_row.get("evidence", ""))
             if labels_row.get("verdict") == "✅ PASS" and source_controls and (
@@ -824,7 +1049,9 @@ def validate_report(
                 )
 
             interactive_count = authored_markup_count(
-                target, re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE)
+                target,
+                re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE),
+                scopes=scopes,
             )
             for sc_id in ("2.1.1", "2.5.2", "2.5.3", "3.2.1"):
                 row = rows_by_id.get(sc_id, {})
@@ -843,6 +1070,7 @@ def validate_report(
                     r"<(?:a|button|input|select|textarea)\b|\brole\s*=\s*[\"']|\baria-(?:expanded|hidden|selected|pressed|checked|controls|haspopup)\s*=",
                     re.IGNORECASE,
                 ),
+                scopes=scopes,
             )
             aria_row = rows_by_id.get("4.1.2", {})
             aria_stated = raw_hit_count(aria_row.get("evidence", "") + "\n" + detail_for("4.1.2"))
@@ -852,6 +1080,41 @@ def validate_report(
                 errors.append(
                     "4.1.2 widget/state inventory is incomplete: "
                     f"report raw_hits={aria_stated or 'missing'}, raw authored occurrences={aria_widget_count}"
+                )
+
+            responsive_mismatches = responsive_aria_initial_mismatch_locations(target, scopes)
+            if responsive_mismatches and aria_row.get("verdict") != "❌ FAIL":
+                errors.append(
+                    "4.1.2 must FAIL for a source-proven responsive initial ARIA/CSS mismatch "
+                    f"(for example {responsive_mismatches[0]})"
+                )
+
+            if aria_row.get("verdict") != "❌ FAIL" and re.search(
+                r"role=[\"']listbox[\"'][\s\S]{0,500}without[\s\S]{0,120}role=[\"']option[\"']",
+                detail_for("4.1.2"),
+                re.IGNORECASE,
+            ):
+                errors.append(
+                    "4.1.2 describes a non-select listbox without required option semantics but does not assign FAIL"
+                )
+
+            low_contrast = definite_low_text_contrast_locations(target, scopes)
+            if low_contrast and rows_by_id.get("1.4.3", {}).get("verdict") != "❌ FAIL":
+                errors.append(
+                    "1.4.3 must resolve source-defined text/background pairs below 3:1; the large-text "
+                    f"exception cannot repair them (for example {low_contrast[0]})"
+                )
+
+            animation_locations = source_signal_locations(
+                target,
+                {".css", ".scss", ".sass", ".less"},
+                re.compile(r"@keyframes\b|\banimation(?:-name)?\s*:", re.IGNORECASE),
+                scopes,
+            )
+            if animation_locations and rows_by_id.get("2.2.2", {}).get("verdict") == "⚪ N/A":
+                errors.append(
+                    "2.2.2 cannot be N/A until authored animation candidates are classified for duration, "
+                    f"information, and pause/stop/hide applicability (for example {animation_locations[0]})"
                 )
 
             for sc_id in ("3.2.2", "3.3.1", "3.3.2", "3.3.3"):
@@ -866,7 +1129,9 @@ def validate_report(
                     )
 
             heading_label_count = authored_markup_count(
-                target, re.compile(r"<(?:h[1-6]|label)\b", re.IGNORECASE)
+                target,
+                re.compile(r"<(?:h[1-6]|label)\b", re.IGNORECASE),
+                scopes=scopes,
             )
             headings_row = rows_by_id.get("2.4.6", {})
             headings_stated = raw_hit_count(headings_row.get("evidence", "") + "\n" + detail_for("2.4.6"))
@@ -886,7 +1151,9 @@ def validate_report(
             }
             for sc_id, pattern in layout_patterns.items():
                 row = rows_by_id.get(sc_id, {})
-                raw_count = authored_markup_count(target, pattern, "templates/layout")
+                raw_count = authored_markup_count(
+                    target, pattern, "templates/layout", scopes=scopes
+                )
                 stated = candidate_count(row.get("evidence", ""))
                 if row.get("verdict") == "✅ PASS" and raw_count and (
                     stated is None or stated < raw_count
@@ -899,13 +1166,7 @@ def validate_report(
             if aria_row.get("verdict") != "⚪ N/A":
                 has_aria_mutation = any(
                     "aria-hidden" in candidate.read_text(encoding="utf-8", errors="ignore")
-                    for root in (
-                        target / "web" / "themes" / "custom",
-                        target / "web" / "modules" / "custom",
-                    )
-                    if root.is_dir()
-                    for candidate in root.rglob("*.js")
-                    if not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+                    for candidate in authored_source_files(target, {".js"}, scopes)
                 )
                 aria_detail = detail_for("4.1.2")
                 if has_aria_mutation and not re.search(
@@ -917,7 +1178,7 @@ def validate_report(
                         "4.1.2 must inventory aria-hidden JavaScript mutations and reconcile exact initial/breakpoint states"
                     )
 
-                uninitialized = uninvoked_resize_aria_handlers(target)
+                uninitialized = uninvoked_resize_aria_handlers(target, scopes)
                 aria_combined = aria_row.get("evidence", "") + "\n" + aria_detail
                 if uninitialized and not re.search(
                     r"(?:not|never) invoked|only registered|initiali[sz]ation (?:call )?(?:is )?absent",
@@ -933,6 +1194,7 @@ def validate_report(
                 target,
                 {".css", ".scss", ".sass", ".less"},
                 re.compile(r"\b(?:grid-template-areas|grid-area|order)\s*:|flex-direction\s*:\s*(?:row|column)-reverse", re.IGNORECASE),
+                scopes,
             )
             sequence_row = rows_by_id.get("1.3.2", {})
             if sequence_row.get("verdict") == "⚪ N/A" and reorder_locations:
@@ -948,6 +1210,7 @@ def validate_report(
                     r"\bmin-width\s*:\s*(?:(?:3[2-9]\d|[4-9]\d{2}|\d{4,})px|(?:2[1-9]|[3-9]\d|\d{3,})rem)\b",
                     re.IGNORECASE,
                 ),
+                scopes,
             )
             reflow_row = rows_by_id.get("1.4.10", {})
             reflow_combined = reflow_row.get("evidence", "") + "\n" + detail_for("1.4.10")
@@ -963,6 +1226,7 @@ def validate_report(
                 target,
                 {".css", ".scss", ".sass", ".less"},
                 re.compile(r"\bposition\s*:\s*(?:sticky|fixed)\b", re.IGNORECASE),
+                scopes,
             )
             obscured_row = rows_by_id.get("2.4.11", {})
             obscured_stated = raw_hit_count(obscured_row.get("evidence", "") + "\n" + detail_for("2.4.11"))
@@ -974,7 +1238,7 @@ def validate_report(
                     f"report raw_hits={obscured_stated or 'missing'}, authored occurrences={len(sticky_locations)}"
                 )
 
-            undersized_locations = undersized_interactive_style_locations(target)
+            undersized_locations = undersized_interactive_style_locations(target, scopes)
             target_size_row = rows_by_id.get("2.5.8", {})
             target_size_combined = target_size_row.get("evidence", "") + "\n" + detail_for("2.5.8")
             if undersized_locations and re.search(
@@ -991,6 +1255,7 @@ def validate_report(
                 target,
                 {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"},
                 re.compile(r"(?:user[-_/ ]login|user[-_/ ]password|password[-_/ ]reset|\bauthentication\b)", re.IGNORECASE),
+                scopes,
             )
             if auth_locations and rows_by_id.get("3.3.8", {}).get("verdict") == "⚪ N/A":
                 errors.append(
@@ -1002,6 +1267,7 @@ def validate_report(
                 target,
                 {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"},
                 re.compile(r"(?:mailto:|tel:|contact[-_ ]card|contact[-_ ]mechanism|help[-_ ](?:link|center|centre)|\bchat(?:bot)?\b|faq[-_ ])", re.IGNORECASE),
+                scopes,
             )
             if help_locations and rows_by_id.get("3.2.6", {}).get("verdict") == "⚪ N/A":
                 errors.append(
@@ -1010,10 +1276,14 @@ def validate_report(
                 )
 
             listbox_count = authored_markup_count(
-                target, re.compile(r"\brole\s*=\s*[\"']listbox[\"']", re.IGNORECASE)
+                target,
+                re.compile(r"\brole\s*=\s*[\"']listbox[\"']", re.IGNORECASE),
+                scopes=scopes,
             )
             option_count = authored_markup_count(
-                target, re.compile(r"\brole\s*=\s*[\"']option[\"']", re.IGNORECASE)
+                target,
+                re.compile(r"\brole\s*=\s*[\"']option[\"']", re.IGNORECASE),
+                scopes=scopes,
             )
             if listbox_count > option_count and not re.search(
                 r"\blistbox\b[\s\S]{0,240}\boption\b|\boption\b[\s\S]{0,240}\blistbox\b",
@@ -1036,6 +1306,14 @@ def validate_report(
         elif int(summary.group(1)) != verdict_counts[verdict]:
             errors.append(
                 f"report summary {label} count {summary.group(1)} != ledger count {verdict_counts[verdict]}"
+            )
+
+    summary_values = set(verdict_counts.values())
+    for match in re.finditer(r"\b(\d+)\s+of\s+55\s+criteria\b", text, re.IGNORECASE):
+        stated = int(match.group(1))
+        if stated not in summary_values:
+            errors.append(
+                f"report prose states {stated} of 55 criteria, which matches no ledger verdict count"
             )
 
     severity_counts: dict[str, int] = {}
@@ -1090,6 +1368,32 @@ def validate_report(
         for field in required_detail_fields:
             if field not in detail:
                 errors.append(f"detailed finding {sc_id} is missing mandatory field {field}")
+        severity_match = re.search(
+            r"^[-*] \*\*Severity / review priority:\*\*\s*(\S+)",
+            detail,
+            re.MULTILINE,
+        )
+        if severity_match:
+            severity = severity_match.group(1)
+            if severity not in SEVERITY_LABELS:
+                errors.append(
+                    f"detailed finding {sc_id} uses invalid severity/review priority "
+                    f"{severity!r}; use one of {', '.join(SEVERITY_LABELS)}"
+                )
+            baseline = FAIL_SEVERITY_BASELINES.get(sc_id)
+            row = next((item for item in rows if item["sc_id"] == sc_id), None)
+            if (
+                row is not None
+                and row["verdict"] == "❌ FAIL"
+                and baseline is not None
+                and severity in SEVERITY_RANK
+                and SEVERITY_RANK[severity] < SEVERITY_RANK[baseline]
+                and not re.search(r"\breasonable (?:accessible )?workaround\b", detail, re.IGNORECASE)
+            ):
+                errors.append(
+                    f"FAIL {sc_id} severity {severity} is below the {baseline} baseline without "
+                    "evidence of a reasonable accessible workaround"
+                )
     return errors
 
 
@@ -1098,18 +1402,52 @@ def main() -> int:
     parser.add_argument("csv_path", type=Path)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--target", type=Path)
+    parser.add_argument(
+        "--inventory",
+        action="store_true",
+        help="print deterministic source inventory JSON before evaluation (requires --target)",
+    )
+    parser.add_argument(
+        "--scope",
+        action="append",
+        type=Path,
+        help="exact in-scope source root; repeat for disjoint roots (requires --target)",
+    )
     args = parser.parse_args()
 
     errors = validate_csv(args.csv_path)
+    scopes = args.scope
+    if scopes and args.target:
+        scopes = [
+            scope if scope.is_absolute() else args.target / scope
+            for scope in scopes
+        ]
+    if scopes and not args.target:
+        errors.append("--scope requires --target")
+    if args.inventory and not args.target:
+        errors.append("--inventory requires --target")
+    if args.inventory and args.report:
+        errors.append("--inventory cannot be combined with --report")
+    if args.inventory and args.target and not args.target.is_dir():
+        errors.append(f"target repository is not an accessible directory: {args.target}")
+    if args.inventory:
+        for scope in scopes or []:
+            if not scope.is_dir():
+                errors.append(f"audit scope is not an accessible directory: {scope}")
     if args.report:
-        errors.extend(validate_report(args.report, read_csv(args.csv_path), args.target))
-    elif args.target:
+        errors.extend(
+            validate_report(args.report, read_csv(args.csv_path), args.target, scopes)
+        )
+    elif args.target and not args.inventory:
         errors.append("--target requires --report")
     if errors:
         print("validate_audit: FAIL", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         return 1
+    if args.inventory:
+        print(json.dumps(build_source_inventory(args.target, scopes), indent=2))
+        return 0
     print("validate_audit: OK (55 criteria; A=31; AA=24)")
     return 0
 

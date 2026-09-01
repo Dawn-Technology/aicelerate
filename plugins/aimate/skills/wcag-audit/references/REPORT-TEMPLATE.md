@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 1.5.0
+**Skill version:** 1.6.0
 
 **WCAG version:** 2.2
 
@@ -64,7 +64,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 ### [[verdict]] [[sc_id]] — [[name]]
 
 - **WCAG level:** [[level]]
-- **Severity / review priority:** [[severity_or_review_priority]]
+- **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
 - **Coverage:** [[coverage_manifest]]
 - **Representative evidence:**

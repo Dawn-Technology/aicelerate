@@ -91,6 +91,8 @@ The following raw signals are candidates that require classification; they are n
 - contact cards, telephone/email links, help links, chat, FAQ, or automated assistance for 3.2.6;
 - every custom role, ARIA state, and state mutation for 4.1.2, including responsive initialization.
 
+Source-defined foreground/background pairs are not automatically runtime-dependent. Resolve custom properties and calculate contrast. A pair below 3:1 cannot qualify for the large-text exception; still check inactive, decorative, logo, and actual-adjacency exceptions before FAIL.
+
 For 2.5.3, first prove that the control has a visible label containing text or an image of text. An icon-only control with no visible text is not an applicable mismatch. For 4.1.2, distinguish whether a name is programmatically determinable from whether it describes purpose: the latter is ordinarily evaluated by 2.4.6. Do not fail 4.1.2 solely because a non-empty accessible name is generic, duplicated, or awkwardly translated.
 
 Reconcile the scope boundary with verdicts as well. If the report declares CMS/editorial values unavailable, content-dependent criteria cannot PASS unless the scope explicitly excludes that content or a bounded source constraint proves the unavailable values cannot affect the criterion. This includes alternative quality, headings and relationships, sensory instructions, images of text, heading/label descriptiveness, link purpose, and language of parts.
