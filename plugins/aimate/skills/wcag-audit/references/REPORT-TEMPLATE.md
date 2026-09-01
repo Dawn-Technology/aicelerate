@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 1.1.0
+**Skill version:** 1.2.0
 
 **WCAG version:** 2.2
 
