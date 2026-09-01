@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.4.0
+  version: 5.0.0
   dependencies:
     - code-review
 ---
