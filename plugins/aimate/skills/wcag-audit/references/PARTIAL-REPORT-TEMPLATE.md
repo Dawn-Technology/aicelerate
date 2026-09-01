@@ -1,12 +1,12 @@
 # [[project_name]] · WCAG 2.2 Level AA · Static Source Audit — [PARTIAL]
 
-**Initial draft author:** AI Agent ([[model_name]])
+**Initial draft author:** AI Agent ([[evaluator_model_1]])
 
-**Independent review:** [[independent_review]]
+**Independent review:** AI Agent ([[evaluator_model_2]])
 
 **Report date:** [[report_date]]
 
-**Skill version:** 1.6.0
+**Skill version:** 1.7.0
 
 **WCAG version:** 2.2
 
