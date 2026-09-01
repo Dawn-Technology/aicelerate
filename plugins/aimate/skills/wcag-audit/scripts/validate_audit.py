@@ -74,6 +74,7 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
+SKILL_VERSION = "1.3.0"
 EXCLUDED_PATH_PARTS = {
     ".git", ".svn", ".hg", "node_modules", "vendor", "dist", "build",
     "out", "target", ".next", "coverage", ".nyc_output", "__pycache__",
@@ -194,6 +195,90 @@ def markup_control_count(target: Path) -> int:
     return count
 
 
+def authored_markup_count(
+    target: Path,
+    pattern: re.Pattern[str],
+    path_fragment: str | None = None,
+) -> int:
+    """Count raw authored markup candidates in production source roots."""
+    drupal_custom_roots = [
+        candidate for candidate in (
+            target / "web" / "themes" / "custom",
+            target / "web" / "modules" / "custom",
+        )
+        if candidate.is_dir()
+    ]
+    search_roots = drupal_custom_roots or [target]
+    extensions = {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}
+    count = 0
+    for root in search_roots:
+        for candidate in root.rglob("*"):
+            if (
+                not candidate.is_file()
+                or candidate.suffix.lower() not in extensions
+                or EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+                or re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
+                or (path_fragment is not None and path_fragment not in candidate.as_posix())
+            ):
+                continue
+            try:
+                count += len(pattern.findall(candidate.read_text(encoding="utf-8", errors="ignore")))
+            except OSError:
+                continue
+    return count
+
+
+def suspicious_focus_suppressions(target: Path) -> list[str]:
+    """Find focus blocks that remove outline without a local visible replacement."""
+    drupal_custom_roots = [
+        candidate for candidate in (
+            target / "web" / "themes" / "custom",
+            target / "web" / "modules" / "custom",
+        )
+        if candidate.is_dir()
+    ]
+    search_roots = drupal_custom_roots or [target]
+    block_pattern = re.compile(r"([^{}]*(?:focus|focus-visible)[^{}]*)\{([^{}]*)\}", re.IGNORECASE)
+    suppression = re.compile(r"\boutline\s*:\s*(?:none|0)(?:\s*!important)?\s*;?", re.IGNORECASE)
+    replacement = re.compile(
+        r"\b(?:box-shadow|border(?:-color)?|background(?:-color)?|text-decoration)\s*:"
+        r"|\boutline\s*:\s*(?!none\b|0(?:\D|$))",
+        re.IGNORECASE,
+    )
+    files = [
+        candidate for root in search_roots for candidate in root.rglob("*")
+        if candidate.is_file()
+        and candidate.suffix.lower() in {".scss", ".sass", ".less"}
+        and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+        and not re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
+    ]
+    if not files:
+        files = [
+            candidate for root in search_roots for candidate in root.rglob("*.css")
+            if candidate.is_file()
+            and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+            and not candidate.name.endswith((".min.css", ".bundle.css"))
+        ]
+
+    suspicious: list[str] = []
+    for candidate in files:
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for match in block_pattern.finditer(source):
+            body = match.group(2)
+            if suppression.search(body) and not replacement.search(suppression.sub("", body)):
+                line = source.count("\n", 0, match.start()) + 1
+                suspicious.append(f"{candidate}:{line}")
+    return suspicious
+
+
+def candidate_count(evidence: str) -> int | None:
+    match = re.search(r"\bcandidates=(?:at least\s+)?(\d+)", evidence)
+    return int(match.group(1)) if match else None
+
+
 def validate_report(
     path: Path,
     criteria_rows: list[dict[str, str]],
@@ -235,6 +320,8 @@ def validate_report(
         errors.append("report contains unfilled template placeholders")
     if "not a certification or WCAG conformance claim" not in text:
         errors.append("report is missing the required static-audit disclaimer")
+    if not re.search(rf"^\*\*Skill version:\*\*\s*{re.escape(SKILL_VERSION)}\s*$", text, re.MULTILINE):
+        errors.append(f"report was not generated with current skill version {SKILL_VERSION}")
 
     static_by_id = {
         row["sc_id"]: row["static_analyzable"]
@@ -253,6 +340,9 @@ def validate_report(
                 errors.append(f"PASS {sc_id} lacks the complete bounded coverage manifest")
             if "sampled" in evidence.lower():
                 errors.append(f"PASS {sc_id} relies on sampling rather than exhaustive coverage")
+            count = candidate_count(evidence)
+            if count == 0:
+                errors.append(f"PASS {sc_id} has candidates=0; absent governed features require N/A")
         if verdict == "⚪ N/A":
             required = ("N/A -", "Coverage:", "searched", "candidates=0", "unresolved=0")
             if any(token not in evidence for token in required):
@@ -268,6 +358,37 @@ def validate_report(
             re.MULTILINE,
         )
         return match.group(1) if match else ""
+
+    limitations_match = re.search(
+        r"^\*\*Source limitations:\*\*\s*(.+)$", text, re.MULTILINE
+    )
+    limitations = limitations_match.group(1) if limitations_match else ""
+    unavailable_content = bool(re.search(
+        r"(?:rendered|CMS|editorial|translated).*?(?:not available|unavailable|cannot be verified)",
+        limitations,
+        re.IGNORECASE,
+    ))
+    if unavailable_content:
+        for sc_id in ("1.3.1", "1.3.3", "1.4.5", "2.4.4", "2.4.6", "3.1.2"):
+            if rows_by_id.get(sc_id, {}).get("verdict") == "✅ PASS":
+                errors.append(
+                    f"{sc_id} cannot PASS while the declared CMS/editorial content boundary remains unresolved"
+                )
+
+    non_text_detail = detail_for("1.1.1")
+    if rows_by_id.get("1.1.1", {}).get("verdict") == "❌ FAIL":
+        if re.search(
+            r"empty|<span[^>]*>[\s\S]{0,200}(?:no|without) aria-hidden|icon span has no",
+            non_text_detail,
+            re.IGNORECASE,
+        ):
+            errors.append("1.1.1 treats missing aria-hidden on an empty non-semantic span as a violation")
+        if "default('')" in non_text_detail and not re.search(
+            r"(?:source-controlled informative caller|rendered informative instance|<img[^>]+alt=[\"']{2})",
+            non_text_detail,
+            re.IGNORECASE,
+        ):
+            errors.append("1.1.1 uses an empty-alt fallback without proving an informative affected instance")
 
     # Applicability consistency: these criteria govern existing controls and
     # interactions, not merely the presence of a specially named widget.
@@ -296,6 +417,18 @@ def validate_report(
             errors.append("1.4.13 N/A must show bounded searches for both hover- and focus-triggered content")
         if not re.search(r"\b(?:dropdown|submenu|disclosure|menu)\b", hover_evidence):
             errors.append("1.4.13 N/A must include dropdown/submenu/disclosure applicability signals")
+    if hover_row.get("verdict") == "❌ FAIL" and not re.search(
+        r"\b(?:obscur(?:e|es|ing)|replac(?:e|es|ing))\b", detail_for("1.4.13"), re.IGNORECASE
+    ):
+        errors.append("1.4.13 FAIL does not resolve the dismissible exception for content that obscures/replaces content")
+
+    input_row = rows_by_id.get("3.2.2", {})
+    if input_row.get("verdict") == "✅ PASS" and re.search(
+        r"(?:auto.?submit|programmatic(?:ally)? (?:submit|click)|\.click\(\)|dispatchEvent|change submission)",
+        input_row.get("evidence", "") + "\n" + text,
+        re.IGNORECASE,
+    ) and rows_by_id.get("4.1.3", {}).get("verdict") == "⚠️ NEEDS_REVIEW":
+        errors.append("3.2.2 PASS conflicts with unresolved automatic/AJAX form-update behavior under 4.1.3")
 
     media_related = ("1.2.2", "1.2.3", "1.2.4", "1.2.5")
     media_present = any(
@@ -308,6 +441,8 @@ def validate_report(
         re.IGNORECASE,
     ):
         errors.append("1.2.1 N/A conflicts with a related media candidate that was not explicitly classified")
+    if media_only_row.get("verdict") == "⚪ N/A" and "controls" in media_only_row.get("evidence", "").lower():
+        errors.append("1.2.1 uses the HTML controls attribute as media-content classification evidence")
 
     captions_row = rows_by_id.get("1.2.2", {})
     if captions_row.get("verdict") == "❌ FAIL":
@@ -320,18 +455,68 @@ def validate_report(
             errors.append(
                 "1.2.2 FAIL must prove applicable rendered/production media, not only a player template"
             )
+        if unavailable_content and not re.search(
+            r"(?:^|[\s`/])[^\s`]+\.(?:mp4|webm|mov|m4v|mp3|wav|ogg)(?:[\s`]|$)",
+            captions_detail,
+            re.IGNORECASE,
+        ):
+            errors.append(
+                "1.2.2 FAIL contradicts the unavailable rendered-content boundary without a bounded media asset"
+            )
 
     non_text_row = rows_by_id.get("1.1.1", {})
     images_of_text_row = rows_by_id.get("1.4.5", {})
     if (
-        images_of_text_row.get("verdict") == "⚪ N/A"
+        images_of_text_row.get("verdict") in {"⚪ N/A", "✅ PASS"}
         and re.search(
             r"\b(?:CMS|editorial|content-dependent|unresolved)\b",
             non_text_row.get("evidence", ""),
             re.IGNORECASE,
         )
     ):
-        errors.append("1.4.5 cannot be N/A while 1.1.1 records unresolved CMS/editorial image content")
+        errors.append("1.4.5 cannot be PASS/N/A while 1.1.1 records unresolved CMS/editorial image content")
+
+    keyboard_detail = detail_for("2.1.1")
+    if rows_by_id.get("2.1.1", {}).get("verdict") == "❌ FAIL" and re.search(
+        r"(?:remains|already).*?(?:keyboard-accessible|reachable and operable)|duplicates? an? .*accessible control",
+        keyboard_detail,
+        re.IGNORECASE,
+    ):
+        errors.append("2.1.1 FAIL admits the same function remains keyboard operable")
+
+    labels_detail = detail_for("3.3.2")
+    if rows_by_id.get("3.3.2", {}).get("verdict") == "❌ FAIL" and re.search(
+        r"acceptable in principle|rel(?:y|ies) solely on the <label> wrapper|risks? obscuring",
+        labels_detail,
+        re.IGNORECASE,
+    ):
+        errors.append("3.3.2 FAIL treats valid implicit wrapping-label semantics as an uncertain risk")
+
+    aria_detail = detail_for("4.1.2")
+    if rows_by_id.get("4.1.2", {}).get("verdict") == "❌ FAIL" and re.search(
+        r"native (?:input|checkbox)[\s\S]{0,300}(?:visual wrapper|aria-checked)",
+        aria_detail,
+        re.IGNORECASE,
+    ):
+        errors.append("4.1.2 incorrectly requires aria-checked on a non-semantic wrapper around a native checkbox")
+
+    help_row = rows_by_id.get("3.2.6", {})
+    if help_row.get("verdict") == "✅ PASS" and "newsletter" in help_row.get("evidence", "").lower() and not re.search(
+        r"human contact|contact details|self-help|automated contact",
+        help_row.get("evidence", ""),
+        re.IGNORECASE,
+    ):
+        errors.append("3.2.6 treats a newsletter as a help mechanism without evidence of normative help")
+
+    if "parallel" in text.lower() and "design-system" in text.lower():
+        for sc_id in ("3.2.3", "3.2.4"):
+            row = rows_by_id.get(sc_id, {})
+            if row.get("verdict") == "✅ PASS" and not re.search(
+                r"route mapping|legacy.*zv2|zv2.*legacy|both design",
+                row.get("evidence", ""),
+                re.IGNORECASE,
+            ):
+                errors.append(f"{sc_id} PASS does not reconcile the declared parallel design systems")
 
     if target is not None:
         if not target.is_dir():
@@ -359,6 +544,14 @@ def validate_report(
                     f"report candidates={stated}, authored source occurrences={source_suppressions}"
                 )
 
+            suspicious_focus = suspicious_focus_suppressions(target)
+            focus_detail_text = detail_for("2.4.7")
+            if suspicious_focus and re.search(r"violations=0|every .*paired", focus_detail_text, re.IGNORECASE):
+                errors.append(
+                    "2.4.7 claims every suppression has a replacement, but focus blocks without a local "
+                    f"replacement remain (for example {suspicious_focus[0]})"
+                )
+
             source_controls = markup_control_count(target)
             labels_row = rows_by_id.get("3.3.2", {})
             labels_match = re.search(
@@ -374,8 +567,64 @@ def validate_report(
                     "inventory and explicitly rule out hidden/non-user controls before PASS"
                 )
 
+            interactive_count = authored_markup_count(
+                target, re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE)
+            )
+            for sc_id in ("2.5.2", "2.5.3", "3.2.1"):
+                row = rows_by_id.get(sc_id, {})
+                stated = candidate_count(row.get("evidence", ""))
+                if row.get("verdict") == "✅ PASS" and interactive_count and (
+                    stated is None or stated < interactive_count
+                ):
+                    errors.append(
+                        f"{sc_id} PASS inventory is incomplete: report candidates={stated or 'missing'}, "
+                        f"raw authored interactive occurrences={interactive_count}"
+                    )
+
+            for sc_id in ("3.2.2", "3.3.1", "3.3.2", "3.3.3"):
+                row = rows_by_id.get(sc_id, {})
+                stated = candidate_count(row.get("evidence", ""))
+                if row.get("verdict") == "✅ PASS" and source_controls and (
+                    stated is None or stated < source_controls
+                ):
+                    errors.append(
+                        f"{sc_id} PASS form inventory is incomplete: report candidates={stated or 'missing'}, "
+                        f"raw authored form-control occurrences={source_controls}"
+                    )
+
+            heading_label_count = authored_markup_count(
+                target, re.compile(r"<(?:h[1-6]|label)\b", re.IGNORECASE)
+            )
+            headings_row = rows_by_id.get("2.4.6", {})
+            headings_stated = candidate_count(headings_row.get("evidence", ""))
+            if headings_row.get("verdict") == "✅ PASS" and heading_label_count and (
+                headings_stated is None or headings_stated < heading_label_count
+            ):
+                errors.append(
+                    "2.4.6 PASS inventory is incomplete: "
+                    f"report candidates={headings_stated or 'missing'}, "
+                    f"raw authored heading/label occurrences={heading_label_count}"
+                )
+
+            layout_patterns = {
+                "2.4.1": re.compile(r"href=[\"']#main-content[\"']", re.IGNORECASE),
+                "2.4.2": re.compile(r"<title\b", re.IGNORECASE),
+                "3.1.1": re.compile(r"<html(?:\s|\{)", re.IGNORECASE),
+            }
+            for sc_id, pattern in layout_patterns.items():
+                row = rows_by_id.get(sc_id, {})
+                raw_count = authored_markup_count(target, pattern, "templates/layout")
+                stated = candidate_count(row.get("evidence", ""))
+                if row.get("verdict") == "✅ PASS" and raw_count and (
+                    stated is None or stated < raw_count
+                ):
+                    errors.append(
+                        f"{sc_id} PASS misses layout variants: report candidates={stated or 'missing'}, "
+                        f"authored occurrences={raw_count}"
+                    )
+
             aria_row = rows_by_id.get("4.1.2", {})
-            if aria_row.get("verdict") == "❌ FAIL" and "aria-hidden" in aria_row.get("evidence", ""):
+            if aria_row.get("verdict") != "⚪ N/A":
                 has_aria_mutation = any(
                     "aria-hidden" in candidate.read_text(encoding="utf-8", errors="ignore")
                     for root in (
@@ -389,11 +638,11 @@ def validate_report(
                 aria_detail = detail_for("4.1.2")
                 if has_aria_mutation and not re.search(
                     r"\b(?:initial desktop|initial viewport|initial DOM|breakpoint|resize)\b",
-                    aria_detail,
+                    aria_row.get("evidence", "") + "\n" + aria_detail,
                     re.IGNORECASE,
                 ):
                     errors.append(
-                        "4.1.2 aria-hidden FAIL must reconcile JavaScript mutations and identify the exact initial/breakpoint state"
+                        "4.1.2 must inventory aria-hidden JavaScript mutations and reconcile exact initial/breakpoint states"
                     )
     summary_labels = {
         "✅ PASS": "PASS",
@@ -448,6 +697,20 @@ def validate_report(
 
     if actual_details != expected_details:
         errors.append("detailed sections must match FAIL/NEEDS_REVIEW ledger rows exactly once and in CSV order")
+    required_detail_fields = (
+        "**WCAG level:**",
+        "**Severity / review priority:**",
+        "**Affected or unresolved instances:**",
+        "**Coverage:**",
+        "**Representative evidence:**",
+        "**Impact or uncertainty:**",
+        "**Remediation or exact manual verification:**",
+    )
+    for _, sc_id, _ in expected_details:
+        detail = detail_for(sc_id)
+        for field in required_detail_fields:
+            if field not in detail:
+                errors.append(f"detailed finding {sc_id} is missing mandatory field {field}")
     return errors
 
 

@@ -3,7 +3,7 @@ name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 1.2.0
+    version: 1.3.0
     wcag-version: 2.2.0
 ---
 
@@ -46,6 +46,9 @@ This skill reviews source code only. It does not run the application, a browser,
 13. Keep one shared candidate inventory per accessibility surface (media, focusable controls, pointer interactions, forms, hover/focus disclosures, and ARIA state). Reuse it across related criteria; do not let one criterion claim a candidate is absent when another criterion evaluates the same candidate.
 14. Distinguish an absent governed feature from compliant behavior. If focusable controls, pointer-operated functions, or form settings exist, the absence of a prohibited event pattern can support PASS when the static-analysis ceiling permits it; it is not N/A.
 15. Before reporting an authored ARIA state as wrong, trace every source-controlled initial state, CSS visibility state, JavaScript mutation, initialization call, breakpoint, and user transition. Report the precise mismatching state, not the attribute in isolation.
+16. Count the governed instances, not only suspicious search hits. For behavioral criteria, inventory the underlying pages, controls, links, form fields, or pointer functions and then classify them; `candidates=0` cannot support PASS.
+17. Do not turn a redundant pointer activation surface into a Keyboard FAIL when the same function remains operable through its native keyboard-accessible control. Record the redundancy as an advisory unless it creates a distinct function or blocks the native path.
+18. Treat native HTML semantics as authoritative unless source proves they are overridden. A wrapping `<label>` labels its descendant input, a native checkbox exposes its checked state without `aria-checked`, and an empty non-semantic decorative span ordinarily contributes nothing to the accessibility tree.
 
 ## Exclusions
 

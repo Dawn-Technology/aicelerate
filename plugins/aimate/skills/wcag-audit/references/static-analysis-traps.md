@@ -8,6 +8,7 @@ Read this before evaluating source-generated markup, CMS content, CSS-dependent 
 - If actual editorial or external content is unavailable, criteria concerning alternative quality, language, instructions, link purpose, heading descriptiveness, media, flashing, or images of text remain unresolved when that content could affect the result.
 - Do not use a parallel, newer, story-only, or unused component as evidence for the traced production render path.
 - For loops and CMS collections, report one affected **source pattern**. State the rendered instance count as `unknown` unless bounded production data, configuration, or rendered evidence proves it. Never turn an asserted live count into source evidence.
+- Registration in a CMS bundle, route map, component registry, field configuration, or production template makes a component reachable; it does not prove an instance is currently rendered or that its content has a particular sensory/media characteristic.
 
 ## User-supplied and external observations
 
@@ -43,6 +44,8 @@ An external or CMS-selected video affects more than captions and audio descripti
 
 Maintain one media inventory and classify each source pattern or rendered instance as prerecorded/live, audio-only/video-only/synchronized, source-controlled/external, and used/unused/unknown. A reusable player or CMS paragraph that lacks a captions field proves a product-code risk, but it does not by itself prove that an in-scope rendered page contains meaningful prerecorded synchronized media. Without bounded production content or rendered evidence, use NEEDS_REVIEW for the content-dependent criterion and put the missing authoring capability in the finding or Supplemental observations. Use FAIL only when a reachable rendered instance, bounded source-controlled media asset, fixture that is production content, or equivalent evidence proves the applicable media exists and violates the criterion.
 
+The HTML `controls` attribute proves only that playback controls are requested. It does not prove the media file contains audio, that it is synchronized media, that it is prerecorded, or that it is meaningful. A file-field type or `.mp4` MIME declaration likewise does not establish those properties; inspect the bounded asset or rendered production content.
+
 ## Hover- and focus-triggered content
 
 Do not search only for component names such as `tooltip` or `popover`. Inventory CSS and script triggers including `:hover`, `:focus`, `:focus-within`, mouseenter/leave, focus/blur, disclosure state classes, dropdowns, submenus, title attributes, and portals. Trace the content that becomes visible and evaluate dismissible, hoverable, and persistent behavior. A submenu revealed by hover or focus is an applicable 1.4.13 candidate.
@@ -50,3 +53,21 @@ Do not search only for component names such as `tooltip` or `popover`. Inventory
 ## Dynamic ARIA states
 
 An authored `aria-hidden`, `aria-expanded`, `aria-selected`, `aria-pressed`, or similar initial value is not evaluated in isolation. Build a state matrix covering initial DOM, initial CSS visibility, initialization code, each user transition, responsive breakpoints, and the no-JavaScript fallback. Search every mutation of the attribute and confirm whether initialization is actually invoked. If CSS makes a desktop navigation visible while its initial `aria-hidden="true"` remains unchanged until a resize event, that precise initial desktop state can support FAIL; do not claim the attribute is never changed or that all viewport states fail.
+
+## Native semantics and duplicate interaction surfaces
+
+- An empty `<span>` without a role, accessible-name attribute, or text normally contributes no accessible object/name. Missing `aria-hidden="true"` on that span alone is not a 1.1.1 failure. Evaluate the accessible name of the containing functional control and whether decorative generated graphics are exposed.
+- `alt|default('')` or another empty-alt fallback is a risk, not a definite failure, until a source-controlled informative caller omits the alternative or rendered/CMS evidence proves an informative image receives an empty alternative.
+- A `<label>` that wraps an `<input>` establishes implicit label association. Custom visual spans, SVGs, or visually-hidden CSS do not invalidate it unless the native input is removed from the accessibility tree or the interaction bypass changes the exposed name/state.
+- A native checkbox exposes its checked state automatically. Do not add or require `aria-checked` on a non-semantic visual wrapper. Require ARIA state only when a custom element assumes a checkbox/switch/option role.
+- A click handler on a label descendant may be redundant or fragile, but it is not a Keyboard failure if the same checkbox/function remains keyboard operable and the handler does not block that path.
+
+## Consistency and help
+
+When parallel layouts or design systems exist, compare every in-scope variant and trace their route/process mapping before PASS for 3.2.3 or 3.2.4. Shared components in one variant do not prove consistency across variants.
+
+For 3.2.6, a help mechanism means human contact details, a human contact mechanism, a self-help option, or a fully automated contact mechanism. A newsletter subscription is not a help mechanism merely because it appears in the footer.
+
+## Automatic form behavior
+
+For 3.2.2, changing a checkbox, select, or text field and then programmatically dispatching a change, clicking submit, navigating, or replacing major content is automatic behavior even when a developer describes it as “expected filtering.” Trace whether it causes a full-page navigation, focus move, or significant content replacement and whether users are warned beforehand. If the resulting context change or AJAX/full-page mode is outside source visibility, use NEEDS_REVIEW rather than PASS. Reuse the same dynamic-update inventory for 4.1.3.
