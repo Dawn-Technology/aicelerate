@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Framework-agnostic reusable code review core for analyzing code, diffs, commits, patches, snippets, pull requests, merge requests, and local changes. Use when another skill or user request needs structured findings about syntax, logic, security, style, documentation, maintainability, or review feedback generation.
+description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 1.0.1
