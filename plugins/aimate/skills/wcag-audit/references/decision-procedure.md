@@ -14,6 +14,8 @@ Separate source-controlled values from values supplied by a CMS, API, translatio
 
 N/A means the feature does not exist. It does not mean “not checked,” “not found by the first grep,” or “cannot be decided statically.”
 
+An unfinished bounded source search is not a WCAG uncertainty and must not be converted to NEEDS_REVIEW in a normal report. Finish classifying the source inventory. If resource limits prevent that, use the `[PARTIAL]` failure path instead of publishing a 55-row final report.
+
 Some criteria govern how existing UI behaves rather than the presence of a special widget. Treat the underlying UI as the candidate inventory:
 
 - If focusable UI components exist, 2.1.2 and 3.2.1 are applicable. Absence of a trap or focus-triggered context change is favorable evidence, not evidence that the criterion is N/A.
@@ -77,6 +79,18 @@ For dynamic collections where an exact total cannot be determined, write `at lea
 For a reusable loop or template with unavailable production data, count the source pattern separately from rendered instances: for example, `patterns=1; rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
 
 Reconcile shared inventories before finalizing the ledger. Examples of contradictions that must be corrected include a video candidate under 1.2.2 but zero media candidates under 1.2.1 without evidence classifying the media, input controls under 3.3.2 but N/A under 3.2.2, or interactive keyboard controls under 2.1.1 but N/A under 2.1.2 or 3.2.1.
+
+The following raw signals are candidates that require classification; they are not automatic failures:
+
+- CSS grid areas, `order`, or reverse flex direction for 1.3.2;
+- fixed minimum dimensions wider than the 320 CSS-pixel reflow viewport for 1.4.10;
+- every `position: sticky` or `position: fixed` content surface for 2.4.11;
+- authored dimensions below 24 CSS pixels on or around interactive selectors for 2.5.8, including all spacing/equivalent/inline/user-agent/essential exceptions;
+- login, password-reset, or other authentication entry points for 3.3.8 even when the actual authentication implementation is delegated to framework/core code;
+- contact cards, telephone/email links, help links, chat, FAQ, or automated assistance for 3.2.6;
+- every custom role, ARIA state, and state mutation for 4.1.2, including responsive initialization.
+
+For 2.5.3, first prove that the control has a visible label containing text or an image of text. An icon-only control with no visible text is not an applicable mismatch. For 4.1.2, distinguish whether a name is programmatically determinable from whether it describes purpose: the latter is ordinarily evaluated by 2.4.6. Do not fail 4.1.2 solely because a non-empty accessible name is generic, duplicated, or awkwardly translated.
 
 Reconcile the scope boundary with verdicts as well. If the report declares CMS/editorial values unavailable, content-dependent criteria cannot PASS unless the scope explicitly excludes that content or a bounded source constraint proves the unavailable values cannot affect the criterion. This includes alternative quality, headings and relationships, sensory instructions, images of text, heading/label descriptiveness, link purpose, and language of parts.
 

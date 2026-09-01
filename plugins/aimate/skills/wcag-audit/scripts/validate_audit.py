@@ -74,7 +74,7 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
-SKILL_VERSION = "1.3.0"
+SKILL_VERSION = "1.4.0"
 EXCLUDED_PATH_PARTS = {
     ".git", ".svn", ".hg", "node_modules", "vendor", "dist", "build",
     "out", "target", ".next", "coverage", ".nyc_output", "__pycache__",
@@ -228,6 +228,95 @@ def authored_markup_count(
     return count
 
 
+def authored_source_files(target: Path, extensions: set[str]) -> list[Path]:
+    """Return bounded production source files using the audit's standard roots."""
+    drupal_custom_roots = [
+        candidate for candidate in (
+            target / "web" / "themes" / "custom",
+            target / "web" / "modules" / "custom",
+        )
+        if candidate.is_dir()
+    ]
+    search_roots = drupal_custom_roots or [target]
+    return [
+        candidate for root in search_roots for candidate in root.rglob("*")
+        if candidate.is_file()
+        and candidate.suffix.lower() in extensions
+        and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+        and not re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
+        and not candidate.name.endswith((".min.js", ".bundle.js", ".min.css", ".bundle.css"))
+    ]
+
+
+def source_signal_locations(
+    target: Path, extensions: set[str], pattern: re.Pattern[str]
+) -> list[str]:
+    """Return one location per raw source signal for inventory reconciliation."""
+    locations: list[str] = []
+    for candidate in authored_source_files(target, extensions):
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for match in pattern.finditer(source):
+            locations.append(f"{candidate}:{source.count(chr(10), 0, match.start()) + 1}")
+    return locations
+
+
+def report_candidate_count(row: dict[str, str], detail: str) -> int | None:
+    """Read candidate count from the ledger first, then its detailed section."""
+    ledger_count = candidate_count(row.get("evidence", ""))
+    return ledger_count if ledger_count is not None else candidate_count(detail)
+
+
+def uninvoked_resize_aria_handlers(target: Path) -> list[str]:
+    """Find ARIA resize handlers registered for future events but never initialized."""
+    locations: list[str] = []
+    declaration = re.compile(r"\bconst\s+(\w*[Rr]esize\w*)\s*=\s*(?:\([^)]*\)|\w+)\s*=>")
+    for candidate in authored_source_files(target, {".js", ".ts"}):
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if "aria-hidden" not in source or not re.search(r"addEventListener\(\s*['\"]resize['\"]", source):
+            continue
+        for match in declaration.finditer(source):
+            name = match.group(1)
+            if not re.search(
+                rf"addEventListener\(\s*['\"]resize['\"]\s*,\s*{re.escape(name)}\b",
+                source,
+            ):
+                continue
+            # A reference passed to addEventListener is not an initialization call.
+            if not re.search(rf"\b{re.escape(name)}\s*\(\s*\)\s*;", source):
+                line = source.count("\n", 0, match.start()) + 1
+                locations.append(f"{candidate}:{line}")
+    return locations
+
+
+def undersized_interactive_style_locations(target: Path) -> list[str]:
+    """Find raw sub-24px dimensions in style blocks whose selector looks interactive."""
+    locations: list[str] = []
+    selector_hint = re.compile(
+        r"(?:button|toggle|trigger|control|link|search|menu|nav|tab|checkbox|radio)",
+        re.IGNORECASE,
+    )
+    dimension = re.compile(r"\b(?:width|height)\s*:\s*(?:[1-9]|1\d|2[0-3])(?:\.\d+)?px\b", re.IGNORECASE)
+    for candidate in authored_source_files(target, {".css", ".scss", ".sass", ".less"}):
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        lines = source.splitlines()
+        for index, line in enumerate(lines):
+            if not dimension.search(line):
+                continue
+            context = "\n".join(lines[max(0, index - 14):index + 1])
+            if selector_hint.search(context):
+                locations.append(f"{candidate}:{index + 1}")
+    return locations
+
+
 def suspicious_focus_suppressions(target: Path) -> list[str]:
     """Find focus blocks that remove outline without a local visible replacement."""
     drupal_custom_roots = [
@@ -323,6 +412,20 @@ def validate_report(
     if not re.search(rf"^\*\*Skill version:\*\*\s*{re.escape(SKILL_VERSION)}\s*$", text, re.MULTILINE):
         errors.append(f"report was not generated with current skill version {SKILL_VERSION}")
 
+    partial_report = bool(re.search(r"^# .*\[PARTIAL\]", text, re.MULTILINE | re.IGNORECASE))
+    incomplete_source_phrases = re.compile(
+        r"\b(?:sampled(?: only| paths?| files?| evidence| scripts?| behaviors?)?"
+        r"|spot[- ]checked|not performed|not completed|out of scope for this pass"
+        r"|not fully inventoried|full inventory not completed|full .*? audit .*? not completed)\b",
+        re.IGNORECASE,
+    )
+    incomplete_matches = sorted({match.group(0) for match in incomplete_source_phrases.finditer(text)})
+    if incomplete_matches and not partial_report:
+        errors.append(
+            "normal report admits unfinished bounded source analysis "
+            f"({', '.join(incomplete_matches[:5])}); finish the inventory or publish [PARTIAL]"
+        )
+
     static_by_id = {
         row["sc_id"]: row["static_analyzable"]
         for row in criteria_rows
@@ -370,9 +473,9 @@ def validate_report(
     ))
     if unavailable_content:
         for sc_id in ("1.3.1", "1.3.3", "1.4.5", "2.4.4", "2.4.6", "3.1.2"):
-            if rows_by_id.get(sc_id, {}).get("verdict") == "✅ PASS":
+            if rows_by_id.get(sc_id, {}).get("verdict") in {"✅ PASS", "⚪ N/A"}:
                 errors.append(
-                    f"{sc_id} cannot PASS while the declared CMS/editorial content boundary remains unresolved"
+                    f"{sc_id} cannot PASS/N/A while the declared CMS/editorial content boundary remains unresolved"
                 )
 
     non_text_detail = detail_for("1.1.1")
@@ -499,6 +602,25 @@ def validate_report(
         re.IGNORECASE,
     ):
         errors.append("4.1.2 incorrectly requires aria-checked on a non-semantic wrapper around a native checkbox")
+    if rows_by_id.get("4.1.2", {}).get("verdict") == "❌ FAIL" and re.search(
+        r"programmatically determinable[\s\S]{0,240}(?:does not (?:correctly )?identify|generic|duplicated|non-descriptive)"
+        r"|(?:generic|duplicated|non-descriptive)[\s\S]{0,240}programmatically determinable",
+        aria_detail,
+        re.IGNORECASE,
+    ):
+        errors.append(
+            "4.1.2 uses accessible-name descriptiveness/uniqueness as a Name, Role, Value failure; "
+            "score name quality under 2.4.6 unless the name is not programmatically determinable"
+        )
+
+    label_in_name_detail = detail_for("2.5.3")
+    if re.search(
+        r"(?:confirmed mismatch|violation)[\s\S]{0,400}visible text is absent"
+        r"|visible text is absent[\s\S]{0,400}(?:confirmed mismatch|violation)",
+        rows_by_id.get("2.5.3", {}).get("evidence", "") + "\n" + label_in_name_detail,
+        re.IGNORECASE,
+    ):
+        errors.append("2.5.3 treats an icon-only control with no visible text label as a label/name mismatch")
 
     help_row = rows_by_id.get("3.2.6", {})
     if help_row.get("verdict") == "✅ PASS" and "newsletter" in help_row.get("evidence", "").lower() and not re.search(
@@ -570,9 +692,9 @@ def validate_report(
             interactive_count = authored_markup_count(
                 target, re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE)
             )
-            for sc_id in ("2.5.2", "2.5.3", "3.2.1"):
+            for sc_id in ("2.1.1", "2.5.2", "2.5.3", "3.2.1"):
                 row = rows_by_id.get(sc_id, {})
-                stated = candidate_count(row.get("evidence", ""))
+                stated = report_candidate_count(row, detail_for(sc_id))
                 if row.get("verdict") == "✅ PASS" and interactive_count and (
                     stated is None or stated < interactive_count
                 ):
@@ -580,6 +702,23 @@ def validate_report(
                         f"{sc_id} PASS inventory is incomplete: report candidates={stated or 'missing'}, "
                         f"raw authored interactive occurrences={interactive_count}"
                     )
+
+            aria_widget_count = authored_markup_count(
+                target,
+                re.compile(
+                    r"<(?:a|button|input|select|textarea)\b|\brole\s*=\s*[\"']|\baria-(?:expanded|hidden|selected|pressed|checked|controls|haspopup)\s*=",
+                    re.IGNORECASE,
+                ),
+            )
+            aria_row = rows_by_id.get("4.1.2", {})
+            aria_stated = report_candidate_count(aria_row, detail_for("4.1.2"))
+            if aria_row.get("verdict") != "⚪ N/A" and aria_widget_count and (
+                aria_stated is None or aria_stated < aria_widget_count
+            ):
+                errors.append(
+                    "4.1.2 widget/state inventory is incomplete: "
+                    f"report candidates={aria_stated or 'missing'}, raw authored occurrences={aria_widget_count}"
+                )
 
             for sc_id in ("3.2.2", "3.3.1", "3.3.2", "3.3.3"):
                 row = rows_by_id.get(sc_id, {})
@@ -623,7 +762,6 @@ def validate_report(
                         f"authored occurrences={raw_count}"
                     )
 
-            aria_row = rows_by_id.get("4.1.2", {})
             if aria_row.get("verdict") != "⚪ N/A":
                 has_aria_mutation = any(
                     "aria-hidden" in candidate.read_text(encoding="utf-8", errors="ignore")
@@ -644,6 +782,113 @@ def validate_report(
                     errors.append(
                         "4.1.2 must inventory aria-hidden JavaScript mutations and reconcile exact initial/breakpoint states"
                     )
+
+                uninitialized = uninvoked_resize_aria_handlers(target)
+                aria_combined = aria_row.get("evidence", "") + "\n" + aria_detail
+                if uninitialized and not re.search(
+                    r"(?:not|never) invoked|only registered|initiali[sz]ation (?:call )?(?:is )?absent",
+                    aria_combined,
+                    re.IGNORECASE,
+                ):
+                    errors.append(
+                        "4.1.2 misses ARIA resize handlers that are registered but not invoked during "
+                        f"initialization (for example {uninitialized[0]})"
+                    )
+
+            reorder_locations = source_signal_locations(
+                target,
+                {".css", ".scss", ".sass", ".less"},
+                re.compile(r"\b(?:grid-template-areas|grid-area|order)\s*:|flex-direction\s*:\s*(?:row|column)-reverse", re.IGNORECASE),
+            )
+            sequence_row = rows_by_id.get("1.3.2", {})
+            if sequence_row.get("verdict") == "⚪ N/A" and reorder_locations:
+                errors.append(
+                    "1.3.2 N/A misses authored visual-order candidates such as CSS grid areas/order "
+                    f"(for example {reorder_locations[0]})"
+                )
+
+            wide_min_locations = source_signal_locations(
+                target,
+                {".css", ".scss", ".sass", ".less"},
+                re.compile(
+                    r"\bmin-width\s*:\s*(?:(?:3[2-9]\d|[4-9]\d{2}|\d{4,})px|(?:2[1-9]|[3-9]\d|\d{3,})rem)\b",
+                    re.IGNORECASE,
+                ),
+            )
+            reflow_row = rows_by_id.get("1.4.10", {})
+            reflow_combined = reflow_row.get("evidence", "") + "\n" + detail_for("1.4.10")
+            if wide_min_locations and re.search(
+                r"no (?:definite )?`?min-width`? (?:beyond|over)|candidates=0", reflow_combined, re.IGNORECASE
+            ):
+                errors.append(
+                    "1.4.10 source inventory contradicts its negative min-width claim "
+                    f"(for example {wide_min_locations[0]})"
+                )
+
+            sticky_locations = source_signal_locations(
+                target,
+                {".css", ".scss", ".sass", ".less"},
+                re.compile(r"\bposition\s*:\s*(?:sticky|fixed)\b", re.IGNORECASE),
+            )
+            obscured_row = rows_by_id.get("2.4.11", {})
+            obscured_stated = report_candidate_count(obscured_row, detail_for("2.4.11"))
+            if sticky_locations and obscured_row.get("verdict") != "⚪ N/A" and (
+                obscured_stated is None or obscured_stated < len(sticky_locations)
+            ):
+                errors.append(
+                    "2.4.11 sticky/fixed inventory is incomplete: "
+                    f"report candidates={obscured_stated or 'missing'}, authored occurrences={len(sticky_locations)}"
+                )
+
+            undersized_locations = undersized_interactive_style_locations(target)
+            target_size_row = rows_by_id.get("2.5.8", {})
+            target_size_combined = target_size_row.get("evidence", "") + "\n" + detail_for("2.5.8")
+            if undersized_locations and re.search(
+                r"no authored (?:control|target).*?(?:below|sub-?)24|candidates=0",
+                target_size_combined,
+                re.IGNORECASE,
+            ):
+                errors.append(
+                    "2.5.8 source inventory contradicts its claim that no authored sub-24px candidate exists; "
+                    f"classify the candidate and normative exceptions (for example {undersized_locations[0]})"
+                )
+
+            auth_locations = source_signal_locations(
+                target,
+                {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"},
+                re.compile(r"(?:user[-_/ ]login|user[-_/ ]password|password[-_/ ]reset|\bauthentication\b)", re.IGNORECASE),
+            )
+            if auth_locations and rows_by_id.get("3.3.8", {}).get("verdict") == "⚪ N/A":
+                errors.append(
+                    "3.3.8 cannot be N/A when authentication/login/password-recovery entry points exist; "
+                    f"inspect the delegated process (for example {auth_locations[0]})"
+                )
+
+            help_locations = source_signal_locations(
+                target,
+                {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"},
+                re.compile(r"(?:mailto:|tel:|contact[-_ ]card|contact[-_ ]mechanism|help[-_ ](?:link|center|centre)|\bchat(?:bot)?\b|faq[-_ ])", re.IGNORECASE),
+            )
+            if help_locations and rows_by_id.get("3.2.6", {}).get("verdict") == "⚪ N/A":
+                errors.append(
+                    "3.2.6 cannot be N/A until authored help/contact candidates are classified across page variants "
+                    f"(for example {help_locations[0]})"
+                )
+
+            listbox_count = authored_markup_count(
+                target, re.compile(r"\brole\s*=\s*[\"']listbox[\"']", re.IGNORECASE)
+            )
+            option_count = authored_markup_count(
+                target, re.compile(r"\brole\s*=\s*[\"']option[\"']", re.IGNORECASE)
+            )
+            if listbox_count > option_count and not re.search(
+                r"\blistbox\b[\s\S]{0,240}\boption\b|\boption\b[\s\S]{0,240}\blistbox\b",
+                aria_row.get("evidence", "") + "\n" + aria_detail,
+                re.IGNORECASE,
+            ):
+                errors.append(
+                    "4.1.2 does not reconcile authored listbox structures with their required option semantics"
+                )
     summary_labels = {
         "✅ PASS": "PASS",
         "⚪ N/A": "N/A",
