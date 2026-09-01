@@ -76,7 +76,7 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
-SKILL_VERSION = "1.6.0"
+SKILL_VERSION = "1.7.0"
 PARTIAL_VERDICT = "⏳ NOT_EVALUATED"
 SEVERITY_LABELS = ("Critical", "Serious", "Moderate", "Minor")
 SEVERITY_RANK = {label: rank for rank, label in enumerate(reversed(SEVERITY_LABELS))}
@@ -475,6 +475,11 @@ def raw_hit_count(evidence: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def violation_count(evidence: str) -> int | None:
+    match = re.search(r"\bviolations?=(?:at least\s+)?(\d+)(?![-+])", evidence)
+    return int(match.group(1)) if match else None
+
+
 def validate_model_provenance(text: str) -> list[str]:
     """Require two explicitly identified, distinct evaluator models."""
     errors: list[str] = []
@@ -491,8 +496,14 @@ def validate_model_provenance(text: str) -> list[str]:
         if value is None or "[[" in value or unavailable.search(value):
             return None
         parenthetical = re.findall(r"\(([^()]*)\)", value)
-        candidate = parenthetical[-1] if parenthetical else value
+        candidate = parenthetical[0] if parenthetical else value
         normalized = re.sub(r"[^a-z0-9]+", " ", candidate.lower()).strip()
+        if re.fullmatch(
+            r"(?:main evaluator(?: merge reconciliation pass)?|default session model|session model|"
+            r"current model|evaluator [a-z0-9]+|reviewer [a-z0-9]+)",
+            normalized,
+        ):
+            return None
         return normalized or None
 
     author_id = identifier(author_match.group(1) if author_match else None)
@@ -545,6 +556,32 @@ def build_source_inventory(target: Path, scopes: list[Path] | None = None) -> di
         "responsive_aria_initial_mismatches": responsive_aria_initial_mismatch_locations(target, scopes),
         "definite_low_text_contrast": definite_low_text_contrast_locations(target, scopes),
         "undersized_interactive_styles": undersized_interactive_style_locations(target, scopes),
+        "skip_links": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"href\s*=\s*[\"']#main-content[\"']", re.IGNORECASE),
+            scopes,
+        ),
+        "main_content_targets": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"\bid\s*=\s*[\"']main-content[\"']", re.IGNORECASE),
+            scopes,
+        ),
+        "targetless_mains": targetless_main_locations(target, scopes),
+        "listbox_roles": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"\brole\s*=\s*[\"']listbox[\"']", re.IGNORECASE),
+            scopes,
+        ),
+        "option_roles": source_signal_locations(
+            target,
+            markup_extensions,
+            re.compile(r"\brole\s*=\s*[\"']option[\"']", re.IGNORECASE),
+            scopes,
+        ),
+        "unannounced_dynamic_updates": unannounced_dynamic_update_locations(target, scopes),
     }
     interactive = authored_markup_count(
         target, re.compile(r"<(?:a|button|input|select|textarea)\b", re.IGNORECASE), scopes=scopes
@@ -569,6 +606,56 @@ def build_source_inventory(target: Path, scopes: list[Path] | None = None) -> di
         },
         "locations": signals,
     }
+
+
+def targetless_main_locations(
+    target: Path, scopes: list[Path] | None = None
+) -> list[str]:
+    """Inventory authored main elements that do not declare the canonical skip target."""
+    locations: list[str] = []
+    main_pattern = re.compile(r"<main\b[^>]*>", re.IGNORECASE)
+    target_pattern = re.compile(r"\bid\s*=\s*[\"']main-content[\"']", re.IGNORECASE)
+    for candidate in authored_source_files(
+        target, {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}, scopes
+    ):
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        source = re.sub(
+            r"\{#[\s\S]*?#\}|<!--[\s\S]*?-->",
+            lambda match: re.sub(r"[^\n]", " ", match.group(0)),
+            source,
+        )
+        for match in main_pattern.finditer(source):
+            if not target_pattern.search(match.group(0)):
+                line = source.count("\n", 0, match.start()) + 1
+                locations.append(f"{candidate}:{line}")
+    return locations
+
+
+def unannounced_dynamic_update_locations(
+    target: Path, scopes: list[Path] | None = None
+) -> list[str]:
+    """Find authored automatic submit/update paths without a local announcement hook."""
+    locations: list[str] = []
+    update_pattern = re.compile(
+        r"(?:submitButton|submitter|submitControl)\.click\(\)", re.IGNORECASE
+    )
+    announcement_pattern = re.compile(
+        r"Drupal\.announce|aria-live|role\s*=\s*[\"']status[\"']|setAttribute\(\s*[\"']aria-live",
+        re.IGNORECASE,
+    )
+    for candidate in authored_source_files(target, {".js", ".ts"}, scopes):
+        try:
+            source = candidate.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        match = update_pattern.search(source)
+        if match and not announcement_pattern.search(source):
+            line = source.count("\n", 0, match.start()) + 1
+            locations.append(f"{candidate}:{line}")
+    return locations
 
 
 def validate_partial_report(
@@ -772,7 +859,12 @@ def validate_report(
     incomplete_source_phrases = re.compile(
         r"\b(?:sampled(?: only| paths?| files?| evidence| scripts?| behaviors?)?"
         r"|spot[- ]checked|not performed|not completed|out of scope for this pass"
-        r"|not fully inventoried|full inventory not completed|full .*? audit .*? not completed)\b",
+        r"|not fully inventoried|full inventory not completed|full .*? audit .*? not completed"
+        r"|not (?:yet )?(?:individually )?(?:isolated(?:/traced)?|inspected|classified|evaluated)"
+        r"|not every [^.\n]{0,160} individually re-(?:verified|traced|checked)"
+        r"|not (?:exhaustively|fully) (?:computed|resolved|cross-checked)"
+        r"|scope/header association not re-verified"
+        r"|full [^.\n]{0,120} behavior was not traced)\b",
         re.IGNORECASE,
     )
     incomplete_matches = sorted({match.group(0) for match in incomplete_source_phrases.finditer(text)})
@@ -820,6 +912,32 @@ def validate_report(
             re.MULTILINE,
         )
         return match.group(1) if match else ""
+
+    for row in rows:
+        if row["verdict"] != "⚠️ NEEDS_REVIEW":
+            continue
+        combined = row["evidence"] + "\n" + detail_for(row["sc_id"])
+        malformed = re.search(r"\bunresolved=(?:\d+-\d+|\d+\+|[A-Za-z])", combined)
+        count_match = re.search(r"\bunresolved=(?:at least\s+)?(\d+)(?![-+])", combined)
+        if malformed or not count_match:
+            errors.append(
+                f"NEEDS_REVIEW {row['sc_id']} lacks a numeric unresolved-instance count; "
+                "use an exact count or 'at least N'"
+            )
+        elif int(count_match.group(1)) == 0:
+            errors.append(
+                f"NEEDS_REVIEW {row['sc_id']} states unresolved=0; use PASS/FAIL or identify the unresolved instances"
+            )
+
+    excluded_match = re.search(r"^\*\*Excluded scope:\*\*\s*(.+)$", text, re.MULTILINE)
+    excluded_line = excluded_match.group(1) if excluded_match else ""
+    excluded_roots = {
+        token for token in re.findall(r"`([^`]+/)`", excluded_line)
+        if not any(character in token for character in "*{}")
+    }
+    for root in sorted(excluded_roots):
+        if re.search(rf"^[-*] \*\*Coverage:\*\*[^\n]*\bpaths?=[^\n]*{re.escape(root)}", text, re.MULTILINE):
+            errors.append(f"report cites excluded source root {root!r} as finding coverage")
 
     limitations_match = re.search(
         r"^\*\*Source limitations:\*\*\s*(.+)$", text, re.MULTILINE
@@ -1163,6 +1281,27 @@ def validate_report(
                         f"authored occurrences={raw_count}"
                     )
 
+            bypass_row = rows_by_id.get("2.4.1", {})
+            targetless_mains = targetless_main_locations(target, scopes)
+            if bypass_row.get("verdict") == "✅ PASS" and targetless_mains:
+                bypass_combined = bypass_row.get("evidence", "") + "\n" + detail_for("2.4.1")
+                stated_targetless = re.search(
+                    r"\btargetless_mains=(\d+)\b", bypass_combined
+                )
+                evaluated_targetless = re.search(
+                    r"\btargetless_evaluated=(\d+)\b", bypass_combined
+                )
+                if (
+                    not stated_targetless
+                    or not evaluated_targetless
+                    or int(stated_targetless.group(1)) < len(targetless_mains)
+                    or int(evaluated_targetless.group(1)) < len(targetless_mains)
+                ):
+                    errors.append(
+                        "2.4.1 PASS does not reconcile authored <main> patterns lacking the #main-content "
+                        f"skip destination (for example {targetless_mains[0]})"
+                    )
+
             if aria_row.get("verdict") != "⚪ N/A":
                 has_aria_mutation = any(
                     "aria-hidden" in candidate.read_text(encoding="utf-8", errors="ignore")
@@ -1292,6 +1431,43 @@ def validate_report(
             ):
                 errors.append(
                     "4.1.2 does not reconcile authored listbox structures with their required option semantics"
+                )
+            aria_combined = aria_row.get("evidence", "") + "\n" + aria_detail
+            if listbox_count and re.search(
+                r"no authored [`\"']?role=[\"']?listbox|no authored .*listbox.*exists",
+                aria_combined,
+                re.IGNORECASE,
+            ):
+                errors.append(
+                    f"4.1.2 contradicts source by claiming no authored listbox exists; found {listbox_count}"
+                )
+            required_aria_violations = len(responsive_aria_initial_mismatch_locations(target, scopes))
+            if listbox_count > option_count:
+                required_aria_violations += listbox_count - option_count
+            stated_aria_violations = violation_count(aria_combined)
+            if (
+                aria_row.get("verdict") == "❌ FAIL"
+                and required_aria_violations
+                and (stated_aria_violations is None or stated_aria_violations < required_aria_violations)
+            ):
+                errors.append(
+                    "4.1.2 violation inventory is incomplete: "
+                    f"report violations={stated_aria_violations or 'missing'}, "
+                    f"source-proven minimum={required_aria_violations}"
+                )
+
+            dynamic_updates = unannounced_dynamic_update_locations(target, scopes)
+            status_row = rows_by_id.get("4.1.3", {})
+            status_combined = status_row.get("evidence", "") + "\n" + detail_for("4.1.3")
+            if dynamic_updates and status_row.get("verdict") == "✅ PASS" and not re.search(
+                r"(?:dispatchEvent|submitButton|agenda-select)[\s\S]{0,500}"
+                r"(?:Drupal\.announce|aria-live|role=[\"']status[\"']|announc)",
+                status_combined,
+                re.IGNORECASE,
+            ):
+                errors.append(
+                    "4.1.3 PASS does not trace an announcement path for every automatic/AJAX update "
+                    f"(for example {dynamic_updates[0]})"
                 )
     summary_labels = {
         "✅ PASS": "PASS",

@@ -33,6 +33,8 @@ violations=0; unresolved=2 generated at runtime
 
 The latter cannot yield PASS. N/A uses the same manifest with `candidates=0; evaluated=0; unresolved=0` and must state the searched signals.
 
+For 2.4.1, cover both sides of the relationship. When any authored `<main>` lacks a literal `id="main-content"`, include `targetless_mains=N; targetless_evaluated=N` and explain the composed destination or violation for every candidate. Counting skip-link sources alone is incomplete.
+
 `raw_hits` is the deterministic search total. `candidates` is the governed instance or reusable-pattern total after classification. They need not match, but their relationship must be explained. Repeated markup emitted by one loop or include is one source pattern unless callers materially change the accessibility behavior.
 
 ## Representative-instance rule
