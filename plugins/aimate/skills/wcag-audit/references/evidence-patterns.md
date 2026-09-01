@@ -20,7 +20,8 @@ PASS and N/A evidence must be accompanied by a compact coverage statement:
 
 ```text
 Coverage: paths=src/**/*.tsx,styles/**/*.css; signals=button,onClick,onKeyDown,role;
-candidates=34; evaluated=34; violations=0; unresolved=0
+raw_hits=87; candidates=12 source patterns; evaluated=12; excluded=75 native/decorative/duplicate-loop hits;
+violations=0; unresolved=0
 ```
 
 When coverage is incomplete:
@@ -31,6 +32,8 @@ violations=0; unresolved=2 generated at runtime
 ```
 
 The latter cannot yield PASS. N/A uses the same manifest with `candidates=0; evaluated=0; unresolved=0` and must state the searched signals.
+
+`raw_hits` is the deterministic search total. `candidates` is the governed instance or reusable-pattern total after classification. They need not match, but their relationship must be explained. Repeated markup emitted by one loop or include is one source pattern unless callers materially change the accessibility behavior.
 
 ## Representative-instance rule
 
