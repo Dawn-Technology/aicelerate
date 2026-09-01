@@ -14,6 +14,15 @@ Separate source-controlled values from values supplied by a CMS, API, translatio
 
 N/A means the feature does not exist. It does not mean “not checked,” “not found by the first grep,” or “cannot be decided statically.”
 
+Some criteria govern how existing UI behaves rather than the presence of a special widget. Treat the underlying UI as the candidate inventory:
+
+- If focusable UI components exist, 2.1.2 and 3.2.1 are applicable. Absence of a trap or focus-triggered context change is favorable evidence, not evidence that the criterion is N/A.
+- If controls whose setting or value can change exist (text fields, checkboxes, selects, toggles), 3.2.2 is applicable. Absence of an automatic context change can support PASS when coverage is exhaustive.
+- If any function is operable by a single pointer, 2.5.2 is applicable. Native controls and `click` handlers are candidates that ordinarily satisfy up-event activation; they are not evidence of zero candidates.
+- If hover or focus reveals authored content, including a submenu, 1.4.13 is applicable even when no component is named tooltip or popover.
+
+Use N/A for these criteria only when a bounded inventory proves the underlying UI or behavior itself is absent.
+
 ## 2. Apply the static-analysis ceiling
 
 Interpret `static_analyzable` as follows:
@@ -64,6 +73,8 @@ Every criterion ledger entry must include:
 For dynamic collections where an exact total cannot be determined, write `at least N` and mark unresolved coverage. Never invent a precise count.
 
 For a reusable loop or template with unavailable production data, count the source pattern separately from rendered instances: for example, `patterns=1; rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
+
+Reconcile shared inventories before finalizing the ledger. Examples of contradictions that must be corrected include a video candidate under 1.2.2 but zero media candidates under 1.2.1 without evidence classifying the media, input controls under 3.3.2 but N/A under 3.2.2, or interactive keyboard controls under 2.1.1 but N/A under 2.1.2 or 3.2.1.
 
 ## 6. Assign severity or review priority
 

@@ -74,6 +74,11 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
+EXCLUDED_PATH_PARTS = {
+    ".git", ".svn", ".hg", "node_modules", "vendor", "dist", "build",
+    "out", "target", ".next", "coverage", ".nyc_output", "__pycache__",
+    ".pytest_cache", "tests", "test", "spec", "__tests__",
+}
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -124,7 +129,76 @@ def validate_csv(path: Path) -> list[str]:
     return errors
 
 
-def validate_report(path: Path, criteria_rows: list[dict[str, str]]) -> list[str]:
+def focus_suppression_count(target: Path) -> int:
+    """Count authored CSS/preprocessor focus-suppression candidates."""
+    authored_extensions = {".scss", ".sass", ".less"}
+    drupal_custom_roots = [
+        candidate for candidate in (
+            target / "web" / "themes" / "custom",
+            target / "web" / "modules" / "custom",
+        )
+        if candidate.is_dir()
+    ]
+    search_roots = drupal_custom_roots or [target]
+    files = [
+        candidate for root in search_roots for candidate in root.rglob("*")
+        if candidate.is_file()
+        and candidate.suffix.lower() in authored_extensions
+        and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+        and not re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
+    ]
+    if not files:
+        files = [
+            candidate for root in search_roots for candidate in root.rglob("*.css")
+            if candidate.is_file()
+            and not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+            and not candidate.name.endswith((".min.css", ".bundle.css"))
+        ]
+
+    pattern = re.compile(r"\boutline\s*:\s*(?:none|0(?=\s*(?:[;}!]|$)))", re.IGNORECASE)
+    count = 0
+    for candidate in files:
+        try:
+            count += len(pattern.findall(candidate.read_text(encoding="utf-8", errors="ignore")))
+        except OSError:
+            continue
+    return count
+
+
+def markup_control_count(target: Path) -> int:
+    """Count raw authored form-control candidates before applicability filtering."""
+    drupal_custom_roots = [
+        candidate for candidate in (
+            target / "web" / "themes" / "custom",
+            target / "web" / "modules" / "custom",
+        )
+        if candidate.is_dir()
+    ]
+    search_roots = drupal_custom_roots or [target]
+    extensions = {".html", ".twig", ".jsx", ".tsx", ".vue", ".php"}
+    pattern = re.compile(r"<(?:input|select|textarea)\b", re.IGNORECASE)
+    count = 0
+    for root in search_roots:
+        for candidate in root.rglob("*"):
+            if (
+                not candidate.is_file()
+                or candidate.suffix.lower() not in extensions
+                or EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+                or re.search(r"(?:\.test|\.spec|\.stories)\.", candidate.name)
+            ):
+                continue
+            try:
+                count += len(pattern.findall(candidate.read_text(encoding="utf-8", errors="ignore")))
+            except OSError:
+                continue
+    return count
+
+
+def validate_report(
+    path: Path,
+    criteria_rows: list[dict[str, str]],
+    target: Path | None = None,
+) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
     ledger_match = re.search(
@@ -185,6 +259,142 @@ def validate_report(path: Path, criteria_rows: list[dict[str, str]]) -> list[str
                 errors.append(f"N/A {sc_id} lacks bounded negative evidence")
 
     verdict_counts = Counter(row["verdict"] for row in rows)
+    rows_by_id = {row["sc_id"]: row for row in rows}
+
+    def detail_for(sc_id: str) -> str:
+        match = re.search(
+            rf"^### (?:⚠️ NEEDS_REVIEW|❌ FAIL) {re.escape(sc_id)} —[^\n]*\n([\s\S]*?)(?=^### |^## )",
+            text,
+            re.MULTILINE,
+        )
+        return match.group(1) if match else ""
+
+    # Applicability consistency: these criteria govern existing controls and
+    # interactions, not merely the presence of a specially named widget.
+    if rows_by_id.get("2.1.1", {}).get("verdict") != "⚪ N/A":
+        for sc_id in ("2.1.2", "3.2.1"):
+            if rows_by_id.get(sc_id, {}).get("verdict") == "⚪ N/A":
+                errors.append(
+                    f"{sc_id} cannot be N/A when 2.1.1 establishes in-scope keyboard/focusable UI"
+                )
+    if (
+        rows_by_id.get("3.3.2", {}).get("verdict") != "⚪ N/A"
+        and rows_by_id.get("3.2.2", {}).get("verdict") == "⚪ N/A"
+    ):
+        errors.append("3.2.2 cannot be N/A when 3.3.2 establishes in-scope input controls")
+
+    pointer_row = rows_by_id.get("2.5.2", {})
+    if pointer_row.get("verdict") == "⚪ N/A" and re.search(
+        r"\b(?:click|native control|native form)\b", pointer_row.get("evidence", ""), re.IGNORECASE
+    ):
+        errors.append("2.5.2 N/A evidence identifies pointer-operated click/native candidates")
+
+    hover_row = rows_by_id.get("1.4.13", {})
+    if hover_row.get("verdict") == "⚪ N/A":
+        hover_evidence = hover_row.get("evidence", "").lower()
+        if "hover" not in hover_evidence or "focus" not in hover_evidence:
+            errors.append("1.4.13 N/A must show bounded searches for both hover- and focus-triggered content")
+        if not re.search(r"\b(?:dropdown|submenu|disclosure|menu)\b", hover_evidence):
+            errors.append("1.4.13 N/A must include dropdown/submenu/disclosure applicability signals")
+
+    media_related = ("1.2.2", "1.2.3", "1.2.4", "1.2.5")
+    media_present = any(
+        rows_by_id.get(sc_id, {}).get("verdict") != "⚪ N/A" for sc_id in media_related
+    )
+    media_only_row = rows_by_id.get("1.2.1", {})
+    if media_present and media_only_row.get("verdict") == "⚪ N/A" and not re.search(
+        r"\b(?:classified|synchronized|contains audio|audio track)\b",
+        media_only_row.get("evidence", ""),
+        re.IGNORECASE,
+    ):
+        errors.append("1.2.1 N/A conflicts with a related media candidate that was not explicitly classified")
+
+    captions_row = rows_by_id.get("1.2.2", {})
+    if captions_row.get("verdict") == "❌ FAIL":
+        captions_detail = detail_for("1.2.2")
+        if not re.search(
+            r"\b(?:rendered instance|published instance|production content|source-controlled media|reachable route)\b",
+            captions_row.get("evidence", "") + "\n" + captions_detail,
+            re.IGNORECASE,
+        ):
+            errors.append(
+                "1.2.2 FAIL must prove applicable rendered/production media, not only a player template"
+            )
+
+    non_text_row = rows_by_id.get("1.1.1", {})
+    images_of_text_row = rows_by_id.get("1.4.5", {})
+    if (
+        images_of_text_row.get("verdict") == "⚪ N/A"
+        and re.search(
+            r"\b(?:CMS|editorial|content-dependent|unresolved)\b",
+            non_text_row.get("evidence", ""),
+            re.IGNORECASE,
+        )
+    ):
+        errors.append("1.4.5 cannot be N/A while 1.1.1 records unresolved CMS/editorial image content")
+
+    if target is not None:
+        if not target.is_dir():
+            errors.append(f"target repository is not an accessible directory: {target}")
+        else:
+            source_suppressions = focus_suppression_count(target)
+            focus_evidence = rows_by_id.get("2.4.7", {}).get("evidence", "")
+            stated_match = re.search(r"\bcandidates=(?:at least\s+)?(\d+)", focus_evidence)
+            if not stated_match:
+                focus_detail = re.search(
+                    r"^### (?:⚠️ NEEDS_REVIEW|❌ FAIL) 2\.4\.7 —[^\n]*\n([\s\S]*?)(?=^### |^## )",
+                    text,
+                    re.MULTILINE,
+                )
+                if focus_detail:
+                    stated_match = re.search(
+                        r"\bcandidates=(?:at least\s+)?(\d+)", focus_detail.group(1)
+                    )
+            if source_suppressions and (
+                not stated_match or int(stated_match.group(1)) < source_suppressions
+            ):
+                stated = stated_match.group(1) if stated_match else "missing"
+                errors.append(
+                    "2.4.7 focus-suppression inventory is incomplete: "
+                    f"report candidates={stated}, authored source occurrences={source_suppressions}"
+                )
+
+            source_controls = markup_control_count(target)
+            labels_row = rows_by_id.get("3.3.2", {})
+            labels_match = re.search(
+                r"\bcandidates=(?:at least\s+)?(\d+)", labels_row.get("evidence", "")
+            )
+            if labels_row.get("verdict") == "✅ PASS" and source_controls and (
+                not labels_match or int(labels_match.group(1)) < source_controls
+            ):
+                stated = labels_match.group(1) if labels_match else "missing"
+                errors.append(
+                    "3.3.2 control inventory is incomplete: "
+                    f"report candidates={stated}, raw authored control occurrences={source_controls}; "
+                    "inventory and explicitly rule out hidden/non-user controls before PASS"
+                )
+
+            aria_row = rows_by_id.get("4.1.2", {})
+            if aria_row.get("verdict") == "❌ FAIL" and "aria-hidden" in aria_row.get("evidence", ""):
+                has_aria_mutation = any(
+                    "aria-hidden" in candidate.read_text(encoding="utf-8", errors="ignore")
+                    for root in (
+                        target / "web" / "themes" / "custom",
+                        target / "web" / "modules" / "custom",
+                    )
+                    if root.is_dir()
+                    for candidate in root.rglob("*.js")
+                    if not EXCLUDED_PATH_PARTS.intersection(candidate.parts)
+                )
+                aria_detail = detail_for("4.1.2")
+                if has_aria_mutation and not re.search(
+                    r"\b(?:initial desktop|initial viewport|initial DOM|breakpoint|resize)\b",
+                    aria_detail,
+                    re.IGNORECASE,
+                ):
+                    errors.append(
+                        "4.1.2 aria-hidden FAIL must reconcile JavaScript mutations and identify the exact initial/breakpoint state"
+                    )
     summary_labels = {
         "✅ PASS": "PASS",
         "⚪ N/A": "N/A",
@@ -245,11 +455,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_path", type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--target", type=Path)
     args = parser.parse_args()
 
     errors = validate_csv(args.csv_path)
     if args.report:
-        errors.extend(validate_report(args.report, read_csv(args.csv_path)))
+        errors.extend(validate_report(args.report, read_csv(args.csv_path), args.target))
+    elif args.target:
+        errors.append("--target requires --report")
     if errors:
         print("validate_audit: FAIL", file=sys.stderr)
         for error in errors:
