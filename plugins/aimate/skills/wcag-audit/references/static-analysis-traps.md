@@ -54,6 +54,10 @@ Do not search only for component names such as `tooltip` or `popover`. Inventory
 
 An authored `aria-hidden`, `aria-expanded`, `aria-selected`, `aria-pressed`, or similar initial value is not evaluated in isolation. Build a state matrix covering initial DOM, initial CSS visibility, initialization code, each user transition, responsive breakpoints, and the no-JavaScript fallback. Search every mutation of the attribute and confirm whether initialization is actually invoked. If CSS makes a desktop navigation visible while its initial `aria-hidden="true"` remains unchanged until a resize event, that precise initial desktop state can support FAIL; do not claim the attribute is never changed or that all viewport states fail.
 
+Merely mentioning `initial`, `breakpoint`, or `resize` is not a completed trace. For each responsive state handler, record its source location, the initial DOM value, the CSS state at each breakpoint, every event registration, and a direct initialization invocation (or its absence). A handler that is only registered for future `resize` events does not correct the initial page state.
+
+ARIA widget roles must be validated as a complete owned structure. For example, a `role="listbox"` must expose valid option descendants/ownership and state semantics; native checkboxes wrapped in labels do not become ARIA options merely because their container is named a listbox.
+
 ## Native semantics and duplicate interaction surfaces
 
 - An empty `<span>` without a role, accessible-name attribute, or text normally contributes no accessible object/name. Missing `aria-hidden="true"` on that span alone is not a 1.1.1 failure. Evaluate the accessible name of the containing functional control and whether decorative generated graphics are exposed.
@@ -67,6 +71,18 @@ An authored `aria-hidden`, `aria-expanded`, `aria-selected`, `aria-pressed`, or 
 When parallel layouts or design systems exist, compare every in-scope variant and trace their route/process mapping before PASS for 3.2.3 or 3.2.4. Shared components in one variant do not prove consistency across variants.
 
 For 3.2.6, a help mechanism means human contact details, a human contact mechanism, a self-help option, or a fully automated contact mechanism. A newsletter subscription is not a help mechanism merely because it appears in the footer.
+
+Search components, templates, route variants, and configuration for contact/help mechanisms. A reusable contact card or contact paragraph is an applicability candidate even when CMS placement is unavailable. If route composition or repeated placement cannot be established from the selected source boundary, use NEEDS_REVIEW rather than N/A.
+
+## Authentication boundaries
+
+A login or password-recovery page establishes an authentication candidate even when framework/core code renders the form. Do not assign 3.3.8 N/A merely because source contains no CAPTCHA, puzzle, or cognitive-function test. Inspect the reachable authentication process and alternatives; when the implementation or configured modules are outside scope, use NEEDS_REVIEW and identify the exact delegated boundary.
+
+## Label quality versus programmatic name
+
+- SC 2.5.3 applies only when a component has a visible label containing text or an image of text. An icon-only button with an invisible `aria-label` has no visible-label mismatch to test under this criterion.
+- SC 2.4.6 evaluates whether provided headings and labels describe topic or purpose.
+- SC 4.1.2 evaluates whether name, role, value, states, and changes are programmatically available. A non-empty accessible name that is generic or duplicated may fail 2.4.6, but that quality problem alone does not make the name non-programmatically-determinable for 4.1.2.
 
 ## Automatic form behavior
 
