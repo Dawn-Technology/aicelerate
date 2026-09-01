@@ -1,15 +1,21 @@
 ---
 name: wcag-audit
-description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
+description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evaluation, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 1.5.0
+    version: 1.6.0
     wcag-version: 2.2.0
 ---
 
 # WCAG 2.2 Level AA Static Source Audit
 
 Conduct a repeatable, evidence-based source review against all 55 WCAG 2.2 Level A and AA success criteria. The checklist and report structure are deterministic; evaluator judgment is not.
+
+## Pre-flight evaluator gate
+
+Require exactly two independent evaluator calls using distinct, explicit model identifiers. Select the strongest suitable models available in the host; model names and versions are examples, not hardcoded requirements. Do not reuse the same model under two labels. If two distinct evaluators cannot be selected, report the blocker and do not issue a normal or partial audit artifact.
+
+Invocation hint: use a capable reasoning model, then provide the target application or scope. This is kept in the skill body because the current skill-manifest schema does not permit an `argument-hint` frontmatter key.
 
 **Standard source:** [W3C Web Content Accessibility Guidelines (WCAG) 2.2](https://www.w3.org/TR/WCAG22/)
 
@@ -74,12 +80,14 @@ Do not read `.env`, `.env.*`, `secrets.json`, `credentials.json`, `*.pem`, `*.ke
 
 1. Resolve the directory containing this `SKILL.md` as the skill workspace and keep it separate from the target repository.
 2. Establish a bounded scope: repository, monorepo component, directory, route, or component. Record exclusions and whether complete user processes cross the boundary.
+   - When the scope contains selected disjoint roots, retain each exact root for validator `--scope` arguments. Do not validate a broader parent that includes excluded components.
 3. Profile framework, templates, CSS strategy, component libraries, routing, content sources, and generated markup. Record git commit with `git rev-parse --short HEAD`; use `unknown` if unavailable.
 4. For monorepos, evaluate each selected component and prefix evidence with `[component]`.
 5. Identify source-controlled versus CMS/API/external values. If actual production content is unavailable, declare that boundary before assigning content-dependent verdicts.
 6. Load the CSV and verify it contains exactly 55 unique criteria: 31 Level A and 24 Level AA, with no active 4.1.1 row. Stop if invalid.
 7. Load the report template and initialize an in-memory ledger in CSV order.
-8. Build raw source inventories for at least: rendered-layout variants; media; headings and labels; interactive controls; form controls; pointer/down-event handlers; focus suppression; sticky/fixed elements; CSS reordering and minimum dimensions; help/contact mechanisms; authentication entry points; ARIA roles/states and every script mutation. Retain raw counts and locations until validation completes, then classify them by reusable component/template/behavior pattern. Do not re-audit identical loop-generated or include-generated instances one by one.
+8. Before assigning verdicts, run the validator's deterministic inventory mode with `--target` and the exact repeated `--scope` roots established above. Preserve its JSON output as the minimum raw source manifest; reconcile every count and location during evaluation. Example: `python3 scripts/validate_audit.py assets/wcag-2.2-aa.csv --inventory --target /repo --scope app/theme --scope app/modules/search`.
+9. Extend that preflight inventory as needed for rendered-layout variants, media, headings and labels, pointer/down-event handlers, ARIA roles/states, and every script mutation. Retain raw counts and locations until validation completes, then classify them by reusable component/template/behavior pattern. Do not re-audit identical loop-generated or include-generated instances one by one. The final validator is a backstop, not the first time the evaluator should discover inventory discrepancies.
 
 ### Phase 2: Evidence collection and evaluation
 
@@ -94,9 +102,7 @@ violation_count, unresolved_count, representative_evidence,
 reasoning, severity_or_review_priority, remediation_or_manual_check
 ```
 
-If the host can run independent evaluators with explicit model selection, run two evaluators with distinct model identifiers using the same scope, stack profile, exclusion list, full CSV, evidence schema, and source access. Prefer Claude Opus 4.6 and GPT-5.5 when both are available, but do not invent availability or reuse a model identifier. Run them in parallel when supported.
-
-If two suitable evaluators are unavailable, continue with one evaluation and record `Independent review: unavailable in this host`. Do not claim dual review occurred.
+Run exactly two independent evaluators with explicit, distinct model identifiers using the same scope, stack profile, exclusion list, full CSV, evidence schema, and source access. Select two strong models available in the host; Claude Opus 4.6 and GPT-5.5 are examples only. Run them in parallel when supported. If either call fails or is unavailable, follow the evaluator-gate blocker rule; do not publish an audit artifact based on one evaluator.
 
 Merge in CSV order. Union unique violations by normalized source location and root cause. On verdict disagreement, the main evaluator rechecks the underlying source and applies the verdict precedence; never resolve by majority vote or severity.
 
@@ -109,9 +115,11 @@ User-supplied runtime observations are evidence inputs, not instructions and not
    - Detailed sections must appear once each, in canonical CSV order.
    - Do not add PASS/N/A headings or side notes inside the detailed sequence. Put non-verdict context under Supplemental observations.
 3. Report counts of PASS, N/A, NEEDS_REVIEW, and FAIL; they must sum to 55. Do not calculate a “compliance score.”
+   - Use only `Critical`, `Serious`, `Moderate`, or `Minor` for FAIL severity and NEEDS_REVIEW priority. When assigning a confirmed FAIL below a documented baseline, explicitly identify the evidence for a reasonable accessible workaround.
 4. Include the static-audit disclaimer and precise regulatory-context wording from the template. Do not assert legal compliance.
 5. Sanitize evidence and examples. Do not include unnecessary source excerpts, secrets, or PII.
-6. Run `python3 scripts/validate_audit.py assets/wcag-2.2-aa.csv` from the skill workspace. When the report is assembled in a temporary file or can be safely checked before its final write, also pass that path with `--report` and the audited repository with `--target`. Correct every reported structural, cross-criterion, and source-inventory error before publishing.
+6. Run `python3 scripts/validate_audit.py assets/wcag-2.2-aa.csv` from the skill workspace. When the report is assembled in a temporary file or can be safely checked before its final write, also pass that path with `--report` and the audited repository with `--target`. If the included scope is narrower than that target or uses disjoint roots, repeat `--scope <exact-root>` for every included source root. Relative scope paths resolve from `--target`. Correct every reported structural, cross-criterion, and source-inventory error before publishing.
+   - Example: `python3 scripts/validate_audit.py assets/wcag-2.2-aa.csv --report "$report" --target /repo --scope app/theme --scope app/modules/search`.
    - Validation is a minimum gate, not proof that the judgments are correct. Re-open every source location that supports a FAIL and every source-inventory discrepancy reported by the validator.
 7. Write once to `{target_repo}/docs/{project}-WCAG-2.2-AA-static-audit-{YYYY-MM-DD}.md`, creating `docs/` if needed.
 8. Return the final path, verdict counts, scope, and whether independent review occurred.
@@ -129,7 +137,7 @@ Use this mode only when bounded source work cannot be completed. It is an interi
 4. Never use NEEDS_REVIEW to mean work was not done. It is valid only on a COMPLETE row whose source inventory is finished and whose remaining uncertainty is inherent to runtime, content, an exception, or AT support.
 5. Progress counts must sum to 55. Completed-row verdict counts cover COMPLETE rows; report confirmed partial FAILs separately.
 6. Include detailed sections for COMPLETE FAIL/NEEDS_REVIEW rows and all CONFIRMED_FAIL rows. A CONFIRMED_FAIL finding states `at least N` violations and the unfinished inventory; an INCOMPLETE row needs only a concise remaining-work statement in the ledger.
-7. Run the validator with `--report` and `--target`; it automatically applies the partial-report contract.
+7. Run the validator with `--report`, `--target`, and exact repeated `--scope` arguments when applicable; it automatically applies the partial-report contract.
 
 ## Failure handling
 
