@@ -23,6 +23,8 @@ Some criteria govern how existing UI behaves rather than the presence of a speci
 
 Use N/A for these criteria only when a bounded inventory proves the underlying UI or behavior itself is absent.
 
+For PASS, `candidate_count` is the number of governed source patterns or bounded instances, not the number of violations, event listeners, or suspicious grep matches. Inventory raw candidates first and explicitly classify exclusions. A PASS entry with `candidates=0` contradicts the aggregation procedure; use N/A when the governed feature is conclusively absent.
+
 ## 2. Apply the static-analysis ceiling
 
 Interpret `static_analyzable` as follows:
@@ -75,6 +77,8 @@ For dynamic collections where an exact total cannot be determined, write `at lea
 For a reusable loop or template with unavailable production data, count the source pattern separately from rendered instances: for example, `patterns=1; rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
 
 Reconcile shared inventories before finalizing the ledger. Examples of contradictions that must be corrected include a video candidate under 1.2.2 but zero media candidates under 1.2.1 without evidence classifying the media, input controls under 3.3.2 but N/A under 3.2.2, or interactive keyboard controls under 2.1.1 but N/A under 2.1.2 or 3.2.1.
+
+Reconcile the scope boundary with verdicts as well. If the report declares CMS/editorial values unavailable, content-dependent criteria cannot PASS unless the scope explicitly excludes that content or a bounded source constraint proves the unavailable values cannot affect the criterion. This includes alternative quality, headings and relationships, sensory instructions, images of text, heading/label descriptiveness, link purpose, and language of parts.
 
 ## 6. Assign severity or review priority
 
