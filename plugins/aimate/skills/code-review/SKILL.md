@@ -218,7 +218,7 @@ Then deliver output based on `output_target`:
 
 If there are findings, use this chat format:
 
-`**Finding #N — <id>**`
+`**Finding #N — <id> <severity>**`
 
 `**<title>**`
 
@@ -236,7 +236,7 @@ Use the same finding content for chat and provider-neutral comment bodies.
 
 Differences by destination:
 
-- In chat, include the `Finding #N — <id>` prefix.
+- In chat, include the `Finding #N — <id> <severity>` prefix.
 - In posted comments, omit the prefix and keep the rest unchanged.
 
 Style rules:

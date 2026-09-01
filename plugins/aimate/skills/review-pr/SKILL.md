@@ -198,17 +198,7 @@ The report must include:
 - Findings totals per severity.
 - Findings ordered by severity, then file path.
 
-Render each finding in this format:
-
-`**Finding #N — <id> <severity>**`
-
-`**<title>**`
-
-`<body>`
-
-`*Relevant lines: <file path and line reference>*`
-
-`Suggested approach: <suggestion or concise remediation guidance>`
+Render each finding using the canonical chat format defined by [code-review](../code-review/SKILL.md#step-6--rubber-duck-and-render). Copy each rendered finding verbatim from `code_review_result.report`; do not recreate or alter its prefix or content.
 
 If there are no findings, state that explicitly and mention any residual testing or review gaps.
 
@@ -365,12 +355,12 @@ This step is always executed, regardless of which option was chosen in Step 6.
 
 ## Finding Format Rules
 
-Use the finding content returned by `code-review` for chat and posted review comments.
+Use the canonical formats defined by [code-review](../code-review/SKILL.md#finding-format-rules). Do not maintain a separate finding template in this skill.
 
 Differences by destination:
 
-- In chat, include the `Finding #N — <id> <severity>` prefix.
-- In posted comments, omit the prefix and keep the rest unchanged.
+- In chat, copy the rendered finding blocks verbatim from `code_review_result.report`.
+- In posted comments, use the corresponding entries from `code_review_result.comment_bodies` verbatim.
 
 Style rules:
 
