@@ -178,6 +178,16 @@ Store the returned output as `code_review_result`. `code_review_result` is the o
 - Comment bodies posted in Step 7-A.
 - Request-changes summaries in Step 7-C.
 
+If `code_review_result.chunking_required` is `true`, do not continue to the normal Step 6 report:
+
+1. Present the warning from `code_review_result.report` and the structured `code_review_result.chunk_plan`.
+2. Ask the user to confirm processing the first chunk, then end the response without further tool calls.
+3. After confirmation, invoke `code-review` for only that chunk and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, diff coordinates, repository context, and existing feedback.
+4. Present that chunk's report, identify its position in the plan, and ask for confirmation before processing the next chunk. Do not post comments, approve, or request changes until all confirmed chunks have been reviewed and their results retained.
+5. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings and `comment_bodies`, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 6.
+
+If the user declines or stops chunking, proceed to Step 8 only after they explicitly choose report-only/stop; report that the review is incomplete and list the unreviewed chunks.
+
 Before moving to Step 6, perform this invariant check:
 
 ```text

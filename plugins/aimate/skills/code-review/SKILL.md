@@ -3,7 +3,7 @@ name: code-review
 description: Framework-agnostic reusable code review core for analyzing code, diffs, commits, patches, snippets, pull requests, merge requests, and local changes. Use when another skill or user request needs structured findings about syntax, logic, security, style, documentation, maintainability, or review feedback generation.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.0.1
   role: "reusable-review-core"
   dependencies: []
 ---
@@ -62,6 +62,10 @@ Minimum viable input:
 Return review output to the caller in this shape:
 
 ```yaml
+chunking_required: optional boolean; true only when review is deferred pending caller or user confirmation
+chunk_plan:
+  - chunk: sequential number
+    files: ordered list of up to 5 file paths
 summary:
   submission: short description of reviewed input
   scope: reviewed files, snippets, or change set
@@ -84,6 +88,8 @@ findings:
 report: formatted chat-ready findings report
 comment_bodies: provider-neutral comment text keyed by finding id; always present when output_target is calling-skill or inline-comments, omitted otherwise
 ```
+
+`chunk_plan` is required when `chunking_required` is `true` and omitted otherwise. A chunking response is a preflight result, not a completed review: return zero totals, empty `findings`, an explanatory `report`, and an empty `comment_bodies` map when the output target requires it. Record why chunking was proposed in `summary.residual_gaps`; callers must use `chunk_plan`, rather than parse `residual_gaps`, to drive chunk execution.
 
 Do not invent precise line numbers when they cannot be derived. Use the best available location and state the limitation in `residual_gaps`.
 
@@ -130,7 +136,7 @@ Fallback if conventions are unclear:
    - **High priority**: core business logic, security-sensitive code, public APIs, data models.
    - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
    - **Within each tier, sort files alphabetically by path** to guarantee deterministic traversal order.
-3. For large reviews with more than 15 changed files or massive diffs, warn the caller or user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis, unless the caller has already established chunking. When `output_target` is `chat` or `report`, ask the user for confirmation before processing each chunk. When `output_target` is `calling-skill` or `inline-comments`, do not prompt the user directly — instead return `chunking_required: true` with the proposed chunk plan in `summary.residual_gaps` and let the calling skill handle user confirmation.
+3. For large reviews with more than 15 changed files or massive diffs, warn the caller or user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis, unless the caller has already established chunking. When `output_target` is `chat` or `report`, ask the user for confirmation before processing each chunk. When `output_target` is `calling-skill` or `inline-comments`, do not prompt the user directly — instead return the preflight response defined in the Output Interface with `chunking_required: true` and a deterministic `chunk_plan`, and let the calling skill handle user confirmation.
 4. Do not evaluate diffs in isolation:
    - For logic changes, read the expanded surrounding context or the full file.
    - Trace dependencies by searching where modified functions, classes, routes, schemas, or variables are invoked.
