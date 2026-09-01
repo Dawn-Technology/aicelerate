@@ -74,7 +74,8 @@ REQUIRED_COLUMNS = [
 ]
 VERDICT_TOKENS = ("✅ PASS", "⚪ N/A", "⚠️ NEEDS_REVIEW", "❌ FAIL")
 DETAIL_VERDICTS = ("⚠️ NEEDS_REVIEW", "❌ FAIL")
-SKILL_VERSION = "1.4.0"
+SKILL_VERSION = "1.5.0"
+PARTIAL_VERDICT = "⏳ NOT_EVALUATED"
 EXCLUDED_PATH_PARTS = {
     ".git", ".svn", ".hg", "node_modules", "vendor", "dist", "build",
     "out", "target", ".next", "coverage", ".nyc_output", "__pycache__",
@@ -368,6 +369,141 @@ def candidate_count(evidence: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def raw_hit_count(evidence: str) -> int | None:
+    match = re.search(r"\braw_hits=(\d+)", evidence)
+    return int(match.group(1)) if match else None
+
+
+def validate_partial_report(path: Path, criteria_rows: list[dict[str, str]], target: Path | None) -> list[str]:
+    """Validate an interim progress artifact without pretending unfinished rows have verdicts."""
+    errors: list[str] = []
+    text = path.read_text(encoding="utf-8")
+    if not path.name.endswith("-PARTIAL.md"):
+        errors.append("partial report filename must end with -PARTIAL.md")
+    if not re.search(r"^# .*\[PARTIAL\]\s*$", text, re.MULTILINE):
+        errors.append("partial report title must end with [PARTIAL]")
+    if not re.search(rf"^\*\*Skill version:\*\*\s*{re.escape(SKILL_VERSION)}\s*$", text, re.MULTILINE):
+        errors.append(f"partial report was not generated with current skill version {SKILL_VERSION}")
+    if "not a completed WCAG audit" not in text:
+        errors.append("partial report is missing the required interim-artifact disclaimer")
+    if re.search(r"\[\[[a-z][a-z0-9_]*\]\]", text):
+        errors.append("partial report contains unfilled template placeholders")
+
+    ledger_match = re.search(
+        r"^## Progress ledger\s*$([\s\S]*?)^## ", text, re.MULTILINE
+    )
+    if not ledger_match:
+        return errors + ["partial report is missing a bounded Progress ledger section"]
+
+    rows: list[dict[str, str]] = []
+    for line in ledger_match.group(1).splitlines():
+        cells = [cell.strip() for cell in line.split("|")]
+        if len(cells) >= 8 and re.fullmatch(r"\d+\.\d+\.\d+", cells[1]):
+            rows.append({
+                "sc_id": cells[1],
+                "name": cells[2],
+                "level": cells[3],
+                "progress": cells[4],
+                "verdict": cells[5],
+                "evidence": " | ".join(cells[6:-1]).strip(),
+            })
+
+    expected = [(item[0], item[1], item[2]) for item in EXPECTED_CRITERIA]
+    actual = [(row["sc_id"], row["name"], row["level"]) for row in rows]
+    if len(rows) != 55:
+        errors.append(f"partial progress-ledger row count {len(rows)} != 55")
+    if actual != expected:
+        errors.append("partial progress ledger IDs, names, levels, or order differ from the canonical checklist")
+
+    static_by_id = {row["sc_id"]: row["static_analyzable"] for row in criteria_rows}
+    valid_progress = {"COMPLETE", "CONFIRMED_FAIL", "INCOMPLETE"}
+    for row in rows:
+        progress = row["progress"]
+        verdict = row["verdict"]
+        if progress not in valid_progress:
+            errors.append(f"partial row {row['sc_id']} has invalid progress state {progress!r}")
+        elif progress == "INCOMPLETE" and verdict != PARTIAL_VERDICT:
+            errors.append(f"partial row {row['sc_id']} must use {PARTIAL_VERDICT} when INCOMPLETE")
+        elif progress == "CONFIRMED_FAIL" and verdict != "❌ FAIL":
+            errors.append(f"partial row {row['sc_id']} must use ❌ FAIL when CONFIRMED_FAIL")
+        elif progress == "CONFIRMED_FAIL" and not re.search(
+            r"\bat least\s+\d+\b", row["evidence"], re.IGNORECASE
+        ):
+            errors.append(f"partial CONFIRMED_FAIL row {row['sc_id']} must state an at-least violation count")
+        elif progress == "COMPLETE" and verdict not in VERDICT_TOKENS:
+            errors.append(f"partial COMPLETE row {row['sc_id']} has invalid verdict")
+        if progress == "COMPLETE" and static_by_id.get(row["sc_id"]) == "no" and verdict == "✅ PASS":
+            errors.append(f"partial report gives forbidden static PASS for {row['sc_id']}")
+        if progress == "COMPLETE" and verdict == "✅ PASS":
+            if any(token not in row["evidence"] for token in ("Coverage:", "candidates=", "evaluated=", "unresolved=0")):
+                errors.append(f"partial COMPLETE PASS {row['sc_id']} lacks bounded coverage")
+        if progress == "COMPLETE" and verdict == "⚪ N/A":
+            if any(token not in row["evidence"] for token in ("N/A -", "Coverage:", "searched", "candidates=0", "unresolved=0")):
+                errors.append(f"partial COMPLETE N/A {row['sc_id']} lacks bounded negative evidence")
+        if progress == "INCOMPLETE" and not row["evidence"].strip():
+            errors.append(f"partial INCOMPLETE row {row['sc_id']} lacks a remaining-work statement")
+
+    progress_counts = Counter(row["progress"] for row in rows)
+    for progress in ("COMPLETE", "CONFIRMED_FAIL", "INCOMPLETE"):
+        match = re.search(rf"^\|\s*{progress}\s*\|\s*(\d+)\s*\|$", text, re.MULTILINE)
+        if not match:
+            errors.append(f"partial progress summary is missing {progress}")
+        elif int(match.group(1)) != progress_counts[progress]:
+            errors.append(
+                f"partial progress summary {progress} count {match.group(1)} != ledger count {progress_counts[progress]}"
+            )
+
+    completed = [row for row in rows if row["progress"] == "COMPLETE"]
+    completed_verdicts = Counter(row["verdict"] for row in completed)
+    labels = {"✅ PASS": "PASS", "⚪ N/A": "N/A", "⚠️ NEEDS_REVIEW": "NEEDS_REVIEW", "❌ FAIL": "FAIL"}
+    for verdict, label in labels.items():
+        match = re.search(rf"^\|\s*{re.escape(verdict)}\s*\|\s*(\d+)\s*\|$", text, re.MULTILINE)
+        if not match:
+            errors.append(f"partial completed-verdict summary is missing {label}")
+        elif int(match.group(1)) != completed_verdicts[verdict]:
+            errors.append(
+                f"partial completed-verdict summary {label} count {match.group(1)} != ledger count {completed_verdicts[verdict]}"
+            )
+
+    detail_match = re.search(
+        r"^## Completed findings and required review\s*$([\s\S]*?)^## ", text, re.MULTILINE
+    )
+    expected_details = [
+        (row["verdict"], row["sc_id"], row["name"])
+        for row in rows
+        if row["progress"] == "CONFIRMED_FAIL"
+        or (row["progress"] == "COMPLETE" and row["verdict"] in DETAIL_VERDICTS)
+    ]
+    actual_details: list[tuple[str, str, str]] = []
+    detail_text = detail_match.group(1) if detail_match else ""
+    for line in detail_text.splitlines():
+        match = re.fullmatch(r"### (⚠️ NEEDS_REVIEW|❌ FAIL) (\d+\.\d+\.\d+) — (.+)", line)
+        if match:
+            actual_details.append((match.group(1), match.group(2), match.group(3)))
+    if actual_details != expected_details:
+        errors.append("partial detailed sections must match COMPLETE review/fail and CONFIRMED_FAIL rows in order")
+
+    required_fields = (
+        "**WCAG level:**", "**Severity / review priority:**", "**Affected or unresolved instances:**",
+        "**Coverage:**", "**Representative evidence:**", "**Impact or uncertainty:**",
+        "**Remediation or exact manual verification:**",
+    )
+    for _, sc_id, _ in expected_details:
+        match = re.search(
+            rf"^### (?:⚠️ NEEDS_REVIEW|❌ FAIL) {re.escape(sc_id)} —[^\n]*\n([\s\S]*?)(?=^### |^## )",
+            text,
+            re.MULTILINE,
+        )
+        detail = match.group(1) if match else ""
+        for field in required_fields:
+            if field not in detail:
+                errors.append(f"partial detailed finding {sc_id} is missing mandatory field {field}")
+
+    if target is not None and not target.is_dir():
+        errors.append(f"target repository is not an accessible directory: {target}")
+    return errors
+
+
 def validate_report(
     path: Path,
     criteria_rows: list[dict[str, str]],
@@ -375,6 +511,8 @@ def validate_report(
 ) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
+    if re.search(r"^# .*\[PARTIAL\]", text, re.MULTILINE | re.IGNORECASE):
+        return validate_partial_report(path, criteria_rows, target)
     ledger_match = re.search(
         r"^## Conformance criteria ledger\s*$([\s\S]*?)^## ", text, re.MULTILINE
     )
@@ -646,7 +784,7 @@ def validate_report(
         else:
             source_suppressions = focus_suppression_count(target)
             focus_evidence = rows_by_id.get("2.4.7", {}).get("evidence", "")
-            stated_match = re.search(r"\bcandidates=(?:at least\s+)?(\d+)", focus_evidence)
+            stated_match = re.search(r"\braw_hits=(\d+)", focus_evidence)
             if not stated_match:
                 focus_detail = re.search(
                     r"^### (?:⚠️ NEEDS_REVIEW|❌ FAIL) 2\.4\.7 —[^\n]*\n([\s\S]*?)(?=^### |^## )",
@@ -654,16 +792,14 @@ def validate_report(
                     re.MULTILINE,
                 )
                 if focus_detail:
-                    stated_match = re.search(
-                        r"\bcandidates=(?:at least\s+)?(\d+)", focus_detail.group(1)
-                    )
+                    stated_match = re.search(r"\braw_hits=(\d+)", focus_detail.group(1))
             if source_suppressions and (
                 not stated_match or int(stated_match.group(1)) < source_suppressions
             ):
                 stated = stated_match.group(1) if stated_match else "missing"
                 errors.append(
                     "2.4.7 focus-suppression inventory is incomplete: "
-                    f"report candidates={stated}, authored source occurrences={source_suppressions}"
+                    f"report raw_hits={stated}, authored source occurrences={source_suppressions}"
                 )
 
             suspicious_focus = suspicious_focus_suppressions(target)
@@ -676,16 +812,14 @@ def validate_report(
 
             source_controls = markup_control_count(target)
             labels_row = rows_by_id.get("3.3.2", {})
-            labels_match = re.search(
-                r"\bcandidates=(?:at least\s+)?(\d+)", labels_row.get("evidence", "")
-            )
+            labels_match = re.search(r"\braw_hits=(\d+)", labels_row.get("evidence", ""))
             if labels_row.get("verdict") == "✅ PASS" and source_controls and (
                 not labels_match or int(labels_match.group(1)) < source_controls
             ):
                 stated = labels_match.group(1) if labels_match else "missing"
                 errors.append(
                     "3.3.2 control inventory is incomplete: "
-                    f"report candidates={stated}, raw authored control occurrences={source_controls}; "
+                    f"report raw_hits={stated}, raw authored control occurrences={source_controls}; "
                     "inventory and explicitly rule out hidden/non-user controls before PASS"
                 )
 
@@ -694,12 +828,12 @@ def validate_report(
             )
             for sc_id in ("2.1.1", "2.5.2", "2.5.3", "3.2.1"):
                 row = rows_by_id.get(sc_id, {})
-                stated = report_candidate_count(row, detail_for(sc_id))
+                stated = raw_hit_count(row.get("evidence", "") + "\n" + detail_for(sc_id))
                 if row.get("verdict") == "✅ PASS" and interactive_count and (
                     stated is None or stated < interactive_count
                 ):
                     errors.append(
-                        f"{sc_id} PASS inventory is incomplete: report candidates={stated or 'missing'}, "
+                        f"{sc_id} PASS inventory is incomplete: report raw_hits={stated or 'missing'}, "
                         f"raw authored interactive occurrences={interactive_count}"
                     )
 
@@ -711,23 +845,23 @@ def validate_report(
                 ),
             )
             aria_row = rows_by_id.get("4.1.2", {})
-            aria_stated = report_candidate_count(aria_row, detail_for("4.1.2"))
+            aria_stated = raw_hit_count(aria_row.get("evidence", "") + "\n" + detail_for("4.1.2"))
             if aria_row.get("verdict") != "⚪ N/A" and aria_widget_count and (
                 aria_stated is None or aria_stated < aria_widget_count
             ):
                 errors.append(
                     "4.1.2 widget/state inventory is incomplete: "
-                    f"report candidates={aria_stated or 'missing'}, raw authored occurrences={aria_widget_count}"
+                    f"report raw_hits={aria_stated or 'missing'}, raw authored occurrences={aria_widget_count}"
                 )
 
             for sc_id in ("3.2.2", "3.3.1", "3.3.2", "3.3.3"):
                 row = rows_by_id.get(sc_id, {})
-                stated = candidate_count(row.get("evidence", ""))
+                stated = raw_hit_count(row.get("evidence", "") + "\n" + detail_for(sc_id))
                 if row.get("verdict") == "✅ PASS" and source_controls and (
                     stated is None or stated < source_controls
                 ):
                     errors.append(
-                        f"{sc_id} PASS form inventory is incomplete: report candidates={stated or 'missing'}, "
+                        f"{sc_id} PASS form inventory is incomplete: report raw_hits={stated or 'missing'}, "
                         f"raw authored form-control occurrences={source_controls}"
                     )
 
@@ -735,13 +869,13 @@ def validate_report(
                 target, re.compile(r"<(?:h[1-6]|label)\b", re.IGNORECASE)
             )
             headings_row = rows_by_id.get("2.4.6", {})
-            headings_stated = candidate_count(headings_row.get("evidence", ""))
+            headings_stated = raw_hit_count(headings_row.get("evidence", "") + "\n" + detail_for("2.4.6"))
             if headings_row.get("verdict") == "✅ PASS" and heading_label_count and (
                 headings_stated is None or headings_stated < heading_label_count
             ):
                 errors.append(
                     "2.4.6 PASS inventory is incomplete: "
-                    f"report candidates={headings_stated or 'missing'}, "
+                    f"report raw_hits={headings_stated or 'missing'}, "
                     f"raw authored heading/label occurrences={heading_label_count}"
                 )
 
@@ -831,13 +965,13 @@ def validate_report(
                 re.compile(r"\bposition\s*:\s*(?:sticky|fixed)\b", re.IGNORECASE),
             )
             obscured_row = rows_by_id.get("2.4.11", {})
-            obscured_stated = report_candidate_count(obscured_row, detail_for("2.4.11"))
+            obscured_stated = raw_hit_count(obscured_row.get("evidence", "") + "\n" + detail_for("2.4.11"))
             if sticky_locations and obscured_row.get("verdict") != "⚪ N/A" and (
                 obscured_stated is None or obscured_stated < len(sticky_locations)
             ):
                 errors.append(
                     "2.4.11 sticky/fixed inventory is incomplete: "
-                    f"report candidates={obscured_stated or 'missing'}, authored occurrences={len(sticky_locations)}"
+                    f"report raw_hits={obscured_stated or 'missing'}, authored occurrences={len(sticky_locations)}"
                 )
 
             undersized_locations = undersized_interactive_style_locations(target)

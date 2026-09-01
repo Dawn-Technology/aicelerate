@@ -14,7 +14,7 @@ Separate source-controlled values from values supplied by a CMS, API, translatio
 
 N/A means the feature does not exist. It does not mean “not checked,” “not found by the first grep,” or “cannot be decided statically.”
 
-An unfinished bounded source search is not a WCAG uncertainty and must not be converted to NEEDS_REVIEW in a normal report. Finish classifying the source inventory. If resource limits prevent that, use the `[PARTIAL]` failure path instead of publishing a 55-row final report.
+An unfinished bounded source search is not a WCAG uncertainty and must not be converted to NEEDS_REVIEW. Finish classifying the source inventory. If resource limits prevent that, use partial-report mode: mark the row `CONFIRMED_FAIL` when a definite violation already proves FAIL, otherwise use `INCOMPLETE / ⏳ NOT_EVALUATED`.
 
 Some criteria govern how existing UI behaves rather than the presence of a special widget. Treat the underlying UI as the candidate inventory:
 
@@ -25,7 +25,7 @@ Some criteria govern how existing UI behaves rather than the presence of a speci
 
 Use N/A for these criteria only when a bounded inventory proves the underlying UI or behavior itself is absent.
 
-For PASS, `candidate_count` is the number of governed source patterns or bounded instances, not the number of violations, event listeners, or suspicious grep matches. Inventory raw candidates first and explicitly classify exclusions. A PASS entry with `candidates=0` contradicts the aggregation procedure; use N/A when the governed feature is conclusively absent.
+For PASS, `candidate_count` is the number of governed source patterns or bounded instances, not the number of violations, event listeners, or suspicious grep matches. Record `raw_hits`, group equivalent occurrences by shared component/template/behavior, and explicitly classify exclusions. A PASS entry with `candidates=0` contradicts the aggregation procedure; use N/A when the governed feature is conclusively absent.
 
 ## 2. Apply the static-analysis ceiling
 
@@ -68,6 +68,7 @@ Every criterion ledger entry must include:
 
 - searched paths and file types;
 - search signals, including framework-specific equivalents;
+- raw search-hit count for inventories where deterministic scanning is used;
 - total candidate count;
 - evaluated, violating, and unresolved counts;
 - up to 10 representative source locations;
@@ -76,7 +77,7 @@ Every criterion ledger entry must include:
 
 For dynamic collections where an exact total cannot be determined, write `at least N` and mark unresolved coverage. Never invent a precise count.
 
-For a reusable loop or template with unavailable production data, count the source pattern separately from rendered instances: for example, `patterns=1; rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
+For a reusable loop, include, or component, evaluate the shared source pattern once after checking its callers and relevant variants. Record, for example, `raw_hits=37; candidates=4 source patterns; excluded=33 decorative/native/duplicate-loop occurrences`. For unavailable production data, state `rendered instances=unknown`. Do not infer the rendered total from a user statement or an example menu.
 
 Reconcile shared inventories before finalizing the ledger. Examples of contradictions that must be corrected include a video candidate under 1.2.2 but zero media candidates under 1.2.1 without evidence classifying the media, input controls under 3.3.2 but N/A under 3.2.2, or interactive keyboard controls under 2.1.1 but N/A under 2.1.2 or 3.2.1.
 
