@@ -3,7 +3,7 @@ name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evaluation, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 1.7.0
+    version: 1.8.0
     wcag-version: 2.2.0
 ---
 
@@ -62,6 +62,8 @@ This skill reviews source code only. It does not run the application, a browser,
 22. Record one concrete model identifier in each evaluator-provenance field. Role labels such as `main evaluator`, `Evaluator A`, or `default session model` are not model identifiers, and long reconciliation prose does not replace them.
 23. Keep the included scope closed over authored dependencies needed to interpret the selected source, including design tokens, imported styles, route/template composition, and announcement handlers. Never use generated or explicitly excluded output as finding coverage.
 24. For 2.4.1, inventory both bypass-control sources and every routed destination pattern. A skip-link source does not prove PASS until its target exists in each governed page composition. Record `targetless_mains=N; targetless_evaluated=N` when authored `<main>` candidates lack the literal target and classify their composed destination explicitly. For 4.1.3, trace each automatic/AJAX update to its own status-message or announcement path; unrelated live regions do not prove PASS.
+25. For 2.4.7, removing the default outline is a definite FAIL only when the focused state has no visible replacement after cascade resolution. Any focus-specific presentation change—including opacity, color, background, border, shadow, filter, or transform—is a replacement candidate that must be compared with the unfocused state. Sharing a focus style with `:hover` or `:active` does not itself violate Focus Visible. If source cannot establish whether the change is visible in the rendered state, use NEEDS_REVIEW. Do not apply 2.4.7 to a container merely because it has `outline: 0`; first prove that the container is a keyboard-operable, focusable UI component.
+26. Insert the validator-generated `Deterministic source inventory` Markdown section unchanged in every normal or partial report. Never retype its counts. Report validation with `--target` and exact `--scope` roots must compare the embedded counts with the current source before publication.
 
 ## Exclusions
 
@@ -90,7 +92,8 @@ Do not read `.env`, `.env.*`, `secrets.json`, `credentials.json`, `*.pem`, `*.ke
 6. Load the CSV and verify it contains exactly 55 unique criteria: 31 Level A and 24 Level AA, with no active 4.1.1 row. Stop if invalid.
 7. Load the report template and initialize an in-memory ledger in CSV order.
 8. Before assigning verdicts, run the validator's deterministic inventory mode with `--target` and the exact repeated `--scope` roots established above. Preserve its JSON output as the minimum raw source manifest; reconcile every count and location during evaluation. Example: `python3 scripts/validate_audit.py assets/wcag-2.2-aa.csv --inventory --target /repo --scope app/theme --scope app/modules/search`.
-9. Extend that preflight inventory as needed for rendered-layout variants and skip destinations; media; headings and labels; pointer/down-event handlers; design-token/import closure; dynamic-update announcement consumers; ARIA roles/states; and every script mutation. Retain raw counts and locations until validation completes, then classify them by reusable component/template/behavior pattern. Do not re-audit identical loop-generated or include-generated instances one by one. The final validator is a backstop, not the first time the evaluator should discover inventory discrepancies.
+9. Immediately before assembling the report, run the same command with `--inventory-format markdown` and insert that complete generated section unchanged at the report template placeholder. Do not manually transcribe counts. The final `--report --target` validation recomputes the table and rejects drift.
+10. Extend that preflight inventory as needed for rendered-layout variants and skip destinations; media; headings and labels; pointer/down-event handlers; design-token/import closure; dynamic-update announcement consumers; ARIA roles/states; and every script mutation. Retain raw counts and locations until validation completes, then classify them by reusable component/template/behavior pattern. Do not re-audit identical loop-generated or include-generated instances one by one. The final validator is a backstop, not the first time the evaluator should discover inventory discrepancies.
 
 ### Phase 2: Evidence collection and evaluation
 

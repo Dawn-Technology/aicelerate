@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 1.7.0
+**Skill version:** 1.8.0
 
 **WCAG version:** 2.2
 
@@ -29,6 +29,8 @@
 **Source limitations:** [[source_limitations]]
 
 > This is an interim static source-review artifact, not a completed WCAG audit, certification, or conformance claim. `⏳ NOT_EVALUATED` rows have no WCAG verdict. Completed NEEDS_REVIEW rows were evaluated but require the stated runtime, content, browser, or assistive-technology verification.
+
+[[deterministic_source_inventory]]
 
 ## Progress summary
 
