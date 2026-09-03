@@ -9,8 +9,8 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 
 - **WCAG level:** A
 - **Severity / review priority:** Serious
-- **Affected or unresolved instances:** 14 violations; showing 3 representative instances
-- **Coverage:** paths=`src/**/*.tsx`; signals=`img,Image,svg`; candidates=48; evaluated=48; violations=14; unresolved=0
+- **Affected or unresolved instances:** at least 3 source-proven violations
+- **Coverage:** Product cards, account avatars, and authored chart components under `src/`; CMS-provided image content remains outside this finding count
 - **Representative evidence:**
   - `src/catalog/ProductCard.tsx:31 <img src={product.image}> missing alt`
   - `src/account/Avatar.tsx:18 <img alt="avatar"> alternative does not identify the user represented`
@@ -26,8 +26,8 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 
 - **WCAG level:** AA
 - **Severity / review priority:** Serious priority
-- **Affected or unresolved instances:** 2 sticky layouts unresolved
-- **Coverage:** paths=`src/layouts/**,styles/**`; signals=`sticky,fixed,z-index`; candidates=2; evaluated=2; violations=0; unresolved=2
+- **Affected or unresolved instances:** 2 sticky layout patterns unresolved
+- **Coverage:** Application-shell headers and mobile action regions under `src/layouts/` and `styles/`
 - **Representative evidence:**
   - `src/layouts/AppShell.tsx:22 <Header className="sticky top-0">`
   - `styles/mobile.css:91 .bottom-actions { position: fixed; bottom: 0; }`
@@ -38,11 +38,11 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 ## N/A with bounded negative evidence
 
 ```markdown
-| 1.2.4 | Captions (Live) | AA | ⚪ N/A | N/A - no live synchronized media; Coverage: paths=`src/,templates/,content/`; searched=`live players,streams,video,caption tracks,caption providers`; candidates=0; evaluated=0; unresolved=0 |
+| 1.2.4 | Captions (Live) | AA | ⚪ N/A | N/A - no live synchronized media; searched production `src/`, `templates/`, and source-controlled content for live players, streams, video, caption tracks, and caption providers |
 ```
 
-## PASS with exhaustive coverage
+## PASS with bounded positive evidence
 
 ```markdown
-| 3.1.1 | Language of Page | A | ✅ PASS | `src/layouts/Document.tsx:14 <html lang={locale}>`; Coverage: paths=`src/layouts/,src/i18n/`; signals=`html lang,locale`; candidates=72; evaluated=72; unresolved=0; invalid locale values fall back to `en` at `src/i18n/locale.ts:39` |
+| 3.1.1 | Language of Page | A | ✅ PASS | `src/layouts/Document.tsx:14 <html lang={locale}>`; the sole document renderer is used by every in-scope route, and invalid locale values fall back to `en` at `src/i18n/locale.ts:39` |
 ```
