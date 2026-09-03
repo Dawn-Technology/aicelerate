@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 1.8.0
+**Skill version:** 2.0.0
 
 **WCAG version:** 2.2
 
@@ -25,8 +25,6 @@
 **Source limitations:** [[source_limitations]]
 
 > This report is a static source-code audit against the 55 WCAG 2.2 Level A and AA success criteria. It is an audit finding, not a certification or WCAG conformance claim. Source review cannot establish rendered behavior, full-page and complete-process coverage, accessibility-supported behavior, or compatibility with assistive technologies. All NEEDS_REVIEW items require the stated browser, keyboard, content, and/or assistive-technology testing before any conformance claim is considered.
-
-[[deterministic_source_inventory]]
 
 ## Summary
 
@@ -68,7 +66,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 - **WCAG level:** [[level]]
 - **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
-- **Coverage:** [[coverage_manifest]]
+- **Coverage:** [[bounded_coverage]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]
