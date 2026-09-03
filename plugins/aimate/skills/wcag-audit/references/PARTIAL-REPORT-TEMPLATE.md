@@ -6,11 +6,13 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 2.0.0
+**Skill version:** 2.1.0
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
+
+**Evaluator coverage:** INCOMPLETE — [[incomplete_evaluator_or_source_scope]]
 
 ## Why this report is partial
 
@@ -57,9 +59,9 @@ Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggr
 |---|---|:---:|---|---|---|
 | [[sc_id]] | [[name]] | [[level]] | [[COMPLETE_CONFIRMED_FAIL_or_INCOMPLETE]] | [[verdict_or_NOT_EVALUATED]] | [[evidence_or_remaining_work]] |
 
-## Completed findings and required review
+## Confirmed findings
 
-<!-- Repeat for COMPLETE FAIL/NEEDS_REVIEW and every CONFIRMED_FAIL row, in canonical order. -->
+<!-- Repeat for COMPLETE FAIL and every CONFIRMED_FAIL row, in canonical order. -->
 
 ### [[verdict]] [[sc_id]] — [[name]]
 
@@ -72,6 +74,14 @@ Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggr
 - **Impact or uncertainty:** [[impact_or_uncertainty]]
 - **Remediation or exact manual verification:**
   [[remediation_or_manual_check]]
+
+## Manual verification plan
+
+<!-- One row for each COMPLETE NEEDS_REVIEW criterion, in canonical order. -->
+
+| SC | Priority | Unresolved boundary | Required verification |
+|---|---|---|---|
+| [[sc_id]] | [[Critical_Serious_Moderate_or_Minor]] | [[unresolved_boundary]] | [[exact_manual_verification]] |
 
 ## Recommended continuation
 

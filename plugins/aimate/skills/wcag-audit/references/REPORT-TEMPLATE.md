@@ -6,11 +6,13 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 2.0.0
+**Skill version:** 2.1.0
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
+
+**Evaluator coverage:** COMPLETE — both evaluators reviewed every included source root and all 55 criteria; no source work was sampled or omitted.
 
 ## Scope and evidence boundary
 
@@ -57,9 +59,9 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 |---|---|:---:|---|---|
 | [[sc_id]] | [[name]] | [[level]] | [[verdict]] | [[evidence_short]] |
 
-## Detailed findings and required review
+## Confirmed findings
 
-<!-- Repeat in CSV order for every FAIL and NEEDS_REVIEW criterion. -->
+<!-- Repeat in CSV order for every FAIL criterion only. -->
 
 ### [[verdict]] [[sc_id]] — [[name]]
 
@@ -72,6 +74,14 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 - **Impact or uncertainty:** [[impact_or_uncertainty]]
 - **Remediation or exact manual verification:**
   [[remediation_or_manual_check]]
+
+## Manual verification plan
+
+<!-- Exactly one row for every NEEDS_REVIEW criterion, in canonical CSV order. -->
+
+| SC | Priority | Unresolved boundary | Required verification |
+|---|---|---|---|
+| [[sc_id]] | [[Critical_Serious_Moderate_or_Minor]] | [[unresolved_boundary]] | [[exact_manual_verification]] |
 
 ## Supplemental observations
 
@@ -94,5 +104,7 @@ This audit does not determine whether any law, procurement standard, or contract
 [[next_verification_steps]]
 
 ## Conclusion
+
+<!-- Do not repeat numeric verdict counts here; the Summary is the single source for counts. -->
 
 [[conclusion]]
