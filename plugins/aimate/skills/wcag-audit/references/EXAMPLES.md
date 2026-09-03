@@ -19,20 +19,10 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 - **Remediation or exact manual verification:** Provide data-derived alternatives for informative images, empty alternatives for decorative images, and an equivalent textual summary for the chart.
 ```
 
-## NEEDS_REVIEW with an exact runtime check
+## NEEDS_REVIEW manual-verification row
 
 ```markdown
-### ⚠️ NEEDS_REVIEW 2.4.11 — Focus Not Obscured (Minimum)
-
-- **WCAG level:** AA
-- **Severity / review priority:** Serious priority
-- **Affected or unresolved instances:** 2 sticky layout patterns unresolved
-- **Coverage:** Application-shell headers and mobile action regions under `src/layouts/` and `styles/`
-- **Representative evidence:**
-  - `src/layouts/AppShell.tsx:22 <Header className="sticky top-0">`
-  - `styles/mobile.css:91 .bottom-actions { position: fixed; bottom: 0; }`
-- **Impact or uncertainty:** Source establishes possible overlap but not focused-element geometry across viewport and content states.
-- **Remediation or exact manual verification:** At 320 CSS pixels and each responsive breakpoint, keyboard through every control on representative long pages. Verify each focused control is at least partially visible with both sticky regions present, including validation-error and open-panel states.
+| 2.4.11 | Serious | Source establishes sticky header and fixed mobile actions, but not rendered focus geometry. | At 320 CSS pixels and each breakpoint, keyboard through representative long pages and verify focused controls remain at least partially visible. |
 ```
 
 ## N/A with bounded negative evidence
