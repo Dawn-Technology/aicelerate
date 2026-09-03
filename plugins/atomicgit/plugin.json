@@ -1,0 +1,19 @@
+{
+  "name": "atomicgit",
+  "description": "Skills for working with atomic commits — rebuilding branch history into small, logical, reviewable commits, and more.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dawn Technology",
+    "url": "https://github.com/Dawn-Technology"
+  },
+  "repository": "https://github.com/Dawn-Technology/aicelerate/plugins/atomicgit",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "commits",
+    "atomic-commits",
+    "history-rewrite",
+    "code-review"
+  ],
+  "skills": "./skills/"
+}
