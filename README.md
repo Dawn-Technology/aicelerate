@@ -258,7 +258,7 @@ The plugin intentionally does **not** include a pre-configured coding agent. Pro
 
 The stages below describe the recommended workflow and which skills and MCP servers to use at each step. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
 
-`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance.
+`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance. `gh`, `glab`, and `acli` are not installed automatically; see the CLI catalog's [Install](plugins/aimate/skills/configure-mcp/references/mcp-catalog.md#github-cli) entries for each tool's official installation options.
 
 > [!NOTE]
 > [Spec-Driven Development](https://specdriven.ai/) is a methodology not yet solidified. See [Understanding Spec-Driven Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
