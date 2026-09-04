@@ -11,6 +11,7 @@ Use these examples only to clarify formatting. Apply the canonical decision proc
 - **Severity / review priority:** Serious
 - **Affected or unresolved instances:** at least 3 source-proven violations
 - **Coverage:** Product cards, account avatars, and authored chart components under `src/`; CMS-provided image content remains outside this finding count
+- **Applicability and exceptions:** The cited images convey information or act as controls; none is decorative, redundant with adjacent text, or covered by another 1.1.1 exception.
 - **Representative evidence:**
   - `src/catalog/ProductCard.tsx:31 <img src={product.image}> missing alt`
   - `src/account/Avatar.tsx:18 <img alt="avatar"> alternative does not identify the user represented`

@@ -3,7 +3,7 @@ name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evidence review, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 3.0.0
+    version: 3.1.0
     wcag-version: 2.2.0
 ---
 
@@ -46,6 +46,9 @@ Rendered behavior, actual CMS/API content, complete processes, and accessibility
 12. Use exactly two evaluator calls with distinct, explicit model identifiers: one primary auditor and one adversarial evidence reviewer. Select model names from what the host provides; never hardcode particular models. The reviewer examines the primary ledger and source evidence—it does not repeat the entire repository audit or review only a hand-picked subset.
 13. The coordinating agent resolves every reviewer challenge by reopening the cited source and applying the decision procedure. Never resolve by vote or by choosing the more severe verdict.
 14. A normal report requires a complete primary 55-row audit and a complete evidence review. If either role is incomplete, publish only a clearly marked partial report. Do not fill missing work with asserted counts, inferred PASS/N/A verdicts, or generic NEEDS_REVIEW entries.
+15. Every FAIL must name the applicable normative exceptions and prove why none applies. If an exception depends on rendered geometry, content, or runtime state that source does not resolve, use NEEDS_REVIEW rather than FAIL.
+16. Remediation must actually satisfy the named success criterion and must not attribute requirements to the wrong criterion or conformance level.
+17. Derive the project name, organization, and stack version from repository evidence, using only the version precision the evidence supports. Do not guess an owner or add project-specific legal-applicability claims unless the user requested legal analysis and authoritative evidence was verified.
 
 ## Exclusions
 
@@ -62,7 +65,7 @@ Do not read `.env`, `.env.*`, `secrets.json`, `credentials.json`, `*.pem`, `*.ke
 
 ### 1. Establish scope
 
-Resolve the skill directory separately from the target repository. Record the exact included and excluded source roots, stack, content sources, generated markup boundaries, complete processes that leave scope, and the target git commit (`unknown` if unavailable).
+Resolve the skill directory separately from the target repository. Derive the project name and stack version from repository metadata at the precision it supports; omit an organization rather than infer one. Record the exact included and excluded source roots, content sources, generated markup boundaries, complete processes that leave scope, and the target git commit (`unknown` if unavailable).
 
 If the requested scope is too large to inspect faithfully in the available run, narrow it with the user or use partial-report mode. Do not silently sample a full-repository audit.
 
@@ -86,9 +89,12 @@ If the primary audit is incomplete, skip normal-report mode. The second call may
 Call a second, distinct model with the same scope, exclusions, stack, checklist, and verdict rules, plus the primary ledger. The reviewer is an adversarial quality gate, not a second full audit. It must:
 
 - reopen every FAIL location and test applicability, relevant exceptions, reachability, and remediation;
+- confirm that evidence combined into one finding coexists in the same reachable template branch, caller, state, and runtime path;
 - challenge every PASS and N/A for representative-only evidence, incomplete source coverage, false absence claims, or unresolved content/runtime boundaries;
 - check every NEEDS_REVIEW is caused by an inherent static boundary rather than unfinished source work;
 - compare reused evidence across criteria and flag contradictions;
+- verify that each remediation is sufficient for the named criterion and that cross-referenced criteria impose the stated requirement;
+- verify project identity and stack claims against repository metadata and remove unverified project-specific legal assertions;
 - independently derive verdict totals from the ledger and check canonical order, required finding sections, and manual-verification rows.
 
 The reviewer returns `review_status: COMPLETE` only after performing every check above for all ledger rows. It returns a compact list of accepted rows and challenged rows with source evidence; it does not need to reproduce the 55-row ledger. A focused review of selected criteria, a spot check, or an unfinished review is `INCOMPLETE` and forbids a normal report.
@@ -98,7 +104,8 @@ For every criterion retain:
 ```text
 sc_id, name, level, verdict, applicability,
 searched_scope, concrete_evidence, unresolved_boundary,
-reasoning, severity_or_review_priority, remediation_or_manual_check
+exceptions_considered, reasoning, severity_or_review_priority,
+remediation_or_manual_check
 ```
 
 ### 4. Reconcile and report
@@ -115,15 +122,18 @@ Before writing, perform this evidence-first self-check:
 - one allowed verdict per row and summary counts totaling 55;
 - one detailed section for every FAIL, in canonical order;
 - one Manual verification plan row for every NEEDS_REVIEW, in canonical order;
+- mandatory template sections and Summary subsections remain in template order;
 - distinct primary-auditor and evidence-reviewer model identifiers;
 - `primary_status: COMPLETE` and `review_status: COMPLETE`; no normal-report prose admitting a focused subset, spot check, single pass, omitted root, or unfinished review;
 - no placeholders, secrets, PII, certification claim, or legal-compliance assertion;
 - every PASS covers the declared source boundary with no admitted unresolved instance;
 - every N/A proves absence of the governed feature rather than absence of a violation;
 - every FAIL rechecked against actual source, applicability, and normative exceptions;
+- every FAIL's cited source locations participate in the same reachable behavior, and every remediation satisfies the named criterion;
 - every NEEDS_REVIEW identifies a concrete browser, content, process, or AT verification;
 - summary counts are calculated from the final ledger; do not repeat numeric verdict counts in conclusion prose;
 - no evidence contradiction across criteria or between the scope statement and findings.
+- project identity and stack claims match repository metadata at the available precision; regulatory context contains no unverified project-specific applicability claim.
 
 Return the report path, verdict counts, scope, primary model, and reviewer model.
 

@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 3.0.0
+**Skill version:** 3.1.0
 
 **WCAG version:** 2.2
 
@@ -71,6 +71,7 @@ Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggr
 - **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
 - **Coverage:** [[bounded_coverage]]
+- **Applicability and exceptions:** [[applicability_and_exceptions_resolved_or_unresolved]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]

@@ -53,6 +53,7 @@ Record:
 
 - searched source boundary and relevant signals;
 - applicability reasoning;
+- the relevant normative exceptions and evidence resolving each one for a FAIL;
 - concrete source locations or verified framework behavior;
 - unresolved content/runtime/process boundary, if any;
 - reasoning connecting the evidence to the normative requirement;
