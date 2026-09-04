@@ -1,18 +1,20 @@
 # [[project_name]] · WCAG 2.2 Level AA · Static Source Audit — [PARTIAL]
 
-**Initial draft author:** AI Agent ([[evaluator_model_1]])
+**Primary audit:** AI Agent ([[primary_model]])
 
-**Independent review:** AI Agent ([[evaluator_model_2]])
+**Evidence review:** AI Agent ([[reviewer_model]])
 
 **Report date:** [[report_date]]
 
-**Skill version:** 2.1.1
+**Skill version:** 3.0.0
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
 
-**Evaluator coverage:** INCOMPLETE — [[incomplete_evaluator_or_source_scope]]
+**Primary audit coverage:** [[COMPLETE_or_INCOMPLETE]] — [[primary_coverage_detail]]
+
+**Evidence review coverage:** [[COMPLETE_or_INCOMPLETE]] — [[review_coverage_detail]]
 
 ## Why this report is partial
 
