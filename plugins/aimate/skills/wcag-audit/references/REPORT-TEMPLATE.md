@@ -6,7 +6,7 @@
 
 **Report date:** [[report_date]]
 
-**Skill version:** 3.0.0
+**Skill version:** 3.1.0
 
 **WCAG version:** 2.2
 
@@ -14,7 +14,7 @@
 
 **Primary audit coverage:** COMPLETE — all included source roots were searched and all 55 criteria were decided.
 
-**Evidence review coverage:** COMPLETE — the reviewer rechecked every primary FAIL, challenged every primary PASS/N/A, checked every NEEDS_REVIEW boundary, and verified ledger order, totals, and consistency; final changes were resolved against source by the coordinating agent.
+**Evidence review coverage:** COMPLETE — the reviewer checked every primary FAIL for applicability, exceptions, same-path evidence, and sufficient remediation; challenged every primary PASS/N/A; checked every NEEDS_REVIEW boundary; and verified identity, ledger order, totals, and consistency. Final challenges were resolved against source by the coordinating agent.
 
 ## Scope and evidence boundary
 
@@ -71,6 +71,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 - **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
 - **Coverage:** [[bounded_coverage]]
+- **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]
@@ -93,6 +94,8 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 
 ## Regulatory context
 
+<!-- Keep this generic. Do not add project-specific legal applicability claims unless the user requested legal analysis and authoritative evidence was verified. -->
+
 WCAG is a technical accessibility standard, not a legal-compliance certification. Related regimes reference different WCAG versions and may add requirements:
 
 - The [US Revised Section 508 Standards](https://www.section508.gov/develop/applicability-conformance/) incorporate WCAG 2.0 Level A and AA success criteria and conformance requirements.
@@ -109,4 +112,4 @@ This audit does not determine whether any law, procurement standard, or contract
 
 <!-- Do not repeat numeric verdict counts here; the Summary is the single source for counts. -->
 
-[[conclusion]]
+[[qualitative_conclusion_without_verdict_or_severity_counts]]

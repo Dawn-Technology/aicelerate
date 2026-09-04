@@ -17,8 +17,10 @@ Evidence must be specific, sanitized, and traceable. Prefer a source location pl
 
 - **PASS:** cite positive implementation evidence and state what bounded patterns or components it covers. Do not claim whole-repository coverage from one example.
 - **N/A:** identify the governed feature and the bounded search that proves it absent.
-- **FAIL:** cite at least one definite violating location and explain applicability and relevant exceptions. List no more than 10 representative locations.
+- **FAIL:** cite at least one definite violating location, explain applicability, and list the relevant normative exceptions with evidence showing why none applies. List no more than 10 representative locations.
 - **NEEDS_REVIEW:** identify the source evidence that creates applicability and the exact rendered-content, browser, process, or assistive-technology check required.
+
+All source locations combined into a finding must participate in the same reachable behavior. Do not join evidence from mutually exclusive template branches or unrelated component variants. Remediation must satisfy the named criterion; removing a suspicious attribute or adding a generally helpful accessibility feature is insufficient unless it resolves the normative failure.
 
 Exact totals are useful only when naturally bounded by inspected source. Otherwise write `at least N` or describe affected source patterns. Never derive a rendered-instance total from raw search hits, template loops, optional components, or unavailable CMS data.
 
