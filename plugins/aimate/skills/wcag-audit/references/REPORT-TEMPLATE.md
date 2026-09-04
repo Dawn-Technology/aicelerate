@@ -1,18 +1,20 @@
 # [[project_name]] · WCAG 2.2 Level AA · Static Source Audit
 
-**Initial draft author:** AI Agent ([[evaluator_model_1]])
+**Primary audit:** AI Agent ([[primary_model]])
 
-**Independent review:** AI Agent ([[evaluator_model_2]])
+**Evidence review:** AI Agent ([[reviewer_model]])
 
 **Report date:** [[report_date]]
 
-**Skill version:** 2.1.1
+**Skill version:** 3.0.0
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
 
-**Evaluator coverage:** COMPLETE — both evaluators reviewed every included source root and all 55 criteria; no source work was sampled or omitted.
+**Primary audit coverage:** COMPLETE — all included source roots were searched and all 55 criteria were decided.
+
+**Evidence review coverage:** COMPLETE — the reviewer rechecked every primary FAIL, challenged every primary PASS/N/A, checked every NEEDS_REVIEW boundary, and verified ledger order, totals, and consistency; final changes were resolved against source by the coordinating agent.
 
 ## Scope and evidence boundary
 
