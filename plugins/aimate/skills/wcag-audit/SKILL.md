@@ -3,7 +3,7 @@ name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evaluation, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 2.1.0
+    version: 2.1.1
     wcag-version: 2.2.0
 ---
 
@@ -29,7 +29,6 @@ Rendered behavior, actual CMS/API content, complete processes, and accessibility
 - Read only the detected stack section in [`references/framework-notes.md`](./references/framework-notes.md).
 - Consult [`references/static-analysis-traps.md`](./references/static-analysis-traps.md) for CMS/external content, CSS/rendering, media, or dynamic ARIA.
 - Use [`references/severity-guidance.md`](./references/severity-guidance.md) for FAIL severity and NEEDS_REVIEW priority.
-- Use [`scripts/check_report.py`](./scripts/check_report.py) only for completed-report accounting and structure. It does not inspect source or judge WCAG semantics.
 
 ## Core rules
 
@@ -112,12 +111,6 @@ Before writing, perform this evidence-first self-check:
 - every NEEDS_REVIEW identifies a concrete browser, content, process, or AT verification;
 - summary counts are calculated from the final ledger; do not repeat numeric verdict counts in conclusion prose;
 - no evidence contradiction across criteria or between the scope statement and findings.
-
-Before publishing a normal report, run:
-
-`python3 scripts/check_report.py assets/wcag-2.2-aa.csv <report-path>`
-
-Correct every structural error. Passing this checker proves only report accounting and shape; it does not validate WCAG judgments.
 
 Return the report path, verdict counts, scope, and evaluator models.
 
