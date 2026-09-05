@@ -35,3 +35,6 @@ Temporary Items
 *.log
 *.tmp
 .cache/
+
+# --- Git worktrees created by aimate review skills ---
+.worktrees/

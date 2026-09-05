@@ -42,6 +42,18 @@ Performs comprehensive code review — identifies bugs, logic errors, security i
 
 ---
 
+### `resolve-pr-feedback`
+
+> Resolve review feedback on a GitLab Merge Request or GitHub Pull Request — validate each comment, fix what holds up, push, and close the threads.
+
+The other half of the review loop. It reads every unresolved thread, verifies each one against the real code before changing anything, and gives every comment a verdict: accept, accept with a different fix, already addressed, reject, out of scope, or needs clarification. Work happens in an isolated git worktree, runs through the project's own build, lint, and test commands, and is self-reviewed with `code-review` before anything is pushed. Replies explain what happened per thread; only threads that were actually addressed get resolved.
+
+Rejecting feedback is a first-class outcome — with evidence, not opinion. It never force-pushes, never rewrites branch history, and never approves its own work.
+
+**Trigger phrases:** "resolve the PR feedback", "address the review comments", "fix the MR comments", "apply the review feedback"
+
+---
+
 ### `review-local`
 
 > Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
@@ -56,7 +68,7 @@ Uses `code-review` for reusable analysis and returns structured findings without
 
 > Framework-agnostic reusable code review core for syntax, logic, security, style, documentation, and maintainability findings.
 
-Provides the shared analysis workflow, input/output interfaces, severity classification, and feedback format used by `review-pr` and `review-local`.
+Provides the shared analysis workflow, input/output interfaces, severity classification, and feedback format used by `review-pr`, `review-local`, and the pre-push self-review in `resolve-pr-feedback`.
 
 ---
 
