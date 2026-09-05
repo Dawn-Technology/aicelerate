@@ -18,7 +18,8 @@ Turn review feedback on an open PR/MR into verified code changes on the same bra
 - **Verification**: Confirm every comment against the real code before changing anything, and push back on feedback that does not hold.
 - **Correctness**: Address what the reviewer meant, not what the comment literally says.
 - **Safety**: Work in a dedicated worktree, gated by the project's own build, lint, and test commands.
-- **Traceability**: Every thread ends in a visible outcome — a fix, a reply explaining why not, or a question.
+- **Traceability**: Every thread ends in a visible outcome — on the PR/MR once the push lands, in the report when it cannot.
+- **Autonomy**: Decide, act, and report the decisions. Never stop to ask for approval.
 
 This workflow is **write-enabled but scoped**:
 
@@ -29,6 +30,30 @@ This workflow is **write-enabled but scoped**:
 Both **GitHub** (Pull Requests) and **GitLab** (Merge Requests) are supported; PR and MR are used interchangeably. This skill is remote-only — for local pre-commit review use [review-local](../review-local/SKILL.md).
 
 Provider commands, GraphQL documents, and API payloads live in [`references/provider-operations.md`](./references/provider-operations.md). Read the section a step points to; do not improvise provider calls.
+
+## Autonomy
+
+Run end to end without a confirmation step. Review feedback is mostly clear-cut, the work lands on a branch that is already under review, and everything here is cheap to correct — a blocked agent costs more than a wrong call a reviewer fixes with one comment.
+
+- Never ask which threads to address, whether the plan looks right, or whether to push. Decide from the defaults below.
+- Never present a plan and wait for approval. Record the plan, execute it, report what was decided.
+- Log every judgment call in the Step 11 report, each with its one-line undo.
+- The user intervenes afterwards, not before: a wrong fix is one more commit, a wrong reply is one more reply.
+
+Defaults for every judgment call this workflow can face:
+
+| Situation | Default |
+| --- | --- |
+| Provider not named in the input | Take it from the `origin` remote |
+| Scope not named | Every unresolved thread |
+| `{fix_branch}` already exists | Use the next free `-2`, `-3` suffix; never delete the old one |
+| No push access to the head branch | Do the work anyway and export patches in Step 9-B |
+| Two threads contradict each other | Follow the one that preserves the PR/MR's stated purpose, and say so in both threads |
+| A fix reaches beyond the flagged line | Fix the same defect where it provably occurs in files you already touch; anything wider becomes `out-of-scope` |
+| A blocking self-review finding survives two passes | Revert that item, mark it `needs-clarification`, push the rest |
+| The review is large enough to chunk | Process every chunk in order without pausing |
+
+Three things end a run early: no authenticated route, a dependency that cannot be loaded, and a request that explicitly asked for a plan first ("show me what you'd change"). Cutting the work short — a gate that stays red, a push rejected twice — is itself a decision: take it, finish at Step 11, and report it. Never turn any of these into a question.
 
 ## Inputs Required
 
@@ -66,14 +91,14 @@ Once Step 2 creates the worktree, every exit path finishes at Step 11 — a decl
 1. **Detect provider** from the URL or the user's input:
    - `github.com` → `provider = "github"`, identifiers `{owner, repo, pull_number}`.
    - `gitlab.com` or a self-hosted GitLab domain → `provider = "gitlab"`, identifiers `{project_path, merge_request_iid}`.
-   - If ambiguous, ask.
+   - If the input names no host, take the provider from the `origin` remote.
 
 2. **Resolve an authenticated route**:
    - Follow the project's `aimate:tool-routing` block in `AGENTS.md`: explicit request, preferred route, then configured fallback. Do not ask again when the fallback works. Without a block, default to `gh` and then GitHub MCP for GitHub; GitLab always uses `glab` and never GitLab MCP.
    - Validate with `gh auth status --active --hostname <host>` or `glab auth status --hostname <host>`. Never use `--show-token`. Validate MCP with discovery plus one read-only metadata call.
    - Store it as `provider_route`. If neither route works, stop before creating a worktree and point at the login command or Aimate's `configure-mcp` skill. Never ask for a token in chat.
 
-3. **Confirm write access.** This workflow pushes commits and resolves threads, so read-only access fails late with the work already done. Check the viewer's push permission on the repository that owns the head branch — see [write access checks](./references/provider-operations.md#write-access-checks). If you cannot push there, say so now and offer the patch fallback in Step 9-B.
+3. **Confirm write access.** This workflow pushes commits and resolves threads, so read-only access fails late with the work already done. Check the viewer's push permission on the repository that owns the head branch — see [write access checks](./references/provider-operations.md#write-access-checks). If you cannot push there, note it and carry on — Step 9-B exports the work as patches instead.
 
 4. Verify terminal access, needed for the worktree in Step 2, and that both dependencies can be loaded.
 
@@ -110,7 +135,7 @@ git worktree add {wt} -b {fix_branch} origin/{src}
 
 - Branch from the fetched remote head, never from a local copy that may be stale or checked out elsewhere.
 - Working on `{fix_branch}` and pushing by refspec in Step 9 keeps the branch name from colliding with an existing checkout of `{src}`.
-- If `{fix_branch}` already exists from an interrupted run, ask whether to reuse or recreate it. Never silently delete work.
+- If `{fix_branch}` already exists from an interrupted run, branch to the next free suffix (`{fix_branch}-2`, `-3`). Never delete or reuse the old one; report that it is still there.
 - For a fork head, add the fork as a remote and branch from it instead — see [fork heads](./references/provider-operations.md#fork-heads).
 
 Edit files only inside `{wt}`.
@@ -152,27 +177,27 @@ Rules:
 - Every verdict needs concrete evidence: a `file:line` in `{wt}`, a commit SHA, a test name, or a traced call path. A verdict without evidence is not a verdict.
 - Verify the claim independently. If the reviewer says a value can be null, find the path that makes it null; if you cannot, the verdict is `reject` or `needs-clarification`, never `accept`.
 - `reject` is a legitimate outcome and must never be avoided out of politeness, but the bar is evidence, not opinion. A style preference from a reviewer with merge rights is `accept`.
-- If a fix reaches further than the reviewer asked — the same bug elsewhere in the file, a refactor the change implies — put that in the Step 5 plan. Never widen the change silently in Step 6.
+- If a fix reaches further than the reviewer asked, fix the same defect where it provably occurs in the files you already touch, and record the reach. Anything wider than that is `out-of-scope`.
 - If addressing a comment would break the stated purpose of the PR/MR, that is `needs-clarification`.
-- When two threads conflict, flag the conflict in Step 5 rather than picking a side.
+- When two threads conflict, follow the one that preserves the stated purpose of the PR/MR, and say so in both threads.
 
 For each accepted item, sketch the change first: files touched, approach, risk, and whether it needs a test.
 
 ---
 
-### Step 5 — Present the Resolution Plan (HARD STOP)
+### Step 5 — Record the Plan and Proceed
 
-Present the plan before changing any file:
+Write the plan down before changing any file. It is the record the Step 11 report is built from, not an approval request:
 
 - PR/MR title, `{src}` → target branch, and the size of the working set.
 - One line per item: thread reference, reviewer, verdict, intended change, evidence.
 - Grouped by verdict, `accept` and `accept-with-deviation` first.
-- Every conflict, ambiguity, and wider reach found in Step 4.
+- Every conflict, wider reach, and Autonomy default applied.
 - The detected gates and `gate_baseline`, including any gate that could not run.
 
-**HARD STOP**: end the response there and ask how to proceed — all accepted items, a subset, a changed verdict, or stop. Do NOT call any tools after presenting the plan in that same response, and do NOT continue until the user gives a clear directive in a later turn. If they stop, clean up in Step 11 on the next turn.
+Then continue to Step 6 in the same turn. Do not ask whether to proceed.
 
-One exception: if the user's original request asked for an autonomous run ("just fix the comments and push"), skip the stop, say that you are running autonomously, and continue. Every other gate still applies.
+One exception: when the request explicitly asked for a plan first, present the plan, stop there, and clean up in Step 11 on the next turn.
 
 ---
 
@@ -184,7 +209,7 @@ Work through the accepted items one logical change at a time.
 - Add or update tests when an item changes behaviour and the project has a suite for that area. If it does not, say so in the report.
 - Update documentation, translations, and type definitions the change makes stale.
 - Keep unrelated formatting out of the diff. If the project's formatter rewrites untouched lines, commit that separately.
-- Stay inside the approved plan. Anything you discover that the plan does not cover goes into the Step 11 report, not into the diff.
+- Stay inside the recorded plan. Anything you discover that the plan does not cover goes into the Step 11 report, not into the diff.
 - Track which thread ids each edit resolves. Step 10 needs that mapping.
 
 Commit each logical unit as you finish it — one commit per item, or one per group of items sharing a fix. That gives Step 8 a real diff and keeps each fix attributable to its thread. Invoke [write-commit-message](../write-commit-message/SKILL.md) for every message and use it verbatim; it runs autonomously, so add no approval step of your own.
@@ -245,14 +270,14 @@ review_context:
 
 Store the result as `self_review_result`:
 
-- Every `security-violation` and `request-for-change` finding blocks the push. Fix, re-run Step 7, and self-review again — at most twice. If blocking findings remain, stop and offer the user three options: fix them together, push with the risk stated, or discard. On discard, go to Step 11 and remove `{wt}`.
-- `optional` findings do not block. List them in the report and leave them unless the user asks.
-- If `chunking_required` is `true`, confirm each chunk with the user and combine the results without reclassifying them before applying this gate.
+- Every `security-violation` and `request-for-change` finding blocks the push. Fix, re-run Step 7, and self-review again — at most twice. If a finding survives that, revert the item it belongs to, move that item to `needs-clarification`, and push the rest. Never push a change your own review still calls broken.
+- `optional` findings do not block. List them in the report and leave them.
+- If `chunking_required` is `true`, process every chunk in order and combine the results without reclassifying them, then apply this gate.
 
 Then check what `code-review` cannot, because it reviews the code and not the mandate:
 
 - Does each change actually resolve the thread it claims to, or only look like it does?
-- Is anything in the diff outside the approved plan?
+- Is anything in the diff outside the recorded plan?
 - Are any secrets, debug statements, commented-out code, or stray `TODO` markers left behind?
 - Does the diff still match the stated purpose of the PR/MR?
 
@@ -270,14 +295,14 @@ If not, go back. Do not push.
 
 #### 9-A: Push
 
-Show the commit list, changed files, gate results, and self-review outcome, and confirm before pushing — unless the user authorised an autonomous run in Step 5.
+Push once Step 8 clears. Do not ask first; the commit list, changed files, gate results, and self-review outcome go into the Step 11 report.
 
 ```bash
 git -C {wt} push origin {fix_branch}:{src}
 ```
 
 - Never force-push, and never rewrite history that is already on the remote.
-- On a non-fast-forward rejection, someone pushed to `{src}` while you worked. Rebase `{fix_branch}` — still unpushed, so this is safe — onto the new remote head, re-run Steps 7 and 8, and retry once. If it is rejected again, stop and ask.
+- On a non-fast-forward rejection, someone pushed to `{src}` while you worked. Rebase `{fix_branch}` — still unpushed, so this is safe — onto the new remote head, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
 - After an ambiguous failure, fetch and compare the remote head before retrying. A failed response can follow a successful push.
 
 #### 9-B: When the Push Is Not Possible
@@ -288,13 +313,13 @@ A fork without maintainer edits, a protected branch, or read-only access. Do not
 git -C {wt} format-patch origin/{src}..HEAD -o .worktrees/pr-fix-{n}-patches
 ```
 
-Tell the user where the patches are and how to apply them with `git am`, keep `{wt}` until they confirm, and continue to Step 10 with replies only. State in the report that nothing was pushed.
+Keep `{wt}`, skip Step 10 entirely — nothing landed, so no thread has an outcome to report on — and put the patch path, the `git am` command, and every verdict into the Step 11 report instead.
 
 ---
 
 ### Step 10 — Reply and Resolve Threads
 
-Runs after a successful push, or after 9-B with replies only. Every thread in the working set gets a visible outcome; the Step 4 table says which get resolved and which stay open. Mechanics are in [replying and resolving](./references/provider-operations.md#replying-and-resolving).
+Runs only after a successful push. Every thread in the working set gets a visible outcome; the Step 4 table says which get resolved and which stay open. Mechanics are in [replying and resolving](./references/provider-operations.md#replying-and-resolving).
 
 Each reply states what was done, or why nothing was done, plus the evidence: the commit SHA carrying the fix, or `file:line`.
 
@@ -308,7 +333,7 @@ Each reply states what was done, or why nothing was done, plus the evidence: the
 
 ### Step 11 — Clean Up and Report
 
-Runs on every path that created a worktree, and never in the same response as the Step 5 hard stop.
+Runs on every path that created a worktree, and never in the same response as a plan-first preview.
 
 ```bash
 git worktree remove {wt} --force
@@ -320,6 +345,7 @@ Keep `{wt}` only when the run stopped on a failing gate or left unpushed work th
 
 Report:
 
+- Every decision taken without asking — verdicts, conflicts resolved, reach beyond the flagged line, reverted items, defaults applied — each with its one-line undo.
 - One line per thread: reference, verdict, outcome, resolved or left open.
 - Commits pushed, with SHAs, and the branch they landed on.
 - Gate results, including any gate that could not run and why.
@@ -351,9 +377,10 @@ Left as is — `items` is guaranteed non-empty by the query on line 42, and the 
 
 ## Guardrails
 
+- Never stop for approval. Decide, act, and report — the three exceptions are listed under Autonomy.
 - Never merge, close, reopen, approve, or retarget a PR/MR.
 - Never force-push, and never rewrite history already on the remote.
-- Never edit files outside `{wt}`, and never change code the Step 5 plan does not cover.
+- Never edit files outside `{wt}`, and never change code the recorded plan does not cover.
 - Never weaken a test, lint rule, or type check to make a gate pass.
 - Never resolve a thread that was not addressed, and never resolve a rejected thread without the user's say-so.
 - Never use raw `curl` for provider APIs, tools from the wrong provider, or a GitLab.com route for a self-hosted MR. Use `gh`, `glab`, or the matching MCP route, and `git` for local, worktree, and push operations.

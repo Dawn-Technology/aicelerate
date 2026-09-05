@@ -50,6 +50,8 @@ The other half of the review loop. It reads every unresolved thread, verifies ea
 
 Rejecting feedback is a first-class outcome — with evidence, not opinion. It never force-pushes, never rewrites branch history, and never approves its own work.
 
+Like `write-commit-message`, it runs autonomously: it decides, acts, and reports every judgment call with its one-line undo, rather than pausing for approval. It stops for three things only — no authenticated route, a missing dependency, or a request that asked for a plan first.
+
 **Trigger phrases:** "resolve the PR feedback", "address the review comments", "fix the MR comments", "apply the review feedback"
 
 ---

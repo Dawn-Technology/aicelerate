@@ -4,7 +4,7 @@
 
 Added `resolve-pr-feedback`, which closes the review loop that `review-pr` opens. It reads the unresolved threads on a GitHub PR or GitLab MR, validates each comment against the real code, applies the ones that hold up in an isolated worktree, runs the project's own quality gates, self-reviews the result through `code-review`, and only then pushes and replies per thread.
 
-Feedback that does not hold up is rejected with evidence rather than applied, and threads are resolved only when the fix actually landed. The skill delegates its commit messages to `write-commit-message` and never force-pushes, rewrites branch history, or approves its own work.
+Feedback that does not hold up is rejected with evidence rather than applied, and threads are resolved only when the fix actually landed. The skill runs autonomously — it decides and reports each judgment call instead of pausing for approval — delegates its commit messages to `write-commit-message`, and never force-pushes, rewrites branch history, or approves its own work.
 
 ## 2.1.0
 
