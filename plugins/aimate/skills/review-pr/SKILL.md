@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.0.0
+  version: 5.0.1
   dependencies:
     - code-review
 ---
@@ -26,6 +26,8 @@ This workflow is **read-first** and **non-invasive**:
 - Post comments, update PR/MR only when explicitly requested.
 
 This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Requests). The terms PR and MR are used interchangeably throughout.
+
+Acting on review feedback is the opposite direction and a separate workflow: [resolve-pr-feedback](../resolve-pr-feedback/SKILL.md) validates the threads on a PR/MR, applies the fixes in an isolated worktree, and replies per thread.
 
 ## Inputs Required
 
