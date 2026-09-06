@@ -1,20 +1,26 @@
 # [[project_name]] · WCAG 2.2 Level AA · Static Source Audit
 
-**Primary audit:** AI Agent ([[primary_model]])
+**Coordinator:** [[actual_coordinator_model_or_unavailable]]
 
-**Evidence review:** AI Agent ([[reviewer_model]])
+**Evidence workers:** [[actual_model_identifiers_and_collection_review_assignments]]
+
+**Execution mode:** [[dual_model_or_user_authorized_single_model]]
 
 **Report date:** [[report_date]]
 
-**Skill version:** 3.1.0
+**Skill version:** [[loaded_skill_version]]
+
+**Skill source:** [[actual_loaded_skill_path]]
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
 
-**Primary audit coverage:** COMPLETE — all included source roots were searched and all 55 criteria were decided.
+**Assessment coverage:** [[describe_completed_surface_assignments_and_their_source_boundaries]]
 
-**Evidence review coverage:** COMPLETE — the reviewer checked every primary FAIL for applicability, exceptions, same-path evidence, and sufficient remediation; challenged every primary PASS/N/A; checked every NEEDS_REVIEW boundary; and verified identity, ledger order, totals, and consistency. Final challenges were resolved against source by the coordinating agent.
+**Evidence review coverage:** [[describe_actual_reviewed_batches_and_resolution_of_challenges]]
+
+<!-- Derive coverage from working evidence. Do not copy a completion declaration from a worker. Use the partial template if assessment or review remains unfinished. -->
 
 ## Scope and evidence boundary
 
@@ -71,6 +77,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 - **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
 - **Coverage:** [[bounded_coverage]]
+- **Normative requirement:** [[W3C_SC_link_and_failed_condition]]
 - **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
 - **Representative evidence:**
   [[representative_evidence]]
