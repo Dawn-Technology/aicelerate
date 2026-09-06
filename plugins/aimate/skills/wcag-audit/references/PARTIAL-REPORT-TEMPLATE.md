@@ -1,20 +1,24 @@
 # [[project_name]] · WCAG 2.2 Level AA · Static Source Audit — [PARTIAL]
 
-**Primary audit:** AI Agent ([[primary_model]])
+**Coordinator:** [[actual_coordinator_model_or_unavailable]]
 
-**Evidence review:** AI Agent ([[reviewer_model]])
+**Evidence workers:** [[actual_model_identifiers_and_assignments_or_unavailable]]
+
+**Execution mode:** [[actual_mode_and_any_user_authorized_exception]]
 
 **Report date:** [[report_date]]
 
-**Skill version:** 3.1.0
+**Skill version:** [[loaded_skill_version]]
+
+**Skill source:** [[actual_loaded_skill_path]]
 
 **WCAG version:** 2.2
 
 **Git commit:** [[git_commit_hash]]
 
-**Primary audit coverage:** [[COMPLETE_or_INCOMPLETE]] — [[primary_coverage_detail]]
+**Assessment coverage:** [[completed_assignments_and_remaining_source_work]]
 
-**Evidence review coverage:** [[COMPLETE_or_INCOMPLETE]] — [[review_coverage_detail]]
+**Evidence review coverage:** [[reviewed_assignments_and_remaining_review_work]]
 
 ## Why this report is partial
 
@@ -39,7 +43,6 @@
 | Progress | Count |
 |---|---:|
 | COMPLETE | [[count_complete]] |
-| CONFIRMED_FAIL | [[count_confirmed_fail]] |
 | INCOMPLETE | [[count_incomplete]] |
 | **Total** | **55** |
 
@@ -51,7 +54,7 @@
 | ❌ FAIL | [[count_fail]] |
 | **Completed total** | **[[count_complete]]** |
 
-Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggregate FAIL verdict but do not claim a complete violation inventory.
+COMPLETE means the assessment and evidence review are resolved. A confirmed FAIL needs one proven violation, not an exhaustive violation inventory. INCOMPLETE includes pending review; unreviewed candidates have no final verdict.
 
 ## Progress ledger
 
@@ -59,11 +62,11 @@ Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggr
 
 | SC | Name | Level | Progress | Verdict | Evidence or remaining work |
 |---|---|:---:|---|---|---|
-| [[sc_id]] | [[name]] | [[level]] | [[COMPLETE_CONFIRMED_FAIL_or_INCOMPLETE]] | [[verdict_or_NOT_EVALUATED]] | [[evidence_or_remaining_work]] |
+| [[sc_id]] | [[name]] | [[level]] | [[COMPLETE_or_INCOMPLETE]] | [[verdict_or_NOT_EVALUATED]] | [[evidence_or_remaining_work]] |
 
 ## Confirmed findings
 
-<!-- Repeat for COMPLETE FAIL and every CONFIRMED_FAIL row, in canonical order. -->
+<!-- Repeat for every COMPLETE FAIL row, in canonical order. -->
 
 ### [[verdict]] [[sc_id]] — [[name]]
 
@@ -71,7 +74,8 @@ Confirmed partial FAILs: **[[count_confirmed_fail]]**. These rows prove the aggr
 - **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
 - **Affected or unresolved instances:** [[instance_count]]
 - **Coverage:** [[bounded_coverage]]
-- **Applicability and exceptions:** [[applicability_and_exceptions_resolved_or_unresolved]]
+- **Normative requirement:** [[W3C_SC_link_and_failed_condition]]
+- **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]

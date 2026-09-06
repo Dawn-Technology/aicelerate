@@ -1,6 +1,6 @@
 # Criterion Decision Procedure
 
-Apply this procedure to every CSV row in order and to the declared source boundary—not a convenient example.
+Apply this procedure when finalizing every CSV row in order. Source collection may be grouped by surface; reuse its evidence rather than searching anew for each criterion.
 
 ## 1. Establish applicability
 
@@ -14,15 +14,15 @@ N/A is not appropriate merely because no violation pattern was found. Criteria t
 
 ## 2. Apply the static-analysis boundary
 
-Use the CSV `static_analyzable` value as guidance:
+Apply the CSV `static_analyzable` gate before classifying instances:
 
 | Value | Static interpretation |
 |---|---|
 | `yes` | Source can ordinarily establish PASS or FAIL when the boundary is complete. |
 | `partial` | Decide source-proven instances; use NEEDS_REVIEW when content, rendering, runtime, or an exception remains unresolved. |
-| `no` | Do not issue PASS from source alone. Use NEEDS_REVIEW unless source independently proves the complete failure condition without requiring rendered judgment. |
+| `no` | Once applicability is established, use NEEDS_REVIEW with a specific rendered/interactive check. Source risks inform that check; do not turn them into PASS or FAIL in this static-only mode. Conclusively absent governed features may still be N/A. |
 
-The flag does not turn a suspicious pattern into a finding. Applicability and normative exceptions still have to be established.
+This deliberately conservative boundary prevents visual or interactive hypotheses from becoming confirmed defects. The flag does not turn a suspicious pattern into a finding. For `yes` and `partial`, applicability and normative exceptions still have to be established.
 
 ## 3. Classify each relevant source pattern
 
@@ -36,6 +36,8 @@ For each materially distinct pattern:
 
 Do not equate search hits with governed instances. A reusable component can represent many rendered instances; a single source hit can also be irrelevant after inspection.
 
+Before proposing FAIL, read the normative SC and relevant definitions, not just its CSV hint or a technique. Record a link to the requirement and explain the failed condition. Best practice, an ARIA authoring-pattern mismatch, or a missing preferred technique alone is not a WCAG violation. If normative text cannot be verified, keep the proposal unresolved and explain what must be checked.
+
 ## 4. Aggregate the criterion
 
 Use strict precedence:
@@ -46,6 +48,8 @@ Use strict precedence:
 4. Governed feature conclusively absent → **N/A**.
 
 One violation is enough for aggregate FAIL. An exact violation total is optional unless naturally bounded by source. Use `at least N` when additional rendered or data-driven instances may exist.
+
+Apply this aggregation only after the static gate above. Separate assessment progress from verdict: uninspected source that could change PASS/N/A/NEEDS_REVIEW leaves the assessment pending. For FAIL, further defect enumeration cannot change the verdict and is not a completion requirement. For NEEDS_REVIEW, inspect distinct relevant source patterns for provable violations, but do not enumerate unknowable CMS values or attempt prohibited runtime tests. State both the inspected boundary and the precise external check.
 
 ## 5. Record evidence
 

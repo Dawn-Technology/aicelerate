@@ -9,13 +9,13 @@ Use these principles when source does not directly establish the rendered access
 - Registration in a component library, route map, CMS bundle, or schema proves reachability, not rendered use or content characteristics.
 - A loop or reusable component is one source pattern unless inspected data naturally bounds its rendered instances.
 - Project comments and component descriptions are leads, not proof of runtime content.
-- Evidence combined into one finding must coexist in the same reachable template branch, caller, state, and runtime path. Similar markup in a mutually exclusive branch does not support the behavior being analyzed.
+- Evidence for each instance must form a coherent trace through its own branch, caller, and states. Multiple independent instances may share a criterion finding, but markup in a mutually exclusive branch cannot prove or mitigate another instance's behavior.
 
 Do not fail media criteria merely because a reachable player lacks caption, transcript, or audio-description fields. First establish an actual or bounded source-controlled instance of the applicable media type. Otherwise use NEEDS_REVIEW and record the missing authoring capability as a risk.
 
 ## CSS and visual behavior
 
-Before a CSS-based FAIL, trace selectors, specificity, source order, media queries, pseudo-classes, inheritance, custom properties, opacity, backgrounds, and state changes.
+For `static_analyzable=no`, these checks identify risks and precise manual checks, not FAILs. For a source-provable `partial` criterion such as contrast, trace selectors, specificity, source order, media queries, pseudo-classes, inheritance, custom properties, opacity, backgrounds, and state changes before FAIL.
 
 - `outline: none` is only a Focus Visible failure when the element is keyboard-focusable and no visible focused-state change survives the cascade.
 - A focus style may be shared with hover or active. Compare focused with unfocused presentation; WCAG 2.4.7 does not require unique styling for each input mode.
@@ -29,7 +29,7 @@ Before a CSS-based FAIL, trace selectors, specificity, source order, media queri
 - Native HTML semantics remain authoritative unless source proves they are overridden.
 - A wrapping `<label>` labels its descendant input; a native checkbox exposes checked state without `aria-checked` on a decorative wrapper.
 - An icon-only control without visible text is not automatically a Label-in-Name candidate.
-- A custom ARIA widget must satisfy its required owned roles, states, keyboard behavior, and state changes as a complete pattern.
+- Investigate custom ARIA roles, required states and relationships, and resulting accessibility semantics. An APG pattern mismatch is a lead, not itself a WCAG FAIL: show which normative SC condition is violated. Keyboard behavior is evaluated under keyboard criteria, not automatically bundled into 4.1.2.
 - For responsive ARIA, trace initial markup, initial CSS state, initialization calls, event registrations, every mutation, breakpoints, and user transitions. Do not infer all states from one attribute or event handler.
 - For 1.3.5, removing `autocomplete="off"` is not sufficient when the input collects a listed personal-data purpose. Supply a valid purpose token such as `autocomplete="email"` or another supported programmatic identification mechanism.
 
@@ -39,6 +39,7 @@ Before a CSS-based FAIL, trace selectors, specificity, source order, media queri
 - For status messages, trace the exact mutation target and the live region in the same rendered branch. A live region in another mutually exclusive branch does not cover the updated message.
 - A content update is not automatically a change of context. Determine whether page, focus, viewport, or meaning changes; if runtime outcome is unavailable, use NEEDS_REVIEW.
 - A click handler on a label descendant is not a Keyboard failure when the same native control remains keyboard operable and the handler does not block it.
+- Keyboard applies to functionality, not every pointer target individually. Trace equivalent controls, delegated events, and library-provided activation before concluding a function is unavailable. Excluding vendor code from general searches does not prove that the installed library has no keyboard support; unresolved support remains NEEDS_REVIEW.
 - Authentication, error handling, repeated help, page discovery, and multi-step processes often cross the selected source boundary. Do not issue PASS or N/A when framework configuration or rendered process steps remain unresolved.
 
 ## External observations
