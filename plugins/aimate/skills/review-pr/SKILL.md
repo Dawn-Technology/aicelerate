@@ -1,9 +1,11 @@
 ---
 name: review-pr
-description: Review a GitHub or GitLab Pull/Merge Request and provide findings, and post structured review comments with issue explanation plus code fixes. Use this skill when asked to review a GitHub Pull Request or GitLab Merge Request.
+description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 4.4.0
+  version: 5.0.0
+  dependencies:
+    - code-review
 ---
 
 # PR/MR Review Workflow Skill
@@ -20,7 +22,7 @@ The purpose of this skill is to provide constructive and comprehensive feedback 
 This workflow is **read-first** and **non-invasive**:
 
 - Do not modify repository files.
-- Analyze PR/MR content and discussions.
+- Collect PR/MR content and discussions for review.
 - Post comments, update PR/MR only when explicitly requested.
 
 This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Requests). The terms PR and MR are used interchangeably throughout.
@@ -28,6 +30,24 @@ This skill supports both **GitHub** (Pull Requests) and **GitLab** (Merge Reques
 ## Inputs Required
 
 1. **PR/MR identifier**: Either a URL or `{repository_id, pull_request_number}` for GitHub, or `{project_path, merge_request_iid}` for GitLab.
+
+## Dependency
+
+This skill depends on the reusable [code-review](../code-review/SKILL.md) skill for framework-agnostic review analysis, finding classification, and feedback generation.
+
+`review-pr` owns provider detection, PR/MR metadata retrieval, branch checkout, provider-specific diff retrieval, inline comment positioning, approvals, request-changes state, and cleanup.
+
+`code-review` owns the core review logic: syntax, logic, security, style/maintainability, documentation/scope analysis, finding schema, severity classification, and provider-neutral report/comment text.
+
+### Mandatory Dependency Boundary
+
+`review-pr` MUST delegate the core analysis to `code-review`; this is a hard workflow boundary, not a recommendation.
+
+- Invoke/load the [code-review](../code-review/SKILL.md) skill with the active platform's skill mechanism before analyzing or classifying findings.
+- Do not substitute your own syntax, logic, security, maintainability, documentation, or scope review for `code-review`.
+- Do not present findings, post comments, approve, or request changes unless the findings came from the `code-review` output interface.
+- If `code-review` cannot be invoked or loaded in the current environment, stop and tell the user the required dependency is unavailable. Do not continue with a manual review.
+- Having read `code-review` earlier, remembering its workflow, seeing an obvious issue, reviewing a small PR/MR, or being under time pressure does not satisfy this dependency.
 
 ---
 
@@ -51,6 +71,8 @@ Before proceeding:
    - Do not call tools from another provider or use a GitLab.com route for a self-hosted MR.
 
 3. Verify terminal access is available (required for git worktree operations in Step 2).
+
+4. Verify the [code-review](../code-review/SKILL.md) dependency can be invoked/loaded. If unavailable, stop and tell the user the required dependency is unavailable.
 
 Store `provider` — it will gate all provider-specific sub-steps throughout the workflow.
 
@@ -88,70 +110,97 @@ git fetch origin {source_branch}
 git worktree add .worktrees/pr-review-{pr_mr_number} {source_branch}
 ```
 
-Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5. **Read-only enforced** — do not modify files in the worktree.
+Store `worktree_path = ".worktrees/pr-review-{pr_mr_number}"` for Steps 3–5 and cleanup in Step 8. **Read-only enforced** — do not modify files in the worktree.
 
 ---
 
-### Step 3 — Gather Codebase Context
+### Step 3 — Prepare PR/MR Review Context
 
-With the branch checked out, use `runSubagent` (`Explore` agent) to analyze the project conventions relevant to the proposed changes. To avoid wasting time on large monorepos, direct the subagent specifically. Use a prompt similar to:
+Keep the checked-out worktree read-only and prepare PR/MR-specific context for the `code-review` dependency:
 
-> "Explore the `.worktrees/pr-review-{pr_mr_number}` directory. Focus primarily on the modules and adjacent dependencies affected by the PR/MR diff, while briefly checking for global configs (e.g., framework config, `README`, linting configs, `.github/copilot-instructions.md`). Report: language, framework, architectural patterns, naming conventions, and test strategy relevant to the changed files."
+- `repository_path = ".worktrees/pr-review-{pr_mr_number}"`
+- PR/MR title, description, author, source branch, and target branch.
+- Existing open and resolved review threads.
+- Provider diff refs and SHA metadata needed for inline comments.
 
-Store the subagent's full response as your **review baseline** for code analysis.
-
-**Fallback if conventions are unclear**: Infer standards from the detected language/framework:
-
-- **PHP**: PSR-12, PSR-4 (autoloading).
-- **Python**: PEP 8, type hints (PEP 484).
-- **JavaScript/TypeScript**: ESLint, Google/Airbnb style guides.
-- **Go**: `gofmt`, idiomatic Go patterns.
-- If still unclear, note this assumption in the final report and apply general best practices (SOLID, DRY, KISS).
+If you already have a useful codebase baseline from adjacent tools or exploration, store it as `review_baseline` and pass it to `code-review`. Otherwise, let `code-review` gather the baseline from `repository_path`.
 
 ---
 
-### Step 4 — Retrieve, Parse, and Trace the Diff
+### Step 4 — Retrieve Provider Diff
 
 1. Retrieve the diffs between the source and target branches through `provider_route`. Use `gh pr diff`/`gh api`, GitHub MCP tools, or `glab mr diff`/`glab api`. Do not use raw `curl`.
-2. Build a file-change inventory: list each changed file with its change type (added / modified / deleted). **All changed files MUST be reviewed**; do not skip any files.
-3. Prioritise the review order to build context progressively:
-   - **High priority**: core business logic, security-sensitive code, public APIs, data models.
-   - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
-   - **Within each tier, sort files alphabetically by path** to guarantee a deterministic traversal order.
-4. **Context Constraints (Large PRs/MRs)**: If the PR/MR contains more than 15 changed files or massive diffs, warn the user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis. Ask for confirmation before processing the chunks.
-5. **Trace Control Logic and Impact**: Do not evaluate diffs in isolation.
-   - For changes in logic, read the expanded surrounding context or the full file to grasp the complete execution path.
-   - Actively trace dependencies by exploring where modified functions, classes, or variables are invoked across the codebase (e.g., using codebase search capabilities or the `Explore` subagent).
-   - Evaluate cross-file execution paths to definitively determine the impact and identify potential downstream breakages.
+2. Preserve provider-specific diff coordinates and SHA metadata for Step 7-A.
+3. Build the provider changed-file inventory required by the `code-review` input interface, including each changed file and its change type when available.
+4. Pass all retrieved diff content and file inventory to `code-review`; it owns generic review ordering, large-review chunking, and dependency tracing.
 
 ---
 
-### Step 5 — Analyze & Classify Findings
+### Step 5 — Invoke Code Review Core
 
-Evaluate the diff through these four lenses:
+Invoke the [code-review](../code-review/SKILL.md) skill with this PR/MR-specific input wrapper before doing any review analysis:
 
-1. **Security**: injection flaws, exposed credentials, auth bypasses. Only report issues that are reachable or plausibly reachable. Severity: `security-violation`.
-2. **Correctness**: logic errors, missing error handling, boundary mistakes, broken assumptions. Severity: `request-for-change`.
-3. **Maintainability**: broken contracts, naming inconsistencies, unnecessary complexity, architecture drift. Severity: `request-for-change` or `optional`.
-4. **Scope Consistency**: unaddressed prior feedback, missing translations, mismatch with PR/MR intent. Severity: `request-for-change`.
+```yaml
+submission:
+  type: pull-request   # or merge-request, based on detected provider
+  title: "{pr_mr_title}"
+  description: "{pr_mr_description}"
+  author: "{author}"
+  source_ref: "{source_branch}"
+  target_ref: "{target_branch}"
+code_input:
+  diff: "{provider_diff}"
+  files: "{changed_file_inventory}"
+  repository_path: ".worktrees/pr-review-{pr_mr_number}"
+  review_baseline: "{review_baseline}"
+review_context:
+  existing_feedback: "{open_and_resolved_threads}"
+  constraints: "Review every changed file. Do not modify files. Preserve provider diff coordinates for inline comments."
+  focus_areas:
+    - syntax
+    - logic
+    - security
+    - style
+    - documentation
+    - maintainability
+    - scope-consistency
+  output_target: calling-skill
+```
 
-Only report findings backed by concrete evidence from the diff and nearby code context.
+The `code-review` dependency MUST:
 
-For each finding, capture these fields internally:
+- Apply its full review workflow to all changed files.
+- Return provider-neutral findings, report text, and comment bodies using its output interface.
 
-- `id`: stable identifier such as `path/to/file:123:rule-slug`
-- `severity`: `security-violation`, `request-for-change`, or `optional`
-- `title`: short constructive label
-- `body`: 1-2 sentences describing the issue and why it matters
-- `location`: file path and line reference from the diff
-- `suggestion`: optional code block or concise remediation guidance
+Store the returned output as `code_review_result`. `code_review_result` is the only valid source for:
+
+- Findings shown in Step 6.
+- Comment bodies posted in Step 7-A.
+- Request-changes summaries in Step 7-C.
+
+If `code_review_result.chunking_required` is `true`, do not continue to the normal Step 6 report:
+
+1. Present the warning from `code_review_result.report` and the structured `code_review_result.chunk_plan`.
+2. Ask the user to confirm processing the first chunk, then end the response without further tool calls.
+3. After confirmation, invoke `code-review` for only that chunk and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, diff coordinates, repository context, and existing feedback.
+4. Present that chunk's report, identify its position in the plan, and ask for confirmation before processing the next chunk. Do not post comments, approve, or request changes until all confirmed chunks have been reviewed and their results retained.
+5. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings and `comment_bodies`, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 6.
+
+If the user declines or stops chunking, proceed to Step 8 only after they explicitly choose report-only/stop; report that the review is incomplete and list the unreviewed chunks.
+
+Before moving to Step 6, perform this invariant check:
+
+```text
+Did I invoke/load code-review for this PR/MR, and are all findings/report/comment bodies copied from code_review_result?
+```
+
+If the answer is not yes, go back and invoke `code-review`. Do not continue by analyzing the PR/MR yourself.
 
 ---
 
 ### Step 6 — Review & Present Findings to the User
 
-Do a rubber-duck review and critique the findings before sharing. Resolve any issues that may arise from the review.
-Then present the grouped findings report to the user **before taking any action**.
+Present the findings returned by `code-review` to the user **before taking any action**.
 
 The report must include:
 
@@ -159,17 +208,7 @@ The report must include:
 - Findings totals per severity.
 - Findings ordered by severity, then file path.
 
-Render each finding in this format:
-
-`**Finding #N — <id> <severity>**`
-
-`**<title>**`
-
-`<body>`
-
-`*Relevant lines: <file path and line reference>*`
-
-`Suggested approach: <suggestion or concise remediation guidance>`
+Render each finding using the canonical chat format defined by [code-review](../code-review/SKILL.md#step-6--rubber-duck-and-render). Copy each rendered finding verbatim from `code_review_result.report`; do not recreate or alter its prefix or content.
 
 If there are no findings, state that explicitly and mention any residual testing or review gaps.
 
@@ -184,6 +223,8 @@ Based on the user's instructions from Step 6, take the appropriate action. All s
 #### 7-A: Post Comments
 
 Post all approved findings as visible inline comments on the PR/MR.
+
+Use the `comment_bodies` map returned by `code-review` in Step 5 as the body for each inline comment, matched by finding `id`. Do not re-generate comment text.
 
 Before calling any provider-specific comment API, normalize the target anchor for every finding:
 
@@ -324,19 +365,16 @@ This step is always executed, regardless of which option was chosen in Step 6.
 
 ## Finding Format Rules
 
-Use the same finding content for chat and posted review comments.
+Use the canonical formats defined by [code-review](../code-review/SKILL.md#finding-format-rules). Do not maintain a separate finding template in this skill.
 
 Differences by destination:
 
-- In chat, include the `Finding #N — <id> <severity>` prefix.
-- In posted comments, omit the prefix and keep the rest unchanged.
+- In chat, copy the rendered finding blocks verbatim from `code_review_result.report`.
+- In posted comments, use the corresponding entries from `code_review_result.comment_bodies` verbatim.
 
 Style rules:
 
-- Keep the tone direct and peer-to-peer.
-- Do not use extra headings like `Observation:` or `Impact:`.
-- Use the changed file's language in code suggestions.
-- Keep summaries short and factual.
+- See [code-review](../code-review/SKILL.md) Finding Format Rules for tone, heading, and language conventions.
 - State exactly what was posted, including comment or note IDs when available.
 - If a fallback path was used, explain why in one sentence.
 

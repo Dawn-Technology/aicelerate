@@ -1,5 +1,9 @@
 # Release notes
 
+## 2.1.0
+
+Extracted the shared code-review core, added `review-local`, and updated `review-pr` to delegate analysis to the core.
+
 ## 2.0.0
 
 `aimate` is now skills-first. The plugin no longer bundles Figma, GitLab, or Atlassian MCP connections globally. Projects configure only the integrations they need through `configure-mcp` or the supplied project templates.
