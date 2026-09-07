@@ -49,6 +49,7 @@ Defaults for every judgment call this workflow can face:
 | Scope not named | Every unresolved thread |
 | `{fix_branch}` already exists | Use the next free `-2`, `-3` suffix; never delete the old one |
 | No push access to the head branch | Do the work anyway and export patches in Step 9-B |
+| Head branch lives in another repository | Treat it as untrusted: skip dependency install and every gate, and finish the run unverified |
 | Two threads contradict each other | Follow the one that preserves the PR/MR's stated purpose, and say so in both threads |
 | A fix reaches beyond the flagged line | Fix the same defect where it provably occurs in files you already touch; anything wider becomes `out-of-scope` |
 | A blocking self-review finding survives two passes | Revert that item, mark it `needs-clarification`, push the rest |
@@ -116,7 +117,9 @@ Once Step 2 creates the worktree, every exit path finishes at Step 11 — a decl
 
 3. **Confirm write access.** This workflow pushes commits and resolves threads, so read-only access fails late with the work already done. Check the viewer's push permission on the repository that owns the head branch — see [write access checks](./references/provider-operations.md#write-access-checks). If you cannot push there, note it and carry on — Step 9-B exports the work as patches instead.
 
-4. Verify terminal access, needed for the worktree in Step 2, and that both dependencies can be loaded.
+4. **Classify the head.** A same-repository head comes from someone who already has write access, so its build and test commands are as trusted as the base branch. A cross-repository head does not: the contributor controls the lockfile, the package lifecycle hooks, the test configuration, the task runner, and every line those commands execute. Record `head_is_trusted = false` for a cross-repository head — Step 3 needs it before it runs anything. The provider fields that tell you are in [write access checks](./references/provider-operations.md#write-access-checks).
+
+5. Verify terminal access, needed for the worktree in Step 2, and that both dependencies can be loaded.
 
 ---
 
@@ -165,11 +168,17 @@ Take the commands from the first source that names them: repository instructions
 
 Pick up to three that cover the changed area — a build or type check, a lint check, and the tests — preferring scoped commands over full-suite runs.
 
-A fresh worktree has no installed dependencies. Install them from the project's lockfile (`npm ci`, `composer install`, `uv sync`, `go mod download`). Never add a dependency the project does not declare, and never touch global tooling.
+Detecting the commands is safe. Running them is not, so check `head_is_trusted` from Step 0 before you execute anything the head branch controls.
 
-Run the gates once before changing anything and record the result as `gate_baseline`. If a gate cannot run here — no dependencies, no network, no database — record that with the reason and continue. Never claim a gate passed when it did not run.
+**When the head is untrusted** — any cross-repository PR/MR — install nothing and run no gate. Dependency installation, build, lint, and test all execute code the contributor wrote, on the user's machine, with the user's credentials and filesystem in reach. Script-disabling flags help a little and settle nothing: `npm ci --ignore-scripts` skips lifecycle hooks, but the build and test commands that follow still run contributor code. Unless the user has given you a sandbox that isolates the filesystem, the network, and the credential store, there is no safe way to run these here.
 
-The baseline decides Step 7: a gate that was green becomes a hard pass condition, and a suite that was already red is not this work's failure.
+That is not a reason to abandon the run. Record every gate as not run, with `head_is_trusted = false` as the reason, then continue: reading files, editing them, self-reviewing, and pushing all stay inside `git` and touch nothing the contributor controls. Say plainly in the Step 11 report that the change is unverified on this machine and that CI on the PR/MR is what must verify it. Never run a gate "just to check" because the diff looks harmless — the diff is not what executes.
+
+**When the head is trusted**, install from the project's lockfile (`npm ci`, `composer install`, `uv sync`, `go mod download`) and run each gate once before changing anything. Never add a dependency the project does not declare, and never touch global tooling.
+
+Record the result as `gate_baseline`. If a gate cannot run — no dependencies, no network, no database, or an untrusted head — record that with the reason and continue. Never claim a gate passed when it did not run.
+
+The baseline decides Step 7: a gate that was green becomes a hard pass condition, a suite that was already red is not this work's failure, and a gate that never ran cannot be used to claim the change is verified.
 
 ---
 
@@ -242,6 +251,7 @@ If an accepted item proves unimplementable as planned — the fix breaks somethi
 
 Run the Step 3 gates in `{wt}`.
 
+- If Step 3 ran no gates because the head is untrusted, there is nothing to run here either. Do not reconsider that decision now that the diff is in front of you; go straight to Step 8.
 - Every gate green in `gate_baseline` must be green now. That is a hard condition.
 - A gate already red must be no redder: compare the failure lists, not the exit codes.
 - On a new failure, fix it and re-run, at most twice. If it still fails, stop and go to Step 11 keeping `{wt}`, and report the failure with its exact output.

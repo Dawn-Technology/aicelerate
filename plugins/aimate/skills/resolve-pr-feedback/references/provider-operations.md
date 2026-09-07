@@ -28,6 +28,8 @@ gh pr view {pull_number} --repo {owner}/{repo} \
 
 Pushing to the head branch requires `permissions.push` on the repository that owns it. For a cross-repository PR that means either write access on the fork or `maintainerCanModify: true` combined with write access on the base repository.
 
+`isCrossRepository: true` also sets `head_is_trusted = false` for Step 3 — the head branch is contributor-controlled, so none of its build, lint, or test commands may be executed locally.
+
 ### GitLab
 
 `glab api` has no `--jq` flag; pipe its output to `jq` instead. The high-level `glab mr` commands do accept `--jq`.
@@ -42,6 +44,8 @@ glab mr view {mr_iid} --output json \
 ```
 
 Pushing to the source branch requires at least Developer access on the source project, or `allow_collaboration: true` plus Developer access on the target project when the MR comes from a fork.
+
+A `source_project_id` that differs from `target_project_id` sets `head_is_trusted = false` for Step 3, on the same reasoning as a GitHub fork PR.
 
 ---
 
