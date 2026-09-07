@@ -108,7 +108,7 @@ Two more cover where the head branch actually lives, and every step after Step 2
 
 Resolve both in Step 2 and use them for the worktree, the self-review diff, any rebase, the patch range, and the push. Where an example below shows `origin/{src}`, that is the same-repository case written out; substitute `{head_remote}/{head_ref}` for a fork.
 
-Once Step 2 creates the worktree, every exit path finishes at Step 11 — a declined plan, a failing gate, an abandoned run. The worktree is never left behind silently.
+Once Step 2 creates the worktree, every exit path finishes at Step 11 in the same turn — a plan-first preview, a failing gate, an abandoned run. The worktree is never left behind silently, and never left behind pending a turn the user might not take.
 
 ### Step 0 — Detect Provider, Resolve Route, Confirm Write Access
 
@@ -126,7 +126,9 @@ Once Step 2 creates the worktree, every exit path finishes at Step 11 — a decl
 
 4. **Classify the head.** A same-repository head comes from someone who already has write access, so its build and test commands are as trusted as the base branch. A cross-repository head does not: the contributor controls the lockfile, the package lifecycle hooks, the test configuration, the task runner, and every line those commands execute. Record `head_is_trusted = false` for a cross-repository head — Step 3 needs it before it runs anything. The provider fields that tell you are in [write access checks](./references/provider-operations.md#write-access-checks).
 
-5. Verify terminal access, needed for the worktree in Step 2, and that both dependencies can be loaded.
+5. **Detect plan-first mode.** If the request explicitly asked to see the plan before anything changes — "show me what you'd change", "just tell me what you'd do" — set `plan_first = true` now. It changes how the run ends, so it has to be known before Step 2 creates anything.
+
+6. Verify terminal access, needed for the worktree in Step 2, and that both dependencies can be loaded.
 
 ---
 
@@ -235,7 +237,7 @@ Write the plan down before changing any file. It is the record the Step 11 repor
 
 Then continue to Step 6 in the same turn. Do not ask whether to proceed.
 
-One exception: when the request explicitly asked for a plan first, present the plan, stop there, and clean up in Step 11 on the next turn.
+One exception: when `plan_first` is set, the plan is the deliverable. Clean up first, then present it — run the Step 11 cleanup in this same turn, while the worktree is still unchanged, and include the plan in that report. Do not leave the worktree, the temporary branch, or a `pr-head` / `mr-head` remote sitting on disk waiting for a turn that may never come; a resumed run recreates all three from the current remote head in seconds, and gets a fresher base for doing so.
 
 ---
 
@@ -387,7 +389,7 @@ Each reply states what was done, or why nothing was done, plus the evidence: the
 
 ### Step 11 — Clean Up and Report
 
-Runs on every path that created a worktree, and never in the same response as a plan-first preview.
+Runs on every path that created a worktree, in the same turn that path ends — including a plan-first preview, where cleanup comes before the plan is presented.
 
 ```bash
 git worktree remove {wt} --force
