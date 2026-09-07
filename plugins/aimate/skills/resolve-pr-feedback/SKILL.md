@@ -101,6 +101,13 @@ Follow these steps in order. Do not skip a step.
 
 Notation: `{n}` is the PR/MR number, `{src}` the source branch, `{wt}` the worktree `.worktrees/pr-fix-{n}`, and `{fix_branch}` the temporary branch `aimate/pr-fix-{n}`.
 
+Two more cover where the head branch actually lives, and every step after Step 2 uses them instead of a bare `origin`:
+
+- `{head_remote}` — `origin` for a same-repository review, or the temporary `pr-head` / `mr-head` remote added in Step 2 for a fork.
+- `{head_ref}` — the branch name in that remote. Same as `{src}`, but read it from the provider rather than assuming it.
+
+Resolve both in Step 2 and use them for the worktree, the self-review diff, any rebase, the patch range, and the push. Where an example below shows `origin/{src}`, that is the same-repository case written out; substitute `{head_remote}/{head_ref}` for a fork.
+
 Once Step 2 creates the worktree, every exit path finishes at Step 11 — a declined plan, a failing gate, an abandoned run. The worktree is never left behind silently.
 
 ### Step 0 — Detect Provider, Resolve Route, Confirm Write Access
@@ -149,14 +156,18 @@ If the working set is empty, say so and stop. No worktree is needed.
 ### Step 2 — Create the Isolated Worktree
 
 ```bash
-git fetch origin {src}
-git worktree add {wt} -b {fix_branch} origin/{src}
+git fetch {head_remote} {head_ref}
+git worktree add {wt} -b {fix_branch} {head_remote}/{head_ref}
 ```
+
+For a same-repository review that is `git fetch origin {src}` and `git worktree add {wt} -b {fix_branch} origin/{src}`.
 
 - Branch from the fetched remote head, never from a local copy that may be stale or checked out elsewhere.
 - Working on `{fix_branch}` and pushing by refspec in Step 9 keeps the branch name from colliding with an existing checkout of `{src}`.
 - If `{fix_branch}` already exists from an interrupted run, branch to the next free suffix (`{fix_branch}-2`, `-3`). Never delete or reuse the old one; report that it is still there.
-- For a fork head, add the fork as a remote and branch from it instead — see [fork heads](./references/provider-operations.md#fork-heads).
+- For a fork head, add the fork as a remote first and set `{head_remote}` to it — see [fork heads](./references/provider-operations.md#fork-heads). Everything downstream reads that variable, so this is the only place the fork case needs handling.
+
+Record `{head_remote}` and `{head_ref}` explicitly before leaving this step. Steps 8, 9, and 11 all depend on them, and a fork review that silently falls back to `origin` compares against the wrong branch and pushes to the wrong repository.
 
 Edit files only inside `{wt}`.
 
@@ -274,7 +285,7 @@ Nothing leaves the machine before [code-review](../code-review/SKILL.md) has see
 
 ```bash
 git -C {wt} status --short          # must be empty; commit or discard whatever is left
-git -C {wt} diff origin/{src}...HEAD
+git -C {wt} diff {head_remote}/{head_ref}...HEAD
 ```
 
 Invoke [code-review](../code-review/SKILL.md) with:
@@ -286,7 +297,7 @@ submission:
   description: "Changes resolving review feedback. Accepted items: {accepted_item_summaries}"
   author: "{git_config_user_name_if_available}"
   source_ref: "{fix_branch}"
-  target_ref: "origin/{src}"
+  target_ref: "{head_remote}/{head_ref}"
 code_input:
   diff: "{self_review_diff}"
   files: "{changed_file_inventory}"
@@ -334,11 +345,13 @@ If not, go back. Do not push.
 Push once Step 8 clears. Do not ask first; the commit list, changed files, gate results, and self-review outcome go into the Step 11 report.
 
 ```bash
-git -C {wt} push origin {fix_branch}:{src}
+git -C {wt} push {head_remote} {fix_branch}:{head_ref}
 ```
 
+`{head_remote}` and `{head_ref}` are the ones resolved in Step 2 — `origin` and `{src}` for a same-repository review, `pr-head` / `mr-head` and the fork's branch for a fork. Pushing to `origin` for a fork review would create a new branch in the base repository instead of updating the branch under review, so do not fall back to `origin` here.
+
 - Never force-push, and never rewrite history that is already on the remote.
-- On a non-fast-forward rejection, someone pushed to `{src}` while you worked. Rebase `{fix_branch}` — still unpushed, so this is safe — onto the new remote head, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
+- On a non-fast-forward rejection, someone pushed to the head branch while you worked. Re-fetch `{head_remote} {head_ref}`, rebase `{fix_branch}` — still unpushed, so this is safe — onto the new head, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
 - After an ambiguous failure, fetch and compare the remote head before retrying. A failed response can follow a successful push.
 
 #### 9-B: When the Push Is Not Possible
