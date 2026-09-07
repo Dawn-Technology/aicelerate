@@ -3,7 +3,7 @@ name: write-plan
 description: Create a technical implementation plan broken into small, executable, sized tasks. Use when user asks to create an implementation plan, break down a ticket, or scope work.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Plan tasks
@@ -124,16 +124,19 @@ Output economy:
 - **Contract Inputs:** Every task must list repository contract files it consumes, or `None`. Never list plan sections. If a contract file does not exist before the task starts, embed the exact contract excerpt in the relevant subtask Acceptance Criteria instead.
 - **Context to Preserve:** Every task must list existing behavior, contracts, files, or conventions the subagent must not change while completing the task.
 - Every code-changing task's last subtask must be a test subtask outlining the test scenarios as checklist items, specifying setup/act/assert constraints, identifying the test harness to use, and listing the exact validation command to run. Use unit tests for pure logic, integration tests for API boundaries, and E2E only when explicitly in scope. If the command is unknown, state that the subagent must inspect the repository test configuration before editing code.
-- Every subtask carries a size label — `S`, `M`, or `L` (defined under **Subtask sizing** below). `L` is the ceiling: split anything larger, or replace it with a Spike task.
+- Every subtask carries a size label — `XS`, `S`, `M`, or `L` (defined under **Subtask sizing** below). `L` is the ceiling: split anything larger, or replace it with a Spike task.
 - **Spike fallback:** If a task's scope is too uncertain to size, make it a Spike task — its name prefixed `Spike — ` (e.g. `Task 3 — Spike — Auth flow`) — that emits a defined output artifact (e.g. 'Sequence Diagram' or 'Interface Proposal'). A Spike's subtasks carry no size label.
 - **Integration review:** Every plan using two or more subagent-executable tasks must include a near-final **Integration Review** task before Documentation/Rework to reconcile outputs, shared contracts, overlapping edits, and validation results.
 - **Final task:** Every plan must include a final task named **Documentation/Rework** with subtasks for **Documentation updates** and **Rework**.
 
 **Subtask sizing.** Assign every subtask a size label. These sizes describe the shape of a subtask within a plan; they are not story points (that is `estimate-size`) and carry no hours here (that is `estimate-time`).
 
-- **S:** single file, mechanical or narrowly-scoped logic.
-- **M:** self-contained change across 2-3 files, one layer or responsibility.
-- **L:** vertical slice touching multiple layers (e.g. API + service + data). This is the ceiling — split anything larger, or emit a Spike task.
+File count is the primary axis. Logic volume is a tie-breaker that may promote a subtask by one step and never by two, and the reason must be stated in the subtask. When two labels seem to fit equally, choose the smaller.
+
+- **XS:** single file, trivial or mechanical change with no new logic (e.g. a rename, a config value, a fixture addition).
+- **S:** single file, narrowly-scoped logic. This is the default for any single-file subtask.
+- **M:** 2-3 files within one layer or responsibility. A single file qualifies only when promoted — it adds three or more distinct behaviours, guards, or test scenarios.
+- **L:** vertical slice touching more than one layer (e.g. API + service + data). A single-file subtask is never `L`. This is the ceiling — split anything larger, or emit a Spike task.
 
 ### Phase 3: Review
 
@@ -146,6 +149,7 @@ Validate the plan and ensure:
 5. No task or subtask refers to Section 4, Section 4.1, Technical Approach, Design Tree, "above", "below", or any other plan section as required execution context.
 6. No subtask relies on a planned service, type, schema, or interface by name only; it must read a real file created earlier or include the exact snippet it needs.
 7. Every parallel-safe task has non-overlapping allowed modification scope.
+8. Every size label matches the **Subtask sizing** definitions when checked against the subtask's own file list: no single-file subtask is labelled `L`, and every single-file subtask is `S` unless it states the reason it was promoted.
 
 Do a rubber-duck review and critique the plan. Resolve any issues before continuing.
 

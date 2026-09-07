@@ -3,7 +3,7 @@ name: estimate-time
 description: Add a time estimate in hours to an existing implementation plan. Use when the user asks to estimate a plan or task list, or asks how long the work will take.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Estimate Time
@@ -34,9 +34,10 @@ For each task, determine which Design Tree branches its work rests on, then assi
 
 Map each subtask's size label to a fixed hour bucket:
 
+- **XS = 0.5h**
 - **S = 1h**
-- **M = 2h**
-- **L = 4h**
+- **M = 3h**
+- **L = 6h**
 
 Sum a task's subtask hours to get its base, then multiply by the task's risk multiplier to get the task total.
 
