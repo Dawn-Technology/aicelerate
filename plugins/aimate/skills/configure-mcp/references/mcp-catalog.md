@@ -137,10 +137,11 @@ Do not list removals unless the user explicitly requested them.
 - **Selected implementation:** GitHub's official `gh` CLI.
 - **Version policy:** Use a maintained installed version that provides `gh pr`, `gh api`, and `gh auth status`; do not auto-install or auto-upgrade it.
 - **Capabilities:** GitHub PR metadata/diffs/reviews, issues, Actions, and authenticated REST/GraphQL through `gh api`.
+- **Install:** On macOS or Homebrew-enabled Linux use `brew install gh`. On Windows use `winget install --id GitHub.cli`. For other platforms, follow the official installation options.
 - **Authentication:** Host-specific CLI authentication. Never use `--show-token` during validation.
 - **Safe validation:** Verify `gh` exists, run `gh --version`, then `gh auth status --active --hostname <origin-host>`.
 - **Repair action:** Ask the user to run `gh auth login --hostname <origin-host>`; never request a token in chat.
-- **Official source:** https://cli.github.com/manual/
+- **Official sources:** https://cli.github.com/manual/ and https://github.com/cli/cli#installation (install guide)
 
 ### GitLab CLI
 
@@ -149,20 +150,22 @@ Do not list removals unless the user explicitly requested them.
 - **Version policy:** Use a maintained installed version that provides `glab mr`, `glab api`, and `glab auth status`; do not auto-install or auto-upgrade it.
 - **Capabilities:** GitLab MR metadata/diffs/reviews, issues, pipelines, and authenticated REST/GraphQL through `glab api` for operations without a high-level command.
 - **Install:** On macOS or Homebrew-enabled Linux use `brew install glab`. For other platforms, follow the official installation options.
-- **Authentication:** Host-specific CLI authentication. Never use `--show-token` during validation.
+- **Authentication:** Host-specific CLI authentication. The default `glab auth login` browser flow grants a broad OAuth token; prefer a fine-grained personal access token for a narrower blast radius when the user's threat model warrants it. Never use `--show-token` during validation.
+- **Fine-grained token scope (tested working, applied to all current and future groups/projects the user is a member of):** CI/CD — Pipeline: Read. Projects — Project: Read. Repository — Branch: Create, Delete, Protect, Read; Code: Download, Push, Read; Commit: Create, Delete, Read, Update; Merge Request: Approve, Create, Delete, Merge, Read, Update; Repository: Read. Search — Global Search: Use. System Access — Member: Read. Project Planning — Work Item: Create, Delete, Read, Update. Plus user-level permissions: Project: Read and User: Read. Start from this set and trim further per project; do not treat it as a guaranteed minimum for every workflow.
 - **Safe validation:** Verify `glab` exists, run `glab --version`, then `glab auth status --hostname <origin-host>`. After login, run `glab repo list --member` as a read-only access check.
-- **Repair action:** Ask the user to run `glab auth login --hostname <origin-host>`; never request a token in chat.
-- **Official sources:** https://docs.gitlab.com/cli/, https://docs.gitlab.com/cli/auth/login/, and https://docs.gitlab.com/cli/repo/list/
+- **Repair action:** Ask the user to run `glab auth login --hostname <origin-host>` for the default OAuth flow, or `glab auth login --hostname <origin-host> --token` (reading the token from stdin/env) to authenticate with a fine-grained personal access token instead; never request or print a token in chat.
+- **Official sources:** https://docs.gitlab.com/cli/, https://docs.gitlab.com/cli/auth/login/, https://docs.gitlab.com/cli/repo/list/, and https://github.com/gitlabhq/cli/blob/main/docs/installation_options.md (install guide)
 
 ### Atlassian CLI for Jira Cloud
 
 - **Selected implementation:** Atlassian's official `acli` CLI.
 - **Minimum tested release line:** `1.3.15-stable`, which includes the current OAuth permission update. Newer stable versions are allowed.
 - **Capabilities:** Jira Cloud work-item search/view/create/edit/comment/transition/assignment and related project/sprint commands.
+- **Install:** On macOS use `brew tap atlassian/homebrew-acli && brew install acli`. For other platforms, follow the official installation options.
 - **Not covered:** Confluence and Jira/Confluence Data Center.
 - **Safe validation:** Verify `acli` exists, run `acli --version`, then `acli jira auth status`. Do not switch accounts during preflight.
 - **Repair action:** Ask the user to run `acli jira auth login` or `acli jira auth switch`; site-admin re-authorization may be required after the 1.3.15 OAuth scope update.
-- **Official sources:** https://developer.atlassian.com/cloud/acli/reference/commands/ and https://developer.atlassian.com/cloud/acli/changelog/
+- **Official sources:** https://developer.atlassian.com/cloud/acli/reference/commands/, https://developer.atlassian.com/cloud/acli/guides/install-acli/ (install guide), and https://developer.atlassian.com/cloud/acli/changelog/
 
 ### Sentry CLI
 
