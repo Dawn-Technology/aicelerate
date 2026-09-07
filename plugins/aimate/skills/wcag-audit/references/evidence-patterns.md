@@ -26,7 +26,10 @@ Keep this compact in working notes and use it to fill the finding's existing fie
 
 1. **Established case:** the specific entry point/caller, selected branch/configuration, and relevant input value or invariant, with source locations. Distinguish "can render if an editor supplies X" from a source-established violating case. A field schema permitting bad content is an authoring risk, not evidence that bad content exists. An unconditional defect in a traced implementation can be reported for that implementation without claiming live deployment.
 2. **Failed requirement:** the normative SC condition and why this case violates it. Include relevant exceptions and equivalent mechanisms. Missing a preferred technique alone does not prove failure.
-3. **Disproof checked:** the strongest plausible mitigation or alternative explanation, the source inspected to check it, and the result. Read the complete semantic component, not only the suspicious lines; surrounding labels, headings, alternate controls, ancestor semantics, and branch selection can change the conclusion.
+3. **Disproof checked:** the strongest plausible mitigation or alternative explanation, the source inspected to check it, and the result. Read the complete semantic component, not only the suspicious lines; surrounding labels, headings, alternate controls, ancestor semantics, and branch selection can change the conclusion. Three checks are mandatory here:
+   - **Enumerate your own absence claims.** A disproof that asserts "this only ever appears in X" or "no ancestor supplies it" is an absence claim and needs the same enumeration any other absence claim needs. Search the whole implementation boundary, including shells, wrappers, and parent templates, before writing it.
+   - **Test the criterion's permitted alternatives.** Many criteria are satisfied by more than one mechanism — bypass blocks by landmarks or headings, keyboard access by an equivalent control, link purpose by programmatic context. Show the alternatives were checked and why each fails, or the FAIL is not established.
+   - **Resolve computed values.** When the finding turns on an accessible name, state, or color that source supplies through a variable, caller argument, child content, or token, resolve it to its defining source. An asserted value such as `aria-label="{{ logo_alt }}"` meaning "ZE&GG Logo" is unproven until the caller is opened; unresolved values give NEEDS_REVIEW, not FAIL.
 4. **Outcome:** confirmed instance plus sufficient remediation, or the exact missing evidence. Missing inspectable source work stays pending; a genuinely unavailable content/configuration/runtime fact produces NEEDS_REVIEW unless another instance proves FAIL.
 
 Do not accept an assertion such as "real reachable outcome", "no exception", or "reviewed" as a substitute for these facts. The reviewer supplies their own disproof check; they do not simply copy the collector's.
@@ -38,6 +41,8 @@ Exact totals are useful only when naturally bounded by inspected source. Otherwi
 ## Citation provenance
 
 Every citation must come from source opened in this run: each `path:line` appears in returned worker evidence or in a file the author read. Do not supply a plausible file name for a claim you did not verify. A reach, rollout, bundle, route, or configuration claim needs its controlling line quoted; without it, scope the finding to the implementation actually traced.
+
+Line numbers are evidence, not decoration. Never carry one over from a summary, a previous report, or memory — re-derive it by matching the quoted content in the file at write time. A citation pointing at the wrong line is a defect even when the claimed code exists elsewhere in the file, because it shows the citation was never reopened.
 
 Absence and coverage claims state how they were established — `enumerated <file set>: <count> files; inspected <count>` — rather than a bare count or a search-derived total.
 

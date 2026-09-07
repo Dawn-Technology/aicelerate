@@ -18,9 +18,9 @@
 
 **Assessment coverage:** [[state_the_number_of_collection_batches_from_the_batch_register_then_list_each_one_with_its_SC_ids_and_source_boundary]]
 
-**Evidence review coverage:** [[state_the_number_of_review_batches_from_the_batch_register_then_list_which_batches_were_reviewed_and_how_challenges_resolved]]
+**Evidence review coverage:** [[state_the_review_count_from_the_batch_register_then_per_batch_list_the_SC_ids_the_review_actually_covered_and_how_challenges_resolved]]
 
-<!-- Derive coverage from the batch register, not from memory or a worker's completion claim. The two counts above must match the register and each other; a listed batch count that disagrees with the enumerated batches is a defect. Use the partial template if assessment or review remains unfinished. -->
+<!-- Derive coverage from the batch register, not from memory or a worker's completion claim. Report SC IDs the reviews covered, not a per-batch yes/no. Assigned minus covered must be empty in a normal report; if it is not, use the partial template and list the uncovered IDs. -->
 
 ## Scope and evidence boundary
 
