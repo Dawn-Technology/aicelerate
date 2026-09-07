@@ -16,11 +16,11 @@
 
 **Git commit:** [[git_commit_hash]]
 
-**Assessment coverage:** [[describe_completed_surface_assignments_and_their_source_boundaries]]
+**Assessment coverage:** [[state_the_number_of_collection_batches_from_the_batch_register_then_list_each_one_with_its_SC_ids_and_source_boundary]]
 
-**Evidence review coverage:** [[describe_actual_reviewed_batches_and_resolution_of_challenges]]
+**Evidence review coverage:** [[state_the_number_of_review_batches_from_the_batch_register_then_list_which_batches_were_reviewed_and_how_challenges_resolved]]
 
-<!-- Derive coverage from working evidence. Do not copy a completion declaration from a worker. Use the partial template if assessment or review remains unfinished. -->
+<!-- Derive coverage from the batch register, not from memory or a worker's completion claim. The two counts above must match the register and each other; a listed batch count that disagrees with the enumerated batches is a defect. Use the partial template if assessment or review remains unfinished. -->
 
 ## Scope and evidence boundary
 
@@ -33,6 +33,8 @@
 **Technology stack:** [[technology_stack]]
 
 **Source limitations:** [[source_limitations]]
+
+**Search method:** [[verified_search_method_and_how_the_boundary_probe_was_confirmed]]
 
 > This report is a static source-code audit against the 55 WCAG 2.2 Level A and AA success criteria. It is an audit finding, not a certification or WCAG conformance claim. Source review cannot establish rendered behavior, full-page and complete-process coverage, accessibility-supported behavior, or compatibility with assistive technologies. All NEEDS_REVIEW items require the stated browser, keyboard, content, and/or assistive-technology testing before any conformance claim is considered.
 

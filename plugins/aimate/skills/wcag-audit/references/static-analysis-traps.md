@@ -45,6 +45,9 @@ For `static_analyzable=no`, these checks identify risks and precise manual check
 - Keyboard applies to functionality, not every pointer target individually. Trace equivalent controls, delegated events, and library-provided activation before concluding a function is unavailable. Excluding vendor code from general searches does not prove that the installed library has no keyboard support; unresolved support remains NEEDS_REVIEW.
 - Authentication, error handling, repeated help, page discovery, and multi-step processes often cross the selected source boundary. Do not issue PASS or N/A when framework configuration or rendered process steps remain unresolved.
 
+- Rendering a framework variable is not compliance evidence. `{{ head_title }}`, `html_attributes`, `{{ messages }}`, and similar pass-throughs prove only that the theme does not remove the mechanism; whether the title is descriptive, the language correct, or the error associated depends on content and site configuration. When that value falls outside the audited boundary, the criterion is NEEDS_REVIEW, not PASS.
+- A widget the project initializes through an asset registry or bundler entry point is in scope for the behavior it introduces, even when the library body is excluded. A lightbox, carousel, map, media player, or date picker attached by a production template can add pointer gestures, dragging, focus management, and modal behavior that no project template reveals. Enumerate these entry points; unresolved library interaction is NEEDS_REVIEW, never a silent PASS.
+
 ## External observations
 
 Treat user-supplied reports, screenshots, scanner output, and live-site claims as external evidence. Record provenance, corroborate what source can establish, and never present unverified rendered behavior as independently proven by this static audit.

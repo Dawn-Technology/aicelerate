@@ -38,6 +38,8 @@ For each materially distinct pattern:
 
 Do not equate search hits with governed instances. A reusable component can represent many rendered instances; a single source hit can also be irrelevant after inspection.
 
+Do not equate zero search hits with absence either. Confirm the search method actually reaches the target root, then rest the absence claim on an enumeration of the governed files. Where the enumeration was not performed, the pattern is unresolved, not absent.
+
 Before proposing FAIL, read the normative SC and relevant definitions, not just its CSV hint or a technique. Record a link to the requirement and explain the failed condition. Best practice, an ARIA authoring-pattern mismatch, or a missing preferred technique alone is not a WCAG violation. If normative text cannot be verified, keep the proposal unresolved and explain what must be checked.
 
 Use the [FAIL proof record](./evidence-patterns.md#fail-proof-record) for candidate instances. Reject an unsupported instance, not necessarily the entire criterion: another independently proven instance can still establish FAIL.
