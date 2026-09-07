@@ -35,6 +35,12 @@ Within each instance, source locations must form one coherent behavior trace. Do
 
 Exact totals are useful only when naturally bounded by inspected source. Otherwise write `at least N` or describe affected source patterns. Never derive a rendered-instance total from raw search hits, template loops, optional components, or unavailable CMS data.
 
+## Citation provenance
+
+Every citation must come from source opened in this run: each `path:line` appears in returned worker evidence or in a file the author read. Do not supply a plausible file name for a claim you did not verify. A reach, rollout, bundle, route, or configuration claim needs its controlling line quoted; without it, scope the finding to the implementation actually traced.
+
+Absence and coverage claims state how they were established — `enumerated <file set>: <count> files; inspected <count>` — rather than a bare count or a search-derived total.
+
 ## External evidence
 
 Prefix observations not independently established by the static audit:
