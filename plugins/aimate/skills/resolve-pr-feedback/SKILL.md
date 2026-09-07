@@ -241,6 +241,14 @@ Work through the accepted items one logical change at a time.
 
 Commit each logical unit as you finish it — one commit per item, or one per group of items sharing a fix. That gives Step 8 a real diff and keeps each fix attributable to its thread. Invoke [write-commit-message](../write-commit-message/SKILL.md) for every message and use it verbatim; it runs autonomously, so add no approval step of your own.
 
+That delegation must be scoped to `{wt}`. `write-commit-message` works on whatever repository it finds itself in and stages for you when nothing is staged, so an unscoped invocation can commit the user's unrelated work in the primary checkout and leave `{wt}` untouched. Before invoking it:
+
+- Stage the paths for this item yourself, in the worktree: `git -C {wt} add <paths>`. Name the paths explicitly — `git add -A` is prohibited here, because the worktree is not the only thing an agent may have touched.
+- Tell it to run every `git` command with `git -C {wt}`, that the change is already staged, and that it must not stage anything itself.
+- Have it commit with `git -C {wt} commit --cleanup=strip -F <tmpfile>`, generating the message from that staged diff.
+
+Scoping the invocation is not substituting the message; the wording stays entirely `write-commit-message`'s call.
+
 Nothing is pushed yet, so amending or squashing `{fix_branch}` stays safe until Step 9.
 
 If an accepted item proves unimplementable as planned — the fix breaks something else, or the reviewer's assumption fails once you write it — revert its partial edits, move it to `needs-clarification`, and report it. Do not improvise a solution the user has not seen.
@@ -408,7 +416,7 @@ Left as is — `items` is guaranteed non-empty by the query on line 42, and the 
 - Never stop for approval. Decide, act, and report — the three exceptions are listed under Autonomy.
 - Never merge, close, reopen, approve, or retarget a PR/MR.
 - Never force-push, and never rewrite history already on the remote.
-- Never edit files outside `{wt}`, and never change code the recorded plan does not cover.
+- Never edit files outside `{wt}`, and never change code the recorded plan does not cover. That includes delegated work: scope `write-commit-message` to `{wt}`, stage paths explicitly, and never run `git add -A`.
 - Never weaken a test, lint rule, or type check to make a gate pass.
 - Never resolve a thread that was not addressed, and never resolve a rejected thread without the user's say-so.
 - Never use raw `curl` for provider APIs, tools from the wrong provider, or a GitLab.com route for a self-hosted MR. Use `gh`, `glab`, or the matching MCP route, and `git` for local, worktree, and push operations.
