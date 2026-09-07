@@ -98,7 +98,7 @@ Automates the full workflow from local changes to a published GitLab MR: creates
 
 > Create a technical implementation plan broken into small, executable, sized tasks.
 
-Produces a deterministic, execution-ready implementation plan with atomic tasks, `S`/`M`/`L` size labels, and dependency mapping — no hour estimation. Offers to hand off to `estimate-time` once the plan is saved.
+Produces a deterministic, execution-ready implementation plan with atomic tasks, `XS`/`S`/`M`/`L` size labels, and dependency mapping — no hour estimation. Offers to hand off to `estimate-time` once the plan is saved.
 
 **Trigger phrases:** "create an implementation plan", "break down a ticket", "plan this task"
 
@@ -108,7 +108,7 @@ Produces a deterministic, execution-ready implementation plan with atomic tasks,
 
 > Add a time estimate in hours to an existing implementation plan.
 
-Reads a saved `write-plan` plan and writes an hour estimate back into it: a per-task risk multiplier from the Design Tree, `S`/`M`/`L` mapped to hours, and the estimation table. For story-point sizing, use `estimate-size` instead.
+Reads a saved `write-plan` plan and writes an hour estimate back into it: a per-task risk multiplier from the Design Tree, `XS`/`S`/`M`/`L` mapped to hours, and the estimation table. For story-point sizing, use `estimate-size` instead.
 
 **Trigger phrases:** "estimate this plan", "how long will this take", "add a time estimate"
 
