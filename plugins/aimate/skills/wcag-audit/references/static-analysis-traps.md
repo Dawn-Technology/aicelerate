@@ -21,6 +21,7 @@ For `static_analyzable=no`, these checks identify risks and precise manual check
 - A focus style may be shared with hover or active. Compare focused with unfocused presentation; WCAG 2.4.7 does not require unique styling for each input mode.
 - Keep focus criteria distinct: 2.4.7 requires a visible focus indicator, 2.4.11 concerns focus being obscured, and focus-indicator area is in 2.4.13 at Level AAA.
 - Source-defined color pairs can prove a contrast failure only when foreground, actual adjacent background, opacity composition, state, and relevant text-size or component exceptions are resolved.
+- For [1.4.1](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html), inspect visible text and symbols describing the same state before claiming color-only communication. `aria-current` alone is not a visible alternative for sighted users who cannot distinguish colors. Remediation must address the actual visual information, not only accessibility-tree semantics.
 - Authored dimensions below a threshold are candidates, not automatic failures. For 2.5.8, center a 24 CSS pixel diameter circle on the bounding box of each undersized target. The spacing exception fails only if that circle intersects another target or the circle of another undersized target. A CSS `gap` below 24px is not by itself a failure. Resolve computed bounding boxes, neighboring targets, and all other exceptions; otherwise use NEEDS_REVIEW.
 - Visual reordering declarations identify patterns requiring DOM/reading-sequence analysis. Their presence is not automatically a failure, and they cannot be reported as absent when source searches found them.
 
@@ -36,6 +37,8 @@ For `static_analyzable=no`, these checks identify risks and precise manual check
 ## Behavior and complete processes
 
 - Search for behavior, not only component names: event handlers, form dispatch/submission, focus changes, pointer/down events, route transitions, hover/focus disclosure, and live-region updates.
+- A broken skip link is an implementation defect, but [2.4.1](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html) permits other bypass mechanisms, including appropriate landmarks and heading structure. Check the complete page composition before claiming the criterion fails. Similarly, evaluate link purpose with its programmatically determined context, not only how it sounds in an isolated links list.
+- A manual check for [2.1.2](https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html) must establish keyboard escape from the component. Do not replace this with a universal requirement that every overlay trap focus internally or close with Escape; modal-pattern behavior is a separate question.
 - For status messages, trace the exact mutation target and the live region in the same rendered branch. A live region in another mutually exclusive branch does not cover the updated message.
 - A content update is not automatically a change of context. Determine whether page, focus, viewport, or meaning changes; if runtime outcome is unavailable, use NEEDS_REVIEW.
 - A click handler on a label descendant is not a Keyboard failure when the same native control remains keyboard operable and the handler does not block it.

@@ -1,24 +1,25 @@
 # WCAG Static Audit Examples
 
-Use these examples only to clarify formatting. Apply the canonical decision procedure and actual repository evidence.
+These are illustrative cases, not repository evidence. Apply the decision procedure to the actual source; do not copy their conclusions without establishing their premises.
 
 ## FAIL with representative instances
 
 ```markdown
-### ❌ FAIL 1.1.1 — Non-text Content
+### ❌ FAIL 1.3.5 — Identify Input Purpose
 
-- **WCAG level:** A
-- **Severity / review priority:** Serious
-- **Affected or unresolved instances:** at least 3 source-proven violations
-- **Coverage:** Product cards, account avatars, and authored chart components under `src/`; CMS-provided image content remains outside this finding count
-- **Normative requirement:** [1.1.1 Non-text Content](https://www.w3.org/TR/WCAG22/#non-text-content) requires an equivalent text alternative for the informative content in these instances.
-- **Applicability and exceptions:** The cited images convey information or act as controls; none is decorative, redundant with adjacent text, or covered by another 1.1.1 exception.
+- **WCAG level:** AA
+- **Severity / review priority:** Moderate
+- **Affected or unresolved instances:** 1 source implementation; live usage count unknown
+- **Coverage:** The subscription form rendered by the source-controlled `/subscribe` route
+- **Normative requirement:** [1.3.5 Identify Input Purpose](https://www.w3.org/TR/WCAG22/#identify-input-purpose) requires programmatic identification of listed personal-data purposes using supporting technology.
+- **Applicability and exceptions:** The static label and submit handler establish that this field collects the subscriber's own email address. No applicable exception.
+- **Counterevidence checked:** The reviewer traced the complete form and its initialization; there is no purpose token, equivalent metadata, or later attribute assignment. `type="email"` does not identify whose email is requested.
 - **Representative evidence:**
-  - `src/catalog/ProductCard.tsx:31 <img src={product.image}> missing alt`
-  - `src/account/Avatar.tsx:18 <img alt="avatar"> alternative does not identify the user represented`
-  - `src/charts/Revenue.tsx:54 <svg> has no accessible name or adjacent text alternative`
-- **Impact or uncertainty:** Screen-reader users cannot obtain information conveyed by product, account, and chart imagery.
-- **Remediation or exact manual verification:** Provide data-derived alternatives for informative images, empty alternatives for decorative images, and an equivalent textual summary for the chart.
+  - `src/routes/subscribe.html:12 <label for="email">Your email address</label>`
+  - `src/routes/subscribe.html:13 <input id="email" type="email" autocomplete="off">`
+  - `src/forms/subscribe.js:8 submit handler uses this field for the subscriber; no input metadata mutation`
+- **Impact or uncertainty:** Assistive tools lack a supported purpose identifier for this personal-data field. This is an implementation finding, not proof of live deployment.
+- **Remediation or exact manual verification:** Set `autocomplete="email"` on the input.
 ```
 
 ## NEEDS_REVIEW manual-verification row
@@ -47,3 +48,9 @@ This PASS also requires source-controlled page content to match those locales. I
 - All source-defined form patterns are checked, but actual CMS labels are unavailable: NEEDS_REVIEW with a content verification step is a completed static assessment.
 - One reviewed personal-email field definitely lacks supported purpose metadata: 1.3.5 is FAIL even if the total number of affected rendered forms is unknown. Do not demand an exhaustive instance count before finalizing that row.
 - Small CSS targets or `outline: none` identify manual checks for 2.5.8 or 2.4.7. Both are `no` rows: neither a plausible failure nor a plausible replacement style overrides their static NEEDS_REVIEW gate.
+
+## Rejecting an unsupported finding
+
+A linked image uses an editor-supplied alt value with an empty fallback. The schema permits empty values, but the content is unavailable. The reviewer cannot confirm an unnamed image link from that alone: report NEEDS_REVIEW for published alternatives and note optional validation as an authoring risk. Conversely, a traced source-controlled link containing a fixed empty-alt image and no other name is a different case that can support a source FAIL.
+
+If one of two alleged link-purpose violations has a contextual heading that the collector overlooked, remove that instance and reassess its context. Do not retain it to preserve the original count, and do not turn the entire criterion into PASS if the second instance independently fails.

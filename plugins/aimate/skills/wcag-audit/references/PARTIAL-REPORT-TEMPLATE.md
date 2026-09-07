@@ -76,6 +76,7 @@ COMPLETE means the assessment and evidence review are resolved. A confirmed FAIL
 - **Coverage:** [[bounded_coverage]]
 - **Normative requirement:** [[W3C_SC_link_and_failed_condition]]
 - **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
+- **Counterevidence checked:** [[reviewer_inspected_mitigation_or_alternative_with_source_and_resolution]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]

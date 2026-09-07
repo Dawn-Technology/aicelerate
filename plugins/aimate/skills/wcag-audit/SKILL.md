@@ -2,8 +2,8 @@
 name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evidence review, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
-    author: "Martin Roest <martin.roest@dawn.tech>"
-    version: 3.2.0
+    author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
+    version: 3.3.0
     wcag-version: 2.2.0
 ---
 
@@ -82,8 +82,9 @@ Give a worker one surface or a small related group of criteria at a time, sized 
 ```text
 Assignment: [surface, exact SC IDs, source boundary]
 Inspect source; do not write a report or claim whole-audit completion.
-Return per SC: proposed verdict, inspected patterns and file:line evidence,
-applicability/requirement/exceptions, external uncertainty, and fix or manual check.
+Return per SC: scoped observations and file:line evidence, external uncertainty,
+and fix or manual check. For each proposed FAIL, use the proof record in
+references/evidence-patterns.md. Do not supply a guessed verdict for missing evidence.
 Also return: uninspected patterns, failed reads/searches, and leads affecting other SCs.
 A candidate is not a confirmed FAIL. An unfinished assignment is not NEEDS_REVIEW.
 ```
@@ -94,11 +95,23 @@ A batch verdict covers only its assigned boundary. Combine all contributing surf
 
 ### 3. Review and resolve in batches
 
-Send each ready batch and its evidence to the other worker/model. Workers may exchange collection/review roles, but nobody independently reviews their own evidence. Review all 55 assessments cumulatively, not in a single oversized call. The reviewer reopens evidence, checks each FAIL against the normative requirement, applicability, exceptions, and remediation; challenges the coverage of PASS/N/A; and checks that NEEDS_REVIEW names an external boundary. Return accepted SC IDs and specific challenges, including overlooked source patterns. Acceptance without inspected evidence is not review.
+Send each ready batch and its evidence to the other worker/model. Workers may exchange collection/review roles, but nobody independently reviews their own evidence. Review all 55 assessments cumulatively, not in a single oversized call. Give the reviewer this contract with the relevant decision procedure and evidence reference:
+
+```text
+Try to disprove the proposed conclusion using source, not the collector's prose.
+For each FAIL: inspect the full component, relevant callers and variants; name the
+strongest plausible alternative explanation or mitigation and show why it does
+or does not apply. Reconstruct the violated SC condition, not merely a missing technique.
+For PASS/N/A: identify what covers every contributing surface and what remains unknown.
+For NEEDS_REVIEW: distinguish an external dependency from source work not performed.
+Return per SC: inspected file:line evidence, counterevidence/coverage challenge,
+and accept or revise with a reason. Bare accepted IDs or a batch COMPLETE label
+are not sufficient. Reuse shared evidence rather than repeat it for related rows.
+```
 
 Have a worker review each final aggregate's boundary and reasoning as well as its underlying batches. A changed verdict or new supporting evidence reopens that row's review; it does not inherit an earlier acceptance.
 
-The coordinator reopens disputed evidence and every proposed FAIL, resolves challenges, and incorporates newly proven violations regardless of which worker found them. Do not merge by vote or severity. Evidence for one violating instance must describe one reachable behavior; separate independently proven instances may use different branches or variants.
+The coordinator reopens disputed evidence and every proposed FAIL, resolves challenges, and incorporates newly proven violations regardless of which worker found them. Do not merge by vote or severity. Accept only the instances whose proof records survive review; remove unsupported examples even if another instance still establishes the same criterion FAIL. Evidence for one instance must describe one reachable behavior; separate proven instances may use different variants.
 
 If a worker truncates output, omits evidence, or does not finish, retain usable results and send a narrower follow-up for the missing work. The coordinator may complete missing source analysis and have it reviewed. Continue while safe source work remains; one unsuccessful call does not force a partial report. A genuine interruption, inaccessible required source, or exhausted execution limit does.
 
@@ -107,6 +120,8 @@ If a worker truncates output, omits evidence, or does not finish, retain usable 
 Finalize rows in canonical order using the decision procedure. For absence claims, search the relevant implementation boundary, including delegated helpers and configuration; never infer “nowhere” from one file section. Check contradictions across surfaces, project identity, and stack claims.
 
 Assessment completion means enough source evidence to justify the verdict—not an exhaustive defect inventory or completed browser testing. One confirmed violation settles FAIL; record other known boundaries without counting them as confirmed defects. A named runtime dependency can settle NEEDS_REVIEW after relevant source patterns have been checked for definite violations. PASS/N/A still require whole-scope support. Uninspected unrelated files do not block a settled FAIL, but may leave other criteria unfinished.
+
+Freeze the final ledger and findings before filling the Summary. Derive verdict totals from the ledger and severity totals from the final FAIL sections, not worker summaries or earlier drafts. The severity subtotal must equal the FAIL count. If any verdict, instance, or severity changes, recalculate the affected totals and update the conclusion. No report-validation script is needed.
 
 Fill the mandatory report template and write it once to:
 
@@ -122,12 +137,12 @@ Before writing, perform this evidence-first self-check:
 - actual coordinator and worker model identifiers, or an explicit user-authorized single-model mode;
 - all 55 assessments ready, all reviews resolved, no remaining source work that could change a non-FAIL verdict; derive this from the ledger, not prewritten completion prose;
 - no placeholders, secrets, PII, certification claim, or legal-compliance assertion;
-- every PASS covers the declared source boundary with no admitted unresolved instance;
+- every PASS covers the declared source boundary with no admitted unresolved instance; an excluded implementation whose output affects an in-scope page remains an external dependency, not an exemption from the criterion;
 - every N/A proves absence of the governed feature rather than absence of a violation;
 - every FAIL rechecked against actual source, applicability, and normative exceptions;
 - each FAIL instance has a coherent source trace and sufficient criterion-specific remediation;
 - every NEEDS_REVIEW identifies a concrete browser, content, process, or AT verification;
-- summary counts are calculated from the final ledger; do not repeat numeric verdict counts in conclusion prose;
+- verdict totals match the final ledger and severity totals match the final findings; do not repeat numeric verdict counts in conclusion prose;
 - no evidence contradiction across criteria or between the scope statement and findings.
 - project identity and stack claims match repository metadata at the available precision; regulatory context contains no unverified project-specific applicability claim.
 
