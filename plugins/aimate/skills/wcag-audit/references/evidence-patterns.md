@@ -20,6 +20,17 @@ Evidence must be specific, sanitized, and traceable. Prefer a source location pl
 - **FAIL:** for a `yes` or `partial` criterion, cite at least one definite violating location, link the normative requirement, explain the failed condition and applicability, and resolve relevant exceptions. List no more than 10 representative locations.
 - **NEEDS_REVIEW:** identify the source evidence that creates applicability and the exact rendered-content, browser, process, or assistive-technology check required.
 
+## FAIL proof record
+
+Keep this compact in working notes and use it to fill the finding's existing fields. It is not a second report or an exhaustive inventory.
+
+1. **Established case:** the specific entry point/caller, selected branch/configuration, and relevant input value or invariant, with source locations. Distinguish "can render if an editor supplies X" from a source-established violating case. A field schema permitting bad content is an authoring risk, not evidence that bad content exists. An unconditional defect in a traced implementation can be reported for that implementation without claiming live deployment.
+2. **Failed requirement:** the normative SC condition and why this case violates it. Include relevant exceptions and equivalent mechanisms. Missing a preferred technique alone does not prove failure.
+3. **Disproof checked:** the strongest plausible mitigation or alternative explanation, the source inspected to check it, and the result. Read the complete semantic component, not only the suspicious lines; surrounding labels, headings, alternate controls, ancestor semantics, and branch selection can change the conclusion.
+4. **Outcome:** confirmed instance plus sufficient remediation, or the exact missing evidence. Missing inspectable source work stays pending; a genuinely unavailable content/configuration/runtime fact produces NEEDS_REVIEW unless another instance proves FAIL.
+
+Do not accept an assertion such as "real reachable outcome", "no exception", or "reviewed" as a substitute for these facts. The reviewer supplies their own disproof check; they do not simply copy the collector's.
+
 Within each instance, source locations must form one coherent behavior trace. Do not borrow a live region, keyboard alternative, or style from a mutually exclusive branch. A criterion may group several independently proven instances in different components or variants; they need not coexist on one page. Remediation must satisfy the named criterion, not merely remove a suspicious attribute.
 
 Exact totals are useful only when naturally bounded by inspected source. Otherwise write `at least N` or describe affected source patterns. Never derive a rendered-instance total from raw search hits, template loops, optional components, or unavailable CMS data.

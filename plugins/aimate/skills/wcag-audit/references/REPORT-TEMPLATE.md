@@ -38,6 +38,8 @@
 
 ## Summary
 
+<!-- Fill last: count verdicts from the final ledger and severities from the final FAIL sections. Recalculate after changes; never copy worker totals. -->
+
 [[executive_summary]]
 
 | Verdict | Count |
@@ -79,6 +81,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 - **Coverage:** [[bounded_coverage]]
 - **Normative requirement:** [[W3C_SC_link_and_failed_condition]]
 - **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
+- **Counterevidence checked:** [[reviewer_inspected_mitigation_or_alternative_with_source_and_resolution]]
 - **Representative evidence:**
   [[representative_evidence]]
 - **Impact or uncertainty:** [[impact_or_uncertainty]]

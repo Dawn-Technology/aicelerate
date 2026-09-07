@@ -10,6 +10,8 @@ Identify what the criterion governs and locate relevant production source patter
 - If the feature is present, continue.
 - If applicability depends on unavailable content or runtime state, use **NEEDS_REVIEW**.
 
+Trace the particular caller, not merely a resolver's fallback capability. A rollout list with omitted bundles does not prove that a specific template is selected for those bundles. If actual deployment selection is unavailable, describe an unconditional source defect only within its proven implementation boundary; do not claim both variants are deployed or site-wide affected counts. A cross-page consistency FAIL requires evidence of the relevant page set, not just two alternative implementations.
+
 N/A is not appropriate merely because no violation pattern was found. Criteria that constrain ordinary page behavior, such as orientation or focus behavior, generally remain applicable to the page; absence of a prohibited implementation can support PASS.
 
 ## 2. Apply the static-analysis boundary
@@ -38,6 +40,8 @@ Do not equate search hits with governed instances. A reusable component can repr
 
 Before proposing FAIL, read the normative SC and relevant definitions, not just its CSV hint or a technique. Record a link to the requirement and explain the failed condition. Best practice, an ARIA authoring-pattern mismatch, or a missing preferred technique alone is not a WCAG violation. If normative text cannot be verified, keep the proposal unresolved and explain what must be checked.
 
+Use the [FAIL proof record](./evidence-patterns.md#fail-proof-record) for candidate instances. Reject an unsupported instance, not necessarily the entire criterion: another independently proven instance can still establish FAIL.
+
 ## 4. Aggregate the criterion
 
 Use strict precedence:
@@ -50,6 +54,8 @@ Use strict precedence:
 One violation is enough for aggregate FAIL. An exact violation total is optional unless naturally bounded by source. Use `at least N` when additional rendered or data-driven instances may exist.
 
 Apply this aggregation only after the static gate above. Separate assessment progress from verdict: uninspected source that could change PASS/N/A/NEEDS_REVIEW leaves the assessment pending. For FAIL, further defect enumeration cannot change the verdict and is not a completion requirement. For NEEDS_REVIEW, inspect distinct relevant source patterns for provable violations, but do not enumerate unknowable CMS values or attempt prohibited runtime tests. State both the inspected boundary and the precise external check.
+
+For each non-FAIL row, reconcile its contributing surfaces before accepting the verdict: source-resolved, externally unresolved, or not yet inspected. PASS cannot coexist with an externally unresolved relevant surface, even if the dependency implementation is excluded from general searches. N/A cannot rely on a field label, package name, or absence of a local integration to exclude behavior that an allowed embed/content value could introduce.
 
 ## 5. Record evidence
 
