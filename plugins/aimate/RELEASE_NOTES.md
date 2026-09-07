@@ -6,6 +6,8 @@ Added `resolve-pr-feedback`, which closes the review loop that `review-pr` opens
 
 Feedback that does not hold up is rejected with evidence rather than applied, and threads are resolved only when the fix actually landed. The skill runs autonomously — it decides and reports each judgment call instead of pausing for approval — delegates its commit messages to `write-commit-message`, and never force-pushes, rewrites branch history, or approves its own work.
 
+Review content is treated as untrusted throughout: a comment can name a concern, but it cannot redirect the workflow, widen the scope, or supply commands to run. Contributions from a fork are handled without executing anything the contributor controls, so those runs skip dependency installation and the quality gates and report themselves as unverified, leaving verification to CI on the review.
+
 ## 2.1.0
 
 Extracted the shared code-review core, added `review-local`, and updated `review-pr` to delegate analysis to the core.
