@@ -356,13 +356,18 @@ git -C {wt} push {head_remote} {fix_branch}:{head_ref}
 
 #### 9-B: When the Push Is Not Possible
 
-A fork without maintainer edits, a protected branch, or read-only access. Do not discard the work — export it:
+A fork without maintainer edits, a protected branch, or read-only access. Do not discard the work — export it.
+
+Export it *outside* `{wt}`. `git -C {wt}` runs with the worktree as its working directory, so a relative `-o` path lands inside the worktree that Step 11 deletes. Resolve an absolute `{patch_dir}` under the primary checkout first:
 
 ```bash
-git -C {wt} format-patch origin/{src}..HEAD -o .worktrees/pr-fix-{n}-patches
+primary=$(git -C {wt} rev-parse --path-format=absolute --git-common-dir)
+patch_dir="$(dirname "$primary")/.worktrees/pr-fix-{n}-patches"
+
+git -C {wt} format-patch {head_remote}/{head_ref}..HEAD -o "$patch_dir"
 ```
 
-Keep `{wt}`, skip Step 10 entirely — nothing landed, so no thread has an outcome to report on — and put the patch path, the `git am` command, and every verdict into the Step 11 report instead.
+Keep `{wt}`, skip Step 10 entirely — nothing landed, so no thread has an outcome to report on — and put the absolute `{patch_dir}`, the `git am` command to apply it, and every verdict into the Step 11 report instead. The patches are the only copy of the work, so quote the path in full rather than relative to anything.
 
 ---
 
@@ -389,6 +394,8 @@ git worktree remove {wt} --force
 git branch -D {fix_branch}
 git remote remove pr-head    # or mr-head, only if Step 2 added one
 ```
+
+Never delete `{patch_dir}`. It sits beside `{wt}` rather than inside it precisely so this cleanup cannot take it, and it holds the only copy of work that never reached the remote.
 
 Keep `{wt}` only when the run stopped on a failing gate or left unpushed work the user still needs. Say so explicitly and give the commands above. If removal fails, tell the user to run `git worktree prune`.
 
