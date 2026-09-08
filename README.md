@@ -329,11 +329,12 @@ Hand off the result of write-plan (and estimate-time, if a time forecast is need
 
 ### Stage 6 — Review
 
-Review the resulting code changes for correctness, quality, and security. `review-pr` uses `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub.
+Review the resulting code changes for correctness, quality, and security, then work the feedback back into the branch. `review-pr` and `resolve-pr-feedback` are the two halves of the same loop, and both use `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions through the saved provider route |
+| `resolve-pr-feedback` | aimate | Validate the review threads, fix what holds up in an isolated worktree, run the project's quality gates, self-review, push, and reply per thread |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Fetch the diff, read existing comments, and post structured review comments |
 
