@@ -6,7 +6,7 @@ Added `resolve-pr-feedback`, which closes the review loop that `review-pr` opens
 
 Feedback that does not hold up is rejected with evidence rather than applied, and threads are resolved only when the fix actually landed. The skill runs autonomously — it decides and reports each judgment call instead of pausing for approval — delegates its commit messages to `write-commit-message`, and never force-pushes, rewrites branch history, or approves its own work.
 
-Review content is treated as untrusted throughout: a comment can name a concern, but it cannot redirect the workflow, widen the scope, or supply commands to run. Contributions from a fork are handled without executing anything the contributor controls, so those runs skip dependency installation and the quality gates and report themselves as unverified, leaving verification to CI on the review.
+Review content is treated as untrusted throughout: a comment can name a concern, but it cannot redirect the workflow, widen the scope, or supply commands to run. Contributions from a fork are handled without executing anything the contributor controls and without taking direction from anything they wrote, so those runs skip dependency installation and the quality gates, read the head's own instruction files as evidence rather than orders, and report themselves as unverified, leaving verification to CI on the review.
 
 ## 2.1.0
 
