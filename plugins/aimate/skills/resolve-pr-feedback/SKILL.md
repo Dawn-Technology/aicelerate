@@ -108,6 +108,8 @@ Two more cover where the head branch actually lives, and every step after Step 2
 
 Resolve both in Step 2 and use them for the worktree, the self-review diff, any rebase, the patch range, and the push. Where an example below shows `origin/{src}`, that is the same-repository case written out; substitute `{head_remote}/{head_ref}` for a fork.
 
+`{head_ref}` and `{src}` are strings the contributor chose, so **single-quote every shell argument you substitute them into** — as the snippets below do. Git rejects a branch name containing a space, a control character, `~ ^ : ? * [ \`, or a leading `-`, but it accepts `$`, backticks, `;`, `|`, `&`, `<`, `>`, `!`, `#`, `{`, `}`, and both quote characters: `a$(id)b` and ``x`id`y`` are valid branch names. Double quotes are not enough, because command substitution still runs inside them; only single quotes stop it. A name may itself contain a single quote, so close, escape, and reopen when it does — `'it'\''s-branch'`. The rule covers the fetch, worktree, diff, rebase, patch, and push commands, and the fork remote in [fork heads](./references/provider-operations.md#fork-heads). Because a leading `-` is impossible, no `--` separator is needed.
+
 Three more are decided during the run rather than named up front: `head_is_trusted` in Step 0, `plan_first` in Step 0, and `{patch_dir}` — the absolute directory outside `{wt}` that Step 9-B exports patches to.
 
 Once Step 2 creates the worktree, every exit path finishes at Step 11 in the same turn — a plan-first preview, a failing gate, an abandoned run. The worktree is never left behind silently, and never left behind pending a turn the user might not take.
@@ -166,11 +168,11 @@ If the working set is empty, say so and stop. No worktree is needed.
 Set `{head_remote}` and `{head_ref}` first. For a same-repository review they are `origin` and `{src}`. For a fork, add the fork as a remote before fetching and point `{head_remote}` at that remote — see [fork heads](./references/provider-operations.md#fork-heads). Then:
 
 ```bash
-git fetch {head_remote} {head_ref}
-git worktree add {wt} -b {fix_branch} {head_remote}/{head_ref}
+git fetch {head_remote} '{head_ref}'
+git worktree add {wt} -b {fix_branch} '{head_remote}/{head_ref}'
 ```
 
-For a same-repository review that is `git fetch origin {src}` and `git worktree add {wt} -b {fix_branch} origin/{src}`.
+For a same-repository review that is `git fetch origin '{src}'` and `git worktree add {wt} -b {fix_branch} 'origin/{src}'`.
 
 - Branch from the fetched remote head, never from a local copy that may be stale or checked out elsewhere.
 - Working on `{fix_branch}` and pushing by refspec in Step 9 keeps the branch name from colliding with an existing checkout of `{src}`.
@@ -294,7 +296,7 @@ Nothing leaves the machine before [code-review](../code-review/SKILL.md) has see
 
 ```bash
 git -C {wt} status --short          # must be empty; commit or discard whatever is left
-git -C {wt} diff {head_remote}/{head_ref}...HEAD
+git -C {wt} diff '{head_remote}/{head_ref}...HEAD'
 ```
 
 Invoke [code-review](../code-review/SKILL.md) with:
@@ -354,13 +356,13 @@ If not, go back. Do not push.
 Push once Step 8 clears. Do not ask first; the commit list, changed files, gate results, and self-review outcome go into the Step 11 report.
 
 ```bash
-git -C {wt} push {head_remote} {fix_branch}:{head_ref}
+git -C {wt} push {head_remote} '{fix_branch}:{head_ref}'
 ```
 
 `{head_remote}` and `{head_ref}` are the ones resolved in Step 2 — `origin` and `{src}` for a same-repository review, `pr-head` / `mr-head` and the fork's branch for a fork. Pushing to `origin` for a fork review would create a new branch in the base repository instead of updating the branch under review, so do not fall back to `origin` here.
 
 - Never force-push, and never rewrite history that is already on the remote.
-- On a non-fast-forward rejection, someone pushed to the head branch while you worked. Re-fetch `{head_remote} {head_ref}`, rebase `{fix_branch}` — still unpushed, so this is safe — onto the new head, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
+- On a non-fast-forward rejection, someone pushed to the head branch while you worked. Re-fetch with `git fetch {head_remote} '{head_ref}'`, then rebase `{fix_branch}` — still unpushed, so this is safe — onto `'{head_remote}/{head_ref}'`, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
 - After an ambiguous failure, fetch and compare the remote head before retrying. A failed response can follow a successful push.
 
 #### 9-B: When the Push Is Not Possible
@@ -373,7 +375,7 @@ Export it *outside* `{wt}`. `git -C {wt}` runs with the worktree as its working 
 primary=$(git -C {wt} rev-parse --path-format=absolute --git-common-dir)
 patch_dir="$(dirname "$primary")/.worktrees/pr-fix-{n}-patches"
 
-git -C {wt} format-patch {head_remote}/{head_ref}..HEAD -o "$patch_dir"
+git -C {wt} format-patch '{head_remote}/{head_ref}..HEAD' -o "$patch_dir"
 ```
 
 Keep `{wt}`, skip Step 10 entirely — nothing landed, so no thread has an outcome to report on — and put the absolute `{patch_dir}`, the `git am` command to apply it, and every verdict into the Step 11 report instead. The patches are the only copy of the work, so quote the path in full rather than relative to anything.
@@ -446,6 +448,7 @@ Left as is — `items` is guaranteed non-empty by the query on line 42, and the 
 - Never merge, close, reopen, approve, or retarget a PR/MR.
 - Never force-push, and never rewrite history already on the remote.
 - Never edit files outside `{wt}`, and never change code the recorded plan does not cover. That includes delegated work: scope `write-commit-message` to `{wt}`, stage paths explicitly, and never run `git add -A`.
+- Never substitute a provider-supplied branch name into a shell command unquoted. Single-quote `{head_ref}` and `{src}` everywhere; double quotes still run `$(...)` and backticks.
 - Never weaken a test, lint rule, or type check to make a gate pass.
 - Never resolve a thread that was not addressed, and never resolve a rejected thread without the user's say-so.
 - Never use raw `curl` for provider APIs, tools from the wrong provider, or a GitLab.com route for a self-hosted MR. Use `gh`, `glab`, or the matching MCP route, and `git` for local, worktree, and push operations.

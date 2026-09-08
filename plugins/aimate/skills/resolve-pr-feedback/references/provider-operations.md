@@ -135,6 +135,8 @@ Notes on the shape:
 
 When the head branch lives in another repository, fetch from and push to that repository instead of `origin`.
 
+Every branch name here comes from the contributor, and `a$(id)b` is a valid branch name, so single-quote it in each command below — double quotes still run command substitution. The rule is stated in full in [SKILL.md](../SKILL.md#workflow).
+
 ### GitHub
 
 ```bash
@@ -142,12 +144,12 @@ gh pr view {pull_number} --repo {owner}/{repo} \
   --json headRepositoryOwner,headRepository,headRefName \
   --jq '"\(.headRepositoryOwner.login)/\(.headRepository.name) \(.headRefName)"'
 
-git remote add pr-head https://github.com/{head_owner}/{head_repo}.git
-git fetch pr-head {head_branch}
-git worktree add {wt} -b {fix_branch} pr-head/{head_branch}
+git remote add pr-head 'https://github.com/{head_owner}/{head_repo}.git'
+git fetch pr-head '{head_branch}'
+git worktree add {wt} -b {fix_branch} 'pr-head/{head_branch}'
 ```
 
-Push with `git -C {wt} push pr-head {fix_branch}:{head_branch}`.
+Push with `git -C {wt} push pr-head '{fix_branch}:{head_branch}'`.
 
 ### GitLab
 
@@ -155,12 +157,12 @@ Push with `git -C {wt} push pr-head {fix_branch}:{head_branch}`.
 glab mr view {mr_iid} --output json --jq '.source_project_id'
 glab api "projects/{source_project_id}" | jq -r '.http_url_to_repo'
 
-git remote add mr-head {source_project_http_url}
-git fetch mr-head {source_branch}
-git worktree add {wt} -b {fix_branch} mr-head/{source_branch}
+git remote add mr-head '{source_project_http_url}'
+git fetch mr-head '{source_branch}'
+git worktree add {wt} -b {fix_branch} 'mr-head/{source_branch}'
 ```
 
-Push with `git -C {wt} push mr-head {fix_branch}:{source_branch}`.
+Push with `git -C {wt} push mr-head '{fix_branch}:{source_branch}'`.
 
 Remove the temporary remote during Step 11 cleanup: `git remote remove pr-head` or `git remote remove mr-head`.
 
