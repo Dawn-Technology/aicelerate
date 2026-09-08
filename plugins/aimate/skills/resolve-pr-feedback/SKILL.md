@@ -103,14 +103,23 @@ Follow these steps in order. Do not skip a step.
 
 Notation: `{n}` is the PR/MR number, `{src}` the source branch, `{wt}` the worktree `.worktrees/pr-fix-{n}`, and `{fix_branch}` the temporary branch `aimate/pr-fix-{n}`.
 
-Two more cover where the head branch actually lives, and every step after Step 2 uses them instead of a bare `origin`:
+Three more cover where the head branch actually lives, and every step after Step 2 uses them instead of a bare `origin`:
 
 - `{head_remote}` — `origin` for a same-repository review, or the temporary `pr-head` / `mr-head` remote added in Step 2 for a fork.
 - `{head_ref}` — the branch name in that remote. Same as `{src}`, but read it from the provider rather than assuming it.
+- `{head_sha}` — the commit `{head_ref}` resolved to when Step 2 fetched it. Every step that needs a revision uses this, not the name.
 
-Resolve both in Step 2 and use them for the worktree, the self-review diff, any rebase, the patch range, and the push. Where an example below shows `origin/{src}`, that is the same-repository case written out; substitute `{head_remote}/{head_ref}` for a fork.
+Resolve all three in Step 2 and use them for the worktree, the self-review diff, any rebase, the patch range, and the push. No step below writes a bare `origin` or a bare `{src}`, and none of them names the head branch where `{head_sha}` will do.
 
-`{head_ref}` and `{src}` are strings the contributor chose, so **single-quote every shell argument you substitute them into** — as the snippets below do. Git rejects a branch name containing a space, a control character, `~ ^ : ? * [ \`, or a leading `-`, but it accepts `$`, backticks, `;`, `|`, `&`, `<`, `>`, `!`, `#`, `{`, `}`, and both quote characters: `a$(id)b` and ``x`id`y`` are valid branch names. Double quotes are not enough, because command substitution still runs inside them; only single quotes stop it. A name may itself contain a single quote, so close, escape, and reopen when it does — `'it'\''s-branch'`. The rule covers the fetch, worktree, diff, rebase, patch, and push commands, and the fork remote in [fork heads](./references/provider-operations.md#fork-heads). Because a leading `-` is impossible, no `--` separator is needed.
+`{head_ref}` and `{src}` are strings the contributor chose, and a branch name is a far worse shell argument than it looks. Two separate defences are needed, and each one leaves the other's hole open.
+
+**Single-quote it, to stop the shell.** Git rejects a name containing a space, a control character, or `~ ^ : ? * [ \`, but it accepts `$`, backticks, `;`, `|`, `&`, `<`, `>`, `!`, `#`, `{`, `}`, and both quote characters — `a$(id)b` and ``x`id`y`` are valid branch names. Double quotes are not enough, because command substitution still runs inside them; only single quotes stop it. A name may itself contain a single quote, so close, escape, and reopen when it does — `'it'\''s-branch'`.
+
+**Pass it after `--`, to stop git.** Quoting is a shell concern and git never sees it, so a name beginning with `-` still reaches git as an option. `refs/heads/--upload-pack=...` passes `git check-ref-format`, and `git fetch {remote} '--upload-pack=<cmd>'` runs `<cmd>` however tightly it is quoted; `--receive-pack` does the same to `git push`. Both commands take `--`, and after it the argument can only be a refspec. Do not trust `git check-ref-format --branch` here — it rejects a leading `-`, but that is a local convenience check, not the rule a remote enforces.
+
+**Then stop using the name as a revision at all.** After the fetch, resolve it once to `{head_sha}` and use that for the self-review diff, the rebase target, and the patch range. A SHA is hexadecimal, so it needs neither defence, and it also pins every later step to the commit you actually fetched. That leaves the name itself in exactly two commands — the fetch and the push refspec — and both of those get `--`.
+
+`{head_remote}` is `origin` or a name this workflow chose, so it needs none of this. The same three rules apply to the fork remote in [fork heads](./references/provider-operations.md#fork-heads).
 
 Three more are decided during the run rather than named up front: `head_is_trusted` in Step 0, `plan_first` in Step 0, and `{patch_dir}` — the absolute directory outside `{wt}` that Step 9-B exports patches to.
 
@@ -170,17 +179,18 @@ If the working set is empty, say so and stop. No worktree is needed.
 Set `{head_remote}` and `{head_ref}` first. For a same-repository review they are `origin` and `{src}`. For a fork, add the fork as a remote before fetching and point `{head_remote}` at that remote — see [fork heads](./references/provider-operations.md#fork-heads). Then:
 
 ```bash
-git fetch {head_remote} '{head_ref}'
-git worktree add {wt} -b {fix_branch} '{head_remote}/{head_ref}'
+git fetch {head_remote} -- '{head_ref}'
+head_sha=$(git rev-parse FETCH_HEAD)
+git worktree add {wt} -b {fix_branch} "$head_sha"
 ```
 
-For a same-repository review that is `git fetch origin '{src}'` and `git worktree add {wt} -b {fix_branch} 'origin/{src}'`.
+Record that SHA as `{head_sha}`; from here on it stands in for the head everywhere a revision is wanted.
 
 - Branch from the fetched remote head, never from a local copy that may be stale or checked out elsewhere.
 - Working on `{fix_branch}` and pushing by refspec in Step 9 keeps the branch name from colliding with an existing checkout of `{src}`.
 - If `{fix_branch}` already exists from an interrupted run, branch to the next free suffix (`{fix_branch}-2`, `-3`). Never delete or reuse the old one; report that it is still there.
 
-This is the only step that needs to know whether the head is a fork. Steps 8, 9, and 11 read `{head_remote}` and `{head_ref}` and nothing else, so carry both out of this step with their values decided — a fork review that later falls back to `origin` compares against the wrong branch and pushes to the wrong repository.
+This is the only step that needs to know whether the head is a fork. Steps 8, 9, and 11 read `{head_remote}`, `{head_ref}`, and `{head_sha}` and nothing else, so carry all three out of this step with their values decided — a fork review that later falls back to `origin` compares against the wrong branch and pushes to the wrong repository.
 
 Edit files only inside `{wt}`.
 
@@ -298,7 +308,7 @@ Nothing leaves the machine before [code-review](../code-review/SKILL.md) has see
 
 ```bash
 git -C {wt} status --short          # must be empty; commit or discard whatever is left
-git -C {wt} diff '{head_remote}/{head_ref}...HEAD'
+git -C {wt} diff {head_sha}...HEAD
 ```
 
 Invoke [code-review](../code-review/SKILL.md) with:
@@ -310,7 +320,7 @@ submission:
   description: "Changes resolving review feedback. Accepted items: {accepted_item_summaries}"
   author: "{git_config_user_name_if_available}"
   source_ref: "{fix_branch}"
-  target_ref: "{head_remote}/{head_ref}"
+  target_ref: "{head_sha}"
 code_input:
   diff: "{self_review_diff}"
   files: "{changed_file_inventory}"
@@ -358,13 +368,13 @@ If not, go back. Do not push.
 Push once Step 8 clears. Do not ask first; the commit list, changed files, gate results, and self-review outcome go into the Step 11 report.
 
 ```bash
-git -C {wt} push {head_remote} '{fix_branch}:{head_ref}'
+git -C {wt} push {head_remote} -- '{fix_branch}:{head_ref}'
 ```
 
 `{head_remote}` and `{head_ref}` are the ones resolved in Step 2 — `origin` and `{src}` for a same-repository review, `pr-head` / `mr-head` and the fork's branch for a fork. Pushing to `origin` for a fork review would create a new branch in the base repository instead of updating the branch under review, so do not fall back to `origin` here.
 
 - Never force-push, and never rewrite history that is already on the remote.
-- On a non-fast-forward rejection, someone pushed to the head branch while you worked. Re-fetch with `git fetch {head_remote} '{head_ref}'`, then rebase `{fix_branch}` — still unpushed, so this is safe — onto `'{head_remote}/{head_ref}'`, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
+- On a non-fast-forward rejection, someone pushed to the head branch while you worked. Re-fetch with `git fetch {head_remote} -- '{head_ref}'`, take the new `{head_sha}` from `git rev-parse FETCH_HEAD`, then rebase `{fix_branch}` — still unpushed, so this is safe — onto that SHA, re-run Steps 7 and 8, and retry once. If it is rejected again, stop pushing, keep `{wt}`, and report it — the branch moved twice while you worked, so a human should look.
 - After an ambiguous failure, fetch and compare the remote head before retrying. A failed response can follow a successful push.
 
 #### 9-B: When the Push Is Not Possible
@@ -377,7 +387,7 @@ Export it *outside* `{wt}`. `git -C {wt}` runs with the worktree as its working 
 primary=$(git -C {wt} rev-parse --path-format=absolute --git-common-dir)
 patch_dir="$(dirname "$primary")/.worktrees/pr-fix-{n}-patches"
 
-git -C {wt} format-patch '{head_remote}/{head_ref}..HEAD' -o "$patch_dir"
+git -C {wt} format-patch {head_sha}..HEAD -o "$patch_dir"
 ```
 
 Keep `{wt}`, skip Step 10 entirely — nothing landed, so no thread has an outcome to report on — and put the absolute `{patch_dir}`, the `git am` command to apply it, and every verdict into the Step 11 report instead. The patches are the only copy of the work, so quote the path in full rather than relative to anything.
@@ -450,7 +460,7 @@ Left as is — `items` is guaranteed non-empty by the query on line 42, and the 
 - Never merge, close, reopen, approve, or retarget a PR/MR.
 - Never force-push, and never rewrite history already on the remote.
 - Never edit files outside `{wt}`, and never change code the recorded plan does not cover. That includes delegated work: scope `write-commit-message` to `{wt}`, stage paths explicitly, and never run `git add -A`.
-- Never substitute a provider-supplied branch name into a shell command unquoted. Single-quote `{head_ref}` and `{src}` everywhere; double quotes still run `$(...)` and backticks.
+- Never let a provider-supplied branch name reach a command unguarded. Single-quote it, pass it after `--`, and prefer `{head_sha}` wherever a revision will do — quoting alone still lets `--upload-pack=` through, and `--` alone still lets `$(...)` through.
 - Never weaken a test, lint rule, or type check to make a gate pass.
 - Never resolve a thread that was not addressed, and never resolve a rejected thread without the user's say-so.
 - Never use raw `curl` for provider APIs, tools from the wrong provider, or a GitLab.com route for a self-hosted MR. Use `gh`, `glab`, or the matching MCP route, and `git` for local, worktree, and push operations.
