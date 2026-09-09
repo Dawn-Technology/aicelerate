@@ -3,7 +3,7 @@ name: code-review
 description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 1.0.1
+  version: 1.1.0
   role: "reusable-review-core"
   dependencies: []
 ---
@@ -15,7 +15,7 @@ metadata:
 Provide constructive and comprehensive feedback on code changes. The primary goals are:
 
 - **Quality Assurance**: Identify bugs, potential logic errors, and edge cases.
-- **Maintainability**: Ensure code is readable, modular, and consistent with the existing architecture.
+- **Maintainability**: Ensure the change is readable, well decomposed, and consistent with the existing architecture, so the next change to this code stays cheap. SOLID, clean code, and DRY/KISS/YAGNI are lenses for finding that cost, not rules to enforce for their own sake.
 - **Security**: Detect common security vulnerabilities and privacy risks. Validate against OWASP Top 10 where applicable.
 - **Education**: Provide explanations and context for suggested changes to help the author grow.
 
@@ -176,12 +176,35 @@ Use severity:
 
 #### Style and Maintainability Module
 
-Check readability, modularity, naming consistency, unnecessary complexity, architecture drift, broken contracts, duplicated logic, and mismatch with existing project conventions.
+Maintainability is the cost of the *next* change. Judge whether a competent teammate who has never seen this code could read it, find the behavior they need to change, change it in one place, and be confident they broke nothing else. Every finding in this module must trace back to that cost.
+
+Apply the lenses below to what the change actually engages, and skip the rest silently. They are prompts for where to look, not a checklist to walk.
+
+- **Decomposition and cohesion**: Does each function or method do one identifiable job, at one level of abstraction? Look for long bodies, deep nesting, long parameter lists, flag parameters that hide two behaviors in one function, and mixed concerns such as I/O, business rules, and formatting in the same block. Name the seam the code is missing rather than prescribing a rewrite.
+- **SOLID, applied with judgment**:
+  - *Single responsibility*: does this unit have more than one reason to change, so unrelated work keeps landing in the same place?
+  - *Open/closed*: does adding the next variant mean editing a growing `switch`/`if` chain that enumerates known types?
+  - *Liskov*: do subtypes and implementations honor the contract they stand in for, without strengthened preconditions, `not supported` throws, or quietly different semantics?
+  - *Interface segregation*: are callers forced to depend on, implement, or mock members they never use?
+  - *Dependency inversion*: does policy or domain logic reach directly for a concrete detail such as the clock, filesystem, HTTP client, ORM, or a global singleton, in a way that hard-wires it and blocks testing?
+- **Clean code signals**: intention-revealing names, comments that explain *why* instead of restating *what*, dead or commented-out code, leftover debug output, magic numbers and strings that deserve a name, primitive obsession where a domain type already exists, and error handling that swallows or loses context.
+- **Duplication and coupling**: distinguish duplicated *knowledge*, one rule that must change in lockstep in several places, from code that merely looks alike. De-duplicating coincidental similarity introduces worse coupling than it removes. Also watch for a change that reaches across an architectural boundary the codebase otherwise respects.
+- **Complexity budget**: abstraction, indirection, configuration, or generality added for a requirement that does not exist yet. Speculative flexibility is a maintainability cost, not a virtue.
+- **Consistency with the codebase**: established project patterns outrank textbook purity. Introducing a second way to do something the codebase already does one way is itself the finding. Conversely, do not fault code for following a convention you would have chosen differently.
+
+Reporting bar for this module:
+
+- Report the cost, not the principle. "This function mixes retry policy with request building, so changing the retry rules means re-testing serialization" lands; "violates SRP" does not. Name a principle only as shorthand after the concrete explanation.
+- Point at the seam, not the redesign. Suggest the smallest change that removes the cost.
+- Stay inside the submitted scope. Do not ask the author to refactor code they only touched incidentally, unless their change makes an existing problem materially worse.
+- Thresholds are signals, not findings. Line counts, parameter counts, and nesting depth tell you where to look; the finding still has to be a real readability or change-cost problem in this code.
+- One finding per underlying cause, even when several lenses flag the same spot.
 
 Use severity:
 
-- `request-for-change` when maintainability problems break contracts, create confusing behavior, or raise likely future defects.
-- `optional` for non-blocking improvements.
+- `request-for-change` when the change breaks a contract or public API, entrenches a pattern the codebase will have to unpick later, makes behavior genuinely hard to follow, or is likely to cause a future defect.
+- `optional` for improvements a reasonable author could decline: naming, local restructuring, cosmetic consistency, and principle-based preferences where the current code still reads and behaves correctly.
+- No finding at all when the only complaint is taste.
 
 #### Documentation and Scope Module
 
@@ -215,6 +238,7 @@ Before returning findings, critique them:
 - Is the severity justified?
 - Is the finding new, or does it duplicate existing feedback?
 - Is the suggested fix compatible with the local codebase patterns?
+- For maintainability findings: does the body name a concrete cost to a future change, or is it a principle citation dressed up as evidence? Rewrite or drop the latter.
 
 Then deliver output based on `output_target`:
 
