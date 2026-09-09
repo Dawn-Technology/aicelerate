@@ -3,7 +3,7 @@ name: wcag-audit
 description: WCAG 2.2 Level A and AA static source-code audit with complete 55-criterion accounting, independent evidence review, and evidence-backed findings. Use when asked for an accessibility audit, a11y audit, WCAG audit, or accessibility compliance review of a web codebase. Do not use it to claim certified conformance or replace browser and assistive-technology testing.
 metadata:
     author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-    version: 3.5.0
+    version: 3.6.0
     wcag-version: 2.2.0
 ---
 
@@ -53,11 +53,11 @@ Rendered behavior, actual CMS/API content, complete processes, and accessibility
 
 ## Preflight: verify the search boundary
 
-Workspace-indexed search tools return zero results for paths outside the open workspace root. That failure is silent and looks identical to "pattern absent", which is a known cause of false PASS verdicts in this audit. Before collecting any evidence, verify the method:
+Workspace-indexed search tools may omit paths outside the open workspace root. An empty result can look identical to "pattern absent". Before collecting any evidence, verify the search method you intend to use:
 
 1. Read one known file in the target and copy a distinctive string from it.
-2. Search for that string with the indexed search tool, scoped to the target root.
-3. If it is not found, the indexed tools cannot see the target. Use terminal search (`rg`, `grep -rn`, `find`) with the exclusion list below for the rest of the audit.
+2. Search for that string with your chosen search tool, scoped to the target root. Terminal `rg` is sufficient; an indexed tool is not required.
+3. If it is not found, correct the scope or switch tools and repeat the probe before using absence results.
 
 Record the verified method, state it in the report's scope section, and repeat the probe inside each worker assignment, since a worker does not necessarily share the coordinator's tool access. While the probe is unrun or failing, every absence claim is unresolved.
 
@@ -71,6 +71,8 @@ Exclude verified third-party, generated, VCS, cache, coverage, and test material
 - lock files during general searches
 
 Do not read `.env`, `.env.*`, `secrets.json`, `credentials.json`, `*.pem`, `*.key`, `*.pub`, or cloud credential files. Do not exclude a monorepo source directory merely because it is named `packages` or `vendor`; first verify that it contains dependencies.
+
+Apply these exclusions before every recursive content search and direct read, including reachability checks. Never dump process environment or execute application configuration to discover a variant. If a relevant non-secret setting is available only in a prohibited file, record its value as unknown or ask the user for that single sanitized value, not the file. A local setting does not prove production deployment. If a worker reports accessing a prohibited file, stop that assignment, disclose the process deviation without reproducing contents, and do not use that evidence to resolve findings; re-establish facts through permitted evidence.
 
 ## Workflow
 
@@ -94,18 +96,24 @@ Give a worker one surface or a small related group of criteria at a time, sized 
 
 ```text
 Assignment: [surface, exact SC IDs, source boundary, enumerated file list]
+Safety: static read-only source work. Never read .env or .env.*, credentials.json,
+secrets.json, key/certificate or cloud credential files; never dump environment.
+Apply the supplied exclusions to searches too. Unknown configuration is a boundary,
+not permission to open a prohibited file. Do not run the application or browser.
 Search method: [verified method]. Re-run the probe before any absence claim and state
 which method you used; zero results from an unverified search prove nothing.
 Inspect source; do not write a report or claim whole-audit completion.
 Return per SC: scoped observations and file:line evidence, external uncertainty,
-and fix or manual check. For each proposed FAIL, use the proof record in
-references/evidence-patterns.md. Do not supply a guessed verdict for missing evidence.
+and fix or manual check. Return evidence, not aggregate verdicts or summary counts.
+For a candidate violation in a yes/partial row, use the proof record in
+references/evidence-patterns.md. For a no row, return applicability and manual-check
+leads only. The coordinator applies the CSV gate and decides the final verdict.
 Cite only files you opened; write "not inspected" instead of naming a likely file.
 Also return: uninspected patterns, failed reads/searches, and leads affecting other SCs.
 A candidate is not a confirmed FAIL. An unfinished assignment is not NEEDS_REVIEW.
 ```
 
-The coordinator retains one ledger with SC ID, assessment state (`pending`, `ready`), proposed verdict, bounded evidence, remaining source work, external uncertainty, and review state (`pending`, `accepted`, `challenged`). Persist the ledger and a batch register to a working file outside the report, for example `{target_repo}/docs/.wcag-audit-ledger-{YYYY-MM-DD}.md`, and update it as each call returns, so completion is read from a record instead of recalled from context.
+The coordinator retains one decision record per CSV row: `sc_id`, `static_analyzable`, bounded evidence, remaining source work, external uncertainty, review state, final verdict, and severity (FAIL only) or review priority (NEEDS_REVIEW only). Final verdict is unset until the decision procedure permits it. Persist these records and a batch register to a working file outside the report, for example `{target_repo}/docs/.wcag-audit-ledger-{YYYY-MM-DD}.md`, and update them as calls return. These records, not worker conclusions or report prose, are the single source for report rows, findings, manual checks, and totals.
 
 The batch register carries one row per batch: batch ID, assigned SC IDs, collector model, the SC IDs the collector returned evidence for, reviewer model, and the SC IDs the review actually returned evidence for. Record covered SC IDs, never a yes/no flag — a boolean is what lets a two-criterion spot check pass as a fourteen-criterion review. Subtract covered from assigned; any remainder is unreviewed. An intention to review, a plan to review, a discarded call, and a later summary each cover nothing.
 
@@ -113,21 +121,22 @@ Before writing the report, compute three facts from this table: the collection b
 
 Keep compact Markdown working notes when context is tight; the final report is a separate artifact. Never ask a worker to return a full report plus an exhaustive repository inventory.
 
-A batch verdict covers only its assigned boundary. Combine all contributing surfaces before assigning a criterion-wide PASS/N/A/NEEDS_REVIEW; a forms-only PASS cannot establish whole-repository 4.1.2. Mark the aggregate ready only when its coverage and the static gate support it.
+Batch evidence covers only its assigned boundary. Combine all contributing surfaces before assigning a criterion-wide PASS/N/A/NEEDS_REVIEW; valid forms alone cannot establish whole-repository 4.1.2.
 
 ### 3. Review and resolve in batches
 
-Send each ready batch and its evidence to the other worker/model. Workers may exchange collection/review roles, but nobody independently reviews their own evidence. Review all 55 assessments cumulatively, not in a single oversized call. Do not start a new collection batch while more than one collected batch is still awaiting review: the review backlog is what silently disappears under context pressure, leaving collected-but-unreviewed verdicts in the report. Mark the batch register the moment a review returns. Give the reviewer this contract with the relevant decision procedure and evidence reference:
+Send each evidence batch to the other worker/model. Workers may exchange collection/review roles, but nobody independently reviews their own evidence. Review all 55 assessments cumulatively, not in a single oversized call. Do not start a new collection batch while more than one collected batch is still awaiting review. Mark the batch register when a review returns. Give the reviewer the same Safety block and exclusions as the collector, plus this contract and the decision/evidence references:
 
 ```text
-Try to disprove the proposed conclusion using source, not the collector's prose.
-For each FAIL: inspect the full component, relevant callers and variants; name the
+Try to disprove the collected evidence using source, not the collector's prose.
+For each candidate violation: inspect the full component, relevant callers and variants; name the
 strongest plausible alternative explanation or mitigation and show why it does
 or does not apply. Reconstruct the violated SC condition, not merely a missing technique.
-For PASS/N/A: identify what covers every contributing surface and what remains unknown.
-For NEEDS_REVIEW: distinguish an external dependency from source work not performed.
+For positive/absence evidence: identify what covers every contributing surface and what remains unknown.
+For uncertainty: distinguish an external dependency from source work not performed.
 Return per SC: inspected file:line evidence, counterevidence/coverage challenge,
-and accept or revise with a reason. Bare accepted IDs or a batch COMPLETE label
+and evidence accepted or challenged with a reason. Do not assign final verdicts or counts.
+Bare accepted IDs or a batch COMPLETE label
 are not sufficient. Reuse shared evidence rather than repeat it for related rows.
 Open every decisive citation: confirm the path exists, the line says what is claimed,
 and any reach or configuration claim is backed by the controlling file, not assumed.
@@ -145,7 +154,7 @@ Finalize rows in canonical order using the decision procedure. For absence claim
 
 Assessment completion means enough source evidence to justify the verdict—not an exhaustive defect inventory or completed browser testing. One confirmed violation settles FAIL; record other known boundaries without counting them as confirmed defects. A named runtime dependency can settle NEEDS_REVIEW after relevant source patterns have been checked for definite violations. PASS/N/A still require whole-scope support. Uninspected unrelated files do not block a settled FAIL, but may leave other criteria unfinished.
 
-Freeze the final ledger and findings before filling the Summary. Derive verdict totals from the ledger and severity totals from the final FAIL sections, not worker summaries or earlier drafts. The severity subtotal must equal the FAIL count. If any verdict, instance, or severity changes, recalculate the affected totals and update the conclusion. No report-validation script is needed.
+Apply the coordinator finalization table in `decision-procedure.md` to every row, reading its CSV flag directly. Worker suggestions cannot override that table. Freeze the decision records before rendering the report. Copy each row's verdict and severity unchanged into the ledger/findings; generate manual-verification rows only from NEEDS_REVIEW records. Fill the Summary last by tallying the SC IDs in each verdict and severity group in working notes, then count those IDs. Every FAIL ID belongs to exactly one severity group. If any decision changes, update its record and regenerate affected sections and totals. Do not invent numbers while writing narrative. No report-validation script is needed.
 
 Fill the mandatory report template and write it once to:
 
@@ -153,9 +162,9 @@ Fill the mandatory report template and write it once to:
 
 Run two verification passes over the finished findings first.
 
-**Citation recheck.** Line numbers drift the moment evidence passes through a worker summary, so do not copy them. For every citation in a FAIL, locate it by matching its quoted content in the file and record the line the match itself reports. Confirm the matched line says what the finding claims. Drop any citation whose quoted content cannot be matched, and drop to NEEDS_REVIEW any claim that rested only on it.
+**Citation recheck.** For every citation in a FAIL, locate the quoted content in the source and record its actual line. Drop unmatched citations and reopen any decision that depended on them. Missing inspectable evidence means pending source work, not an automatic NEEDS_REVIEW verdict; use the finalization table again.
 
-**Shared-subject reconciliation.** List every subject named under more than one criterion — a third-party library, shared component, template, or token — and confirm it carries one consistent status everywhere. A library whose behavior is unresolved under one criterion cannot support PASS under another, and a mechanism reported absent under one criterion cannot be present under another.
+**Shared-subject reconciliation.** Check shared facts, not identical verdicts. A component may have proven language metadata but unresolved keyboard behavior. Only uncertainty relevant to a criterion affects that criterion. Never claim the same mechanism is both present and absent, or use an unresolved behavior as positive evidence for a criterion that depends on it.
 
 Then perform this evidence-first self-check:
 
@@ -167,7 +176,7 @@ Then perform this evidence-first self-check:
 - actual coordinator and worker model identifiers, or an explicit user-authorized single-model mode;
 - all 55 assessments ready and the batch register's assigned-minus-covered set is empty for every row; the coverage fields state the true collection and review counts read from that table;
 - every path and line cited traces to worker-returned evidence or a file opened in this run, and every FAIL citation was re-matched by content at write time rather than copied;
-- each shared subject named under multiple criteria carries one consistent status;
+- facts about shared subjects are consistent; uncertainty is propagated to every criterion that depends on that particular unresolved fact;
 - every absence or coverage claim, including counts such as "N files inspected" and any absence asserted inside a disproof check, matches the enumeration and the verified search method, not a search that returned nothing;
 - no remaining source work that could change a non-FAIL verdict; derive this from the ledger, not prewritten completion prose;
 - no placeholders, secrets, PII, certification claim, or legal-compliance assertion;
@@ -204,5 +213,6 @@ Unreviewed candidate failures belong in continuation notes, not confirmed findin
 | Worker or reviewer leaves an assignment unfinished | Keep usable evidence, split or retry the remainder; partial only if continuation is genuinely blocked |
 | Review is discarded, drifts off scope, or covers fewer SC IDs than assigned | Re-review exactly the uncovered IDs; if that is impossible, use partial mode and list them |
 | Distinct worker models unavailable | Disclose it; partial mode unless the user authorizes single-model review |
+| Relevant setting exists only in a prohibited file | Do not read it; use a named configuration boundary or a sanitized user-supplied value |
 | Runtime, CMS content, or AT is required | NEEDS_REVIEW with the exact verification needed |
 | Report self-check fails | Correct it before writing; do not publish an invalid report |

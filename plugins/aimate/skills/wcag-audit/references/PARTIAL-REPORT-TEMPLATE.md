@@ -40,6 +40,8 @@
 
 ## Progress summary
 
+<!-- Derive counts from coordinator decision records. Pending assessment/review maps to INCOMPLETE / NOT_EVALUATED, never a guessed WCAG verdict. -->
+
 | Progress | Count |
 |---|---:|
 | COMPLETE | [[count_complete]] |

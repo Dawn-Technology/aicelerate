@@ -44,14 +44,21 @@ Before proposing FAIL, read the normative SC and relevant definitions, not just 
 
 Use the [FAIL proof record](./evidence-patterns.md#fail-proof-record) for candidate instances. Reject an unsupported instance, not necessarily the entire criterion: another independently proven instance can still establish FAIL.
 
-## 4. Aggregate the criterion
+## 4. Coordinator finalization
 
-Use strict precedence:
+Workers provide reviewed evidence; the coordinator alone sets the aggregate verdict. Read the row's `static_analyzable` flag from the CSV, then use the first matching condition below. This ordering is deliberate: incomplete work is not runtime uncertainty, and a worker's candidate violation never overrides a `no` flag.
 
-1. At least one definite violation → **FAIL**.
-2. No definite violation and at least one unresolved applicable pattern → **NEEDS_REVIEW**.
-3. Every applicable pattern proven valid and static PASS permitted → **PASS**.
-4. Governed feature conclusively absent → **N/A**.
+| First matching condition | Decision |
+|---|---|
+| Decisive evidence has not been independently reviewed, or a material challenge remains unresolved | Keep pending; follow up. Partial report if work cannot finish. |
+| `yes`/`partial` and at least one reviewed, source-proven violation with applicability/alternatives/exceptions resolved | FAIL; further defect enumeration is optional. |
+| Source work needed to settle a non-FAIL verdict remains unfinished | Keep pending; do not assign NEEDS_REVIEW. |
+| The governed feature is conclusively absent across the declared boundary | N/A. |
+| `no` and the governed feature is present or its applicability depends on external evidence | NEEDS_REVIEW with the exact check. Never PASS or FAIL. |
+| `yes`/`partial` and a relevant content/configuration/runtime dependency remains unresolved | NEEDS_REVIEW with the exact check. |
+| `yes`/`partial` and every applicable pattern is supported as valid across the boundary | PASS. |
+
+If no condition can be justified, keep the row pending and identify the missing evidence. Review must cover the facts and boundaries needed for that decision; mere review of selected examples is insufficient for PASS/N/A.
 
 One violation is enough for aggregate FAIL. An exact violation total is optional unless naturally bounded by source. Use `at least N` when additional rendered or data-driven instances may exist.
 
