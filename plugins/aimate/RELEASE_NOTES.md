@@ -1,5 +1,25 @@
 # Release notes
 
+## 2.4.0
+
+Added `validate-ticket`, which decides whether one ticket is ready for development and rewrites its description into a brief an agent can build from. It supports Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and a ticket pasted as plain text when no tracker is reachable. Every provider difference — identifier parsing, field mapping, Jira custom-field discovery, and the ADF/wiki formatting trap on a description write — lives in `references/provider-operations.md` rather than in the workflow.
+
+The skill traces each load-bearing claim in the description and comments against the checkout, gives it a verdict with a `file:line` behind it, and then closes the design tree in the same Observed / Decision / Assumption vocabulary `write-plan` uses. It closes what the repository can answer and asks only what a human must decide, in one batch, with a recommendation attached to each question. A blocking branch never closes as an assumption, and assumptions that are taken stay visible in the ticket.
+
+The verdict is arithmetic on a twelve-criterion rubric rather than a judgment call, and it routes rather than reports: every run ends with one named next action and one owner. A ready ticket gets its rewritten description written back, and the ticket becomes the brief an implementer starts from. A `not-ready` ticket with mechanical gaps gets them closed in the same run, including a split into children when that is the gap. A `not-ready` ticket with an open blocking decision goes back to a human — asked of the user directly, or posted on the ticket for its author — because an agent asked to settle a decision it does not own will invent one, and an invented decision reads as settled once it sits in a description.
+
+The rewritten description applies prompting rules to a ticket: why before what, an observable goal, provenance on every fact, scope bounded in both directions, and a definition of done carrying the real validation commands.
+
+Output is written for a person. A finding is a bold one-line claim, the code that contradicts it with a `file:line`, and one imperative action — grouped as **Blocking**, **Filled in for you**, and **Worth a look**, with no ids, slugs, or severity tokens. The report is built for a terminal: findings first, a few lines on what the rewrite changes, then the verdict and the single next action last, where they stay on screen rather than scrolling out of view. The rewritten description, the claim ledger, and the design tree stay behind an offer instead of being dumped, and a criterion that passed is never printed. A comment posted on the ticket inverts that order, since a document is read top-down. The skill writes no file of its own: the durable record is the ticket — the description plus one comment in the same format. It also keeps its coupling to other skills to a minimum, defining its own design-tree vocabulary and provider operations rather than depending on them.
+
+## 2.3.0
+
+Added `review-and-resolve-pr`, which runs both halves of the review loop over one PR/MR in a single autonomous pass. It reviews through `review-pr`, publishes every finding at every severity as an inline comment, then hands those threads to `resolve-pr-feedback` to validate, fix, gate, self-review, push, and reply — and reports the addressed findings in one table.
+
+The skill composes the two existing halves and owns only the seam between them: the shared preconditions, the standing directive that lifts `review-pr`'s hard stop, the finding-to-thread mapping the resolution half needs, the guarantee that both worktrees are gone at the end, and the combined report. Neither half's workflow is reimplemented, and `code-review` is never invoked directly.
+
+Findings this run wrote get no special standing when it comes to fixing them. Each comment is validated against the repository in the fix worktree like any human reviewer's, so `reject`, `already-addressed`, and `needs-clarification` stay live outcomes, and the report ends with a review-quality section naming every finding the run posted and then rejected. Scope stays on the threads the run created; threads a human opened are reported as untouched. It approves nothing, requests changes on nothing, and never re-reviews its own pushed result.
+
 ## 2.2.0
 
 Added `resolve-pr-feedback`, which closes the review loop that `review-pr` opens. It reads the unresolved threads on a GitHub PR or GitLab MR, validates each comment against the real code, applies the ones that hold up in an isolated worktree, runs the project's own quality gates, self-reviews the result through `code-review`, and only then pushes and replies per thread.

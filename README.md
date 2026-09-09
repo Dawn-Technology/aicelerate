@@ -270,8 +270,11 @@ The stages below describe the recommended workflow and which skills and MCP serv
 
 Before writing a line of spec, stress-test the problem statement and approach. Pull in existing Jira context documentation to ground the conversation.
 
+When the work arrives as a ticket rather than as a conversation, start with `validate-ticket`: it traces the ticket's claims against the repository, closes the design tree, and decides whether the ticket is ready for development. It then acts on that verdict — writing the improved description back to the tracker, splitting a ticket that turned out to be two, or putting an open decision back in front of a human. The ready ticket is what Stage 4 plans against and what a coding agent in Stage 5 reads first.
+
 | Tool | Source | Purpose |
 | --- | --- | --- |
+| `validate-ticket` | aimate | Validate a Jira, GitHub, or GitLab ticket against the repository, close the design tree, and rewrite the description into an agent-ready brief |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
@@ -329,12 +332,13 @@ Hand off the result of write-plan (and estimate-time, if a time forecast is need
 
 ### Stage 6 — Review
 
-Review the resulting code changes for correctness, quality, and security, then work the feedback back into the branch. `review-pr` and `resolve-pr-feedback` are the two halves of the same loop, and both use `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub.
+Review the resulting code changes for correctness, quality, and security, then work the feedback back into the branch. `review-pr` and `resolve-pr-feedback` are the two halves of the same loop, and both use `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub. Run them separately when a human should read the findings before they are posted, or `review-and-resolve-pr` to close the whole loop in one autonomous pass.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions through the saved provider route |
 | `resolve-pr-feedback` | aimate | Validate the review threads, fix what holds up in an isolated worktree, run the project's quality gates, self-review, push, and reply per thread |
+| `review-and-resolve-pr` | aimate | Both halves in one pass — review, publish every finding as an inline comment, then fix, push, reply per thread, and report the addressed findings |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Fetch the diff, read existing comments, and post structured review comments |
 

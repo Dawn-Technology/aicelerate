@@ -12,7 +12,7 @@
     {
       "name": "aimate",
       "description": "AI Automation teammate — reusable SDLC skills for security auditing, repository workflows, integration setup, and development planning.",
-      "version": "2.2.0",
+      "version": "2.4.0",
       "source": "./plugins/aimate",
       "repository": "https://github.com/Dawn-Technology/aimate",
       "license": "MIT",
@@ -23,8 +23,11 @@
         "gitlab",
         "code-review",
         "resolve-pr-feedback",
+        "review-and-resolve-pr",
         "commit-message",
         "implementation-plan",
+        "validate-ticket",
+        "ticket-readiness",
         "product-requirements-document",
         "user-stories",
         "estimation"

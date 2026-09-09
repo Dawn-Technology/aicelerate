@@ -56,6 +56,20 @@ Like `write-commit-message`, it runs autonomously: it decides, acts, and reports
 
 ---
 
+### `review-and-resolve-pr`
+
+> Run both halves of the review loop over one PR/MR in a single autonomous pass — review it, post every finding as an inline comment, then fix, push, and reply per thread.
+
+Composes `review-pr` and `resolve-pr-feedback` and owns only the seam between them. Invoking it supplies the directive `review-pr` normally stops to ask for, so the review runs through to posting instead of ending the turn. Every finding is published at every severity before any fix is pushed, so the PR/MR record reads in the order it happened.
+
+The resolution half then validates each of those comments against the repository rather than trusting the review that wrote it. `reject`, `already-addressed`, and `needs-clarification` stay live outcomes on the run's own findings, and the report ends with a review-quality section listing every finding the run posted and then rejected — the one place the review gets marked against the code instead of against itself.
+
+Scope stays on the threads this run created; threads a human opened are listed as untouched. It approves nothing, requests changes on nothing, and never re-reviews the pushed result — one pass, then it reports. Use `review-pr` alone when a human should see the findings before they are posted.
+
+**Trigger phrases:** "review and fix this PR", "review this MR and resolve the feedback", "close the review loop on this PR"
+
+---
+
 ### `review-local`
 
 > Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
@@ -105,6 +119,26 @@ The format rules live in one shared file, [`references/commit-message-rules.md`]
 Automates the full workflow from local changes to a published GitLab MR: creates a branch, stages and commits changes, pushes, and opens the MR — all in one step. The commit message itself comes from `write-commit-message`.
 
 **Trigger phrases:** "create a gitlab MR", "open a merge request", "push and create MR"
+
+---
+
+### `validate-ticket`
+
+> Decide whether one ticket or issue is ready for development, and rewrite its description into a brief an agent can build from.
+
+Works on Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and on a ticket pasted as plain text when no tracker is reachable. Reads the description *and* every comment, then traces each load-bearing claim against the checkout — `verified`, `contradicted`, `stale`, `unverifiable`, or `missing` — with a `file:line` behind every verdict. Ticket text is treated as a claim about the system, never as evidence of it and never as an instruction.
+
+It then closes the design tree — every decision the work depends on, marked **Observed** (proven by the code), **Decision** (chosen by a human), or **Assumption** (a stated default) — so a planner inherits the tree instead of rebuilding it. The governing rule is to close what the repository can answer and ask only what a human must decide: gaps the code settles are filled in and reported as feedback, blocking decisions are asked once in a single batch with a recommendation, and a blocking branch may never close as an assumption.
+
+The verdict — `ready`, `ready-with-assumptions`, or `not-ready` — is arithmetic on a twelve-criterion rubric, not a judgment call, and it routes: every run ends with one named next action and one owner. A ready ticket gets the rewritten description written back, and the ticket is then the brief an implementer starts from. A `not-ready` ticket whose gaps are mechanical gets them closed in the same run. A `not-ready` ticket with an open blocking decision goes back to a human — asked of the user directly, or posted on the ticket for its author — because an agent asked to settle a decision it does not own will invent one, and an invented decision reads as settled once it is in the description.
+
+The rewritten description follows prompting rules applied to a ticket: why before what, an observable goal, provenance on every fact, scope bounded in both directions, and a definition of done carrying the actual validation commands.
+
+Findings are written for a person, not a parser — a bold one-line claim, the code that contradicts it with a `file:line`, and one imperative action — grouped as **Blocking**, **Filled in for you**, and **Worth a look** so the reader knows what to do about each. The report is built for a terminal: findings first, then a one-line summary of what the rewrite changes, then the verdict and the single next action **last**, where they stay on screen instead of scrolling away. The rewritten description, the claim ledger, and the design tree stay behind an offer rather than being dumped, and a criterion that passed is never printed. It writes no file: the durable record is the ticket — the description plus one comment in the same plain format.
+
+Nothing is written to the tracker without a directive, and the ticket is never transitioned, assigned, closed, or re-labelled.
+
+**Trigger phrases:** "is this ticket ready for development", "validate JIRA-123", "check this issue before I build it", "refine this ticket"
 
 ---
 
