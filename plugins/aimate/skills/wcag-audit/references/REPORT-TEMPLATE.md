@@ -40,7 +40,7 @@
 
 ## Summary
 
-<!-- Fill last: count verdicts from the final ledger and severities from the final FAIL sections. Recalculate after changes; never copy worker totals. -->
+<!-- Fill last from frozen coordinator decision records. Tally SC IDs by verdict and, for FAIL only, severity in working notes. Do not copy worker totals or invent narrative counts. -->
 
 [[executive_summary]]
 
@@ -65,7 +65,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 
 ## Conformance criteria ledger
 
-<!-- Exactly 55 body rows in canonical CSV order. -->
+<!-- Exactly 55 body rows in canonical CSV order, copied from finalized records. Pending source/review work requires the partial template. A CSV no row may only be NEEDS_REVIEW or conclusively justified N/A. -->
 
 | SC | Name | Level | Verdict | Evidence |
 |---|---|:---:|---|---|
@@ -73,7 +73,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 
 ## Confirmed findings
 
-<!-- Repeat in CSV order for every FAIL criterion only. -->
+<!-- Repeat in CSV order for every FAIL record only. Copy its severity unchanged; do not reassign severity during prose generation. -->
 
 ### [[verdict]] [[sc_id]] — [[name]]
 
@@ -92,7 +92,7 @@ Checklist completion is reported as verdict counts, not as a compliance percenta
 
 ## Manual verification plan
 
-<!-- Exactly one row for every NEEDS_REVIEW criterion, in canonical CSV order. -->
+<!-- Exactly one row for every NEEDS_REVIEW record, in canonical CSV order; no PASS/N/A rows and no unfinished source work disguised as a manual check. -->
 
 | SC | Priority | Unresolved boundary | Required verification |
 |---|---|---|---|
