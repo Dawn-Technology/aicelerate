@@ -133,6 +133,7 @@ What is partial here is the validation, not the coverage. The report still carri
 
 - A worker result exists for every call dispatched (A1 and A2, or A1 alone in partial-validation or single-model mode).
 - The model identifier requested for each worker is recorded, and the two are distinct unless the run is in partial-validation or single-model mode.
+- Whenever the run is not in two-model mode, the model identifiers this host offered are recorded, together with the reason a second distinct identifier could not be used.
 - The execution mode is recorded.
 
 ### Phase 3: Evaluation, Analysis, & Merging
