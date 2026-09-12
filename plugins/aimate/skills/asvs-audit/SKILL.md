@@ -145,7 +145,7 @@ What is partial here is the validation, not the coverage. The report still carri
     - In partial-validation or single-model mode there is no second opinion to reconcile. Verify the single worker's evidence yourself before accepting a finding.
 2.  **Parse Report**: Use `./references/REPORT-TEMPLATE.md` as the mandatory skeleton.
     - **Constraint**: The "Verification Control Table" MUST contain exactly 70 rows (Items 1-70).
-    - **Provenance**: Record your own model identifier as coordinator, the identifier requested for each worker, and the execution mode. Where the host reports the model a worker actually used, record that instead. Never write a model name the run did not use.
+    - **Provenance**: Record your own model identifier as coordinator, the identifier requested for each worker, and the execution mode. Where the host reports the model a worker actually used, record that instead. Mark which of the two the report carries, since an identifier you requested is not evidence of what ran. Never write a model name the run did not use.
     - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from both workers.
     - **Sanitization**: Ensure NO secrets/PII are present.
 3.  **Write to Disk**:
