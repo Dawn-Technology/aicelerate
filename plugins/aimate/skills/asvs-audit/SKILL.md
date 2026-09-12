@@ -1,24 +1,16 @@
 ---
 name: asvs-audit
-description: "[OPUS 4.6 OR GPT-5.5 REQUIRED] OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings. Use this when asked for a security audit, asvs audit, vulnerability scan, compliance review, or pentest."
+description: "OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings. Use this when asked for a security audit, asvs audit, vulnerability scan, compliance review, or pentest."
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 2.4.2
+  version: 2.5.0
   asvs-version: 5.0.0
-argument-hint: "Switch to Opus 4.6 or GPT-5.5 first, then provide target application or scope"
+argument-hint: "Provide target application or scope"
 ---
 
 # OWASP ASVS 5.0 Level 1 Security Audit
 
 **Role**: You are an Application Security Expert. Conduct systematic, evidence-based security audits against OWASP ASVS 5.0 Level 1 requirements using the bundled CSV as the canonical source.
-
-## Pre-flight Model Check
-
-Before starting any work, verify the model you are currently running on.
-
-- If you are NOT running on `Claude Opus 4.6` or `GPT-5.5`, you MUST STOP immediately.
-- Reply ONLY with: "⚠️ **Model Mismatch:** This advanced ASVS audit strictly requires Claude Opus 4.6 or GPT-5.5. Please switch your model in the Copilot dropdown at the top of the chat and try again."
-- Do not execute any tools, do not analyze any code, and do not proceed to Phase 1.
 
 ## Prerequisites
 
@@ -118,45 +110,42 @@ _Source: [`./references/severity-guidance.md`](./references/severity-guidance.md
     - Load CSV from **Skill Workspace** `./assets/OWASP_Application_Security_Verification_Standard_5.0.0_L1_en.csv`. - Use columns and row order (1-70) for the audit.
     - Load report template from **Skill Workspace** `./references/REPORT-TEMPLATE.md`. DO NOT deviate from template while generating the report.
 
-### Phase 2: Multiple Subagent Evaluation
+### Phase 2: Independent Worker Evaluation
 
-To maximize thoroughness, you MUST delegate the actual evaluation to two separate subagents, running in parallel where supported. Each subagent audits the codebase independently using a **different model** — this is mandatory to obtain genuinely diverse findings.
+Delegate the evaluation to two workers with distinct, explicit model identifiers, running in parallel where the host supports it. Each worker audits the codebase independently, and the model difference is what makes the second pass genuinely independent rather than confirmatory. You stay the coordinator throughout: you dispatch the work, you merge the results, and you own the final verdicts.
 
-**Hard requirement**: Every `runSubagent` call in this phase MUST include an explicit `model` parameter. Never omit `model`, and never reuse the same model across agents.
+**Model selection**: pick two distinct model identifiers at run time from what this host actually offers — the values its worker-dispatch model parameter accepts, or its documented model list. Never hardcode a model name here, and never carry one over from an earlier run: a name that was valid last month may be retired today. Record the identifier you requested for each worker, since the report has to name them.
 
 **Dispatch contract (required)**:
 
-- Create exactly 2 subagent calls (A1, A2).
-- Use distinct `description` labels so outputs can be mapped reliably (for example: `ASVS-A1`, `ASVS-A2`).
-- Include identical audit input for both calls (same Phase 1 context + full CSV content).
+- Create 2 worker calls (A1, A2), each on its own model identifier — or a single call when the host has only one model available (see below).
+- Give each call a distinct label so outputs can be mapped reliably (for example: `ASVS-A1`, `ASVS-A2`).
+- Give both calls identical audit input: the Phase 1 context plus the full CSV content.
 - Request the same output schema from both calls.
+- Instruct each worker to evaluate all 70 items in order using the Decision Tree and return every finding with its evidence.
 - Run calls in parallel when available; otherwise run sequentially while preserving distinct models.
 
-1. **Agent 1 — Claude Opus 4.6**:
-   - `model: "Claude Opus 4.6 (copilot)"`
-   - Provide it with the context gathered in Phase 1 and the full ASVS CSV content.
-   - Instruct it to evaluate all 70 items in order using the Decision Tree and return every finding with evidence.
-2. **Agent 2 — GPT-5.5**:
-   - `model: "GPT-5.5 (copilot)"`
-   - Provide it with the same context and ASVS CSV content.
-   - Instruct it to independently evaluate all 70 items in order using the Decision Tree.
+**If two distinct models are unavailable**, do not stop the audit and do not wait for permission to continue. Disclose the limitation and run in partial-validation mode: one worker still evaluates all 70 items, and the report states that distinct worker models were unavailable, so the second independent pass could not be run. Record single-model mode instead only where the user has already authorized a single-model review — never pause the audit to ask for that authorization.
 
-> **Model diversity is the goal.** Run both agents in parallel when supported. DO NOT change the model parameter names under any circumstance. Do not apply fallback rules; use the EXACT strings provided above.
+What is partial here is the validation, not the coverage. The report still carries all 70 rows, so do not apply the `[PARTIAL]` prefix, which marks a run that stopped before evaluating every item.
 
 **Pre-merge validation checklist (must pass before Phase 3)**:
 
-- 2 subagent results exist (A1, A2).
-- 2 EXACT distinct model strings were used.
+- A worker result exists for every call dispatched (A1 and A2, or A1 alone in partial-validation or single-model mode).
+- The model identifier requested for each worker is recorded, and the two are distinct unless the run is in partial-validation or single-model mode.
+- The execution mode is recorded.
 
 ### Phase 3: Evaluation, Analysis, & Merging
 
-1.  **Analyze and Merge**: Once both subagents return their findings, compare their results for each of the 70 items.
+1.  **Analyze and Merge**: Once the workers return their findings, compare their results for each of the 70 items.
     - If they agree, use the consolidated finding.
-    - If they disagree (e.g., one finds a PASS, another a FAIL), review the evidence provided by both agents. You (the main model) are the final arbiter. Evaluate the strength of evidence to break the tie, overriding with the most accurate, evidence-based conclusion.
-    - Combine unique vulnerabilities from both agents into the final list.
+    - If they disagree (e.g., one finds a PASS, another a FAIL), review the evidence provided by both workers. You, the coordinator, are the final arbiter. Evaluate the strength of evidence to break the tie, overriding with the most accurate, evidence-based conclusion.
+    - Combine unique vulnerabilities from both workers into the final list.
+    - In partial-validation or single-model mode there is no second opinion to reconcile. Verify the single worker's evidence yourself before accepting a finding.
 2.  **Parse Report**: Use `./references/REPORT-TEMPLATE.md` as the mandatory skeleton.
     - **Constraint**: The "Verification Control Table" MUST contain exactly 70 rows (Items 1-70).
-    - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from all three subagents.
+    - **Provenance**: Record your own model identifier as coordinator, the identifier requested for each worker, and the execution mode. Where the host reports the model a worker actually used, record that instead. Never write a model name the run did not use.
+    - **Findings**: Include detailed evidence/remediation for FAIL items only, incorporating the best evidence from both workers.
     - **Sanitization**: Ensure NO secrets/PII are present.
 3.  **Write to Disk**:
     - Determine the output path: `{target_repo}/docs/{project_name}-ASVS-L1-audit-{YYYY-MM-DD}.md`.
@@ -176,6 +165,7 @@ To maximize thoroughness, you MUST delegate the actual evaluation to two separat
 | Git commands fail               | Set Git Commit to `unknown`, continue audit                                                                 |
 | Tool fails mid-audit            | Mark as **⚠️ NEEDS_REVIEW** with note: "Verification failed due to tooling error — manual review required". |
 | Token/context limit approaching | Complete current chapter, save partial report with `[PARTIAL]` prefix, note last completed item             |
+| Distinct worker models unavail. | Do not stop. Disclose it; partial-validation mode (all 70 rows, no `[PARTIAL]` prefix) unless the user authorized single-model review |
 | File too large to read          | Sample first 500 lines + last 100 lines, note in Evidence: "Large file - sampled"                           |
 
 ---
