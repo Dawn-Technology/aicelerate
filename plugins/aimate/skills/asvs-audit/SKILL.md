@@ -134,7 +134,7 @@ What is partial here is the validation, not the coverage. The report still carri
 - A worker result exists for every call dispatched (A1 and A2, or A1 alone in partial-validation or single-model mode).
 - The model identifier requested for each worker is recorded, and the two are distinct unless the run is in partial-validation or single-model mode.
 - Whenever the run is not in two-model mode, the model identifiers this host offered are recorded, together with the reason a second distinct identifier could not be used.
-- The execution mode is recorded.
+- The execution mode is recorded: `two-model`, `partial-validation`, or `single-model`.
 
 ### Phase 3: Evaluation, Analysis, & Merging
 
@@ -166,7 +166,7 @@ What is partial here is the validation, not the coverage. The report still carri
 | Git commands fail               | Set Git Commit to `unknown`, continue audit                                                                 |
 | Tool fails mid-audit            | Mark as **⚠️ NEEDS_REVIEW** with note: "Verification failed due to tooling error — manual review required". |
 | Token/context limit approaching | Complete current chapter, save partial report with `[PARTIAL]` prefix, note last completed item             |
-| Two distinct models unavailable | Do not stop. Disclose it; run partial-validation mode unless the user authorized single-model review        |
+| Two distinct models unavailable | Do not stop; partial-validation mode, no `[PARTIAL]` prefix, unless single-model review is authorized       |
 | File too large to read          | Sample first 500 lines + last 100 lines, note in Evidence: "Large file - sampled"                           |
 
 ---
