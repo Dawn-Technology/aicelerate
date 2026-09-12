@@ -166,7 +166,7 @@ What is partial here is the validation, not the coverage. The report still carri
 | Git commands fail               | Set Git Commit to `unknown`, continue audit                                                                 |
 | Tool fails mid-audit            | Mark as **⚠️ NEEDS_REVIEW** with note: "Verification failed due to tooling error — manual review required". |
 | Token/context limit approaching | Complete current chapter, save partial report with `[PARTIAL]` prefix, note last completed item             |
-| Distinct worker models unavail. | Do not stop. Disclose it; partial-validation mode (all 70 rows, no `[PARTIAL]` prefix) unless the user authorized single-model review |
+| Two distinct models unavailable | Do not stop. Disclose it; run partial-validation mode unless the user authorized single-model review        |
 | File too large to read          | Sample first 500 lines + last 100 lines, note in Evidence: "Large file - sampled"                           |
 
 ---
