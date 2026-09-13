@@ -1,9 +1,11 @@
 # Dawn Technology · OWASP ASVS 5.0 Level 1 · Security Audit Report
 
-**Initial Draft author**: AI Agent ({{ model_name }})  
-**Reviewed & Finalized by**: _____________________
+**Initial Draft author**: AI Agent (coordinator: {{ coordinator_model }})  
+**Evidence workers**: {{ worker_model_identifiers }} ({{ identifier_provenance }})  
+**Execution mode**: {{ execution_mode }}  
+**Reviewed & Finalized by**: _____________________  
 **Report Date**: {{ report_date }}  
-**Skill Version**: 2.1.0  
+**Skill Version**: {{ skill_version }}  
 **ASVS Version**: 5.0.0  
 
 ## Application details
