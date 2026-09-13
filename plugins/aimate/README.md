@@ -98,6 +98,16 @@ Analyzes the diff, identifies what changed, and writes a guide a real person can
 
 ---
 
+### `write-summary`
+
+> Explain a branch, pull request, commit range, patch, or local changes in plain language.
+
+Reads the change set together with its task context and returns a short version and a concise expanded version in chat. It focuses on purpose, changed behavior, and user-facing or system-level outcomes without exposing implementation identifiers. The workflow is read-only and never publishes or updates anything.
+
+**Trigger phrases:** "summarize this branch", "describe these changes", "write a code change summary", "give me short and long versions"
+
+---
+
 ### `write-commit-message`
 
 > Write a high-quality git commit message following the seven rules of great commit messages, and commit it.

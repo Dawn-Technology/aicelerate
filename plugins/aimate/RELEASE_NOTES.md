@@ -1,5 +1,9 @@
 # Release notes
 
+## 2.5.0
+
+Added `write-summary`, a read-only skill that turns a branch, pull request, merge request, commit range, patch, or local change set into short and long plain-language descriptions. It combines the diff with the supplied task context, focuses on purpose and observable outcomes, avoids implementation identifiers and marketing language, and only returns the result in chat.
+
 ## 2.4.0
 
 Added `validate-ticket`, which decides whether one ticket is ready for development and rewrites its description into a brief an agent can build from. It supports Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and a ticket pasted as plain text when no tracker is reachable. Every provider difference — identifier parsing, field mapping, Jira custom-field discovery, and the ADF/wiki formatting trap on a description write — lives in `references/provider-operations.md` rather than in the workflow.

@@ -351,6 +351,7 @@ Produce a manual test guide and open the merge request. Local Git handles branch
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `test-pr-guide` | aimate | Step-by-step manual testing guide for a branch or MR |
+| `write-summary` | aimate | Short and long plain-language descriptions of a branch, PR/MR, commit range, patch, or local changes |
 | `write-commit-message` | aimate | Draft the commit message from the staged diff — triggers automatically on every commit |
 | `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step through `glab` |
 | `glab` | Installed and authenticated locally | Open the MR with description and labels after local Git pushes the branch |
