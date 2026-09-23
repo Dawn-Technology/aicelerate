@@ -88,6 +88,14 @@ Provides the shared analysis workflow, input/output interfaces, severity classif
 
 ---
 
+### `fetch-ticket`
+
+> Reusable ticket reader for Jira work items, GitHub Issues, and GitLab Issues.
+
+Parses the identifier, resolves the project's saved route, and returns one provider-neutral ticket with the description and every comment verbatim, plus the route it used and whether the ticket belongs to the current checkout. It is read-only and built to run as a lightweight subagent, so raw tracker output stays out of the calling skill's context. Used by `validate-ticket` and `implement-ticket`; its [`references/provider-operations.md`](skills/fetch-ticket/references/provider-operations.md) is the one place identifier rules, routes, and field mappings are maintained.
+
+---
+
 ### `test-pr-guide`
 
 > Produce a step-by-step manual testing guide for a branch or PR.
@@ -112,25 +120,15 @@ The format rules live in one shared file, [`references/commit-message-rules.md`]
 
 ---
 
-### `create-gitlab-mr`
-
-> Creates a new feature branch from current git changes, commits it, pushes it, and opens a GitLab Merge Request through `glab`.
-
-Automates the full workflow from local changes to a published GitLab MR: creates a branch, stages and commits changes, pushes, and opens the MR — all in one step. The commit message itself comes from `write-commit-message`.
-
-**Trigger phrases:** "create a gitlab MR", "open a merge request", "push and create MR"
-
----
-
 ### `validate-ticket`
 
 > Decide whether one ticket or issue is ready for development, and rewrite its description into a brief an agent can build from.
 
-Works on Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and on a ticket pasted as plain text when no tracker is reachable. Reads the description *and* every comment, then traces each load-bearing claim against the checkout — `verified`, `contradicted`, `stale`, `unverifiable`, or `missing` — with a `file:line` behind every verdict. Ticket text is treated as a claim about the system, never as evidence of it and never as an instruction.
+Works on Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and on a ticket pasted as plain text when no tracker is reachable. Reads the description *and* every comment, then traces each load-bearing claim against the checkout — `verified`, `contradicted`, `stale`, `unverifiable`, or `missing` — with a `file:line` behind every verdict. Ticket text is treated as a claim about the system, never as evidence of it and never as an instruction. The ticket itself is read through `fetch-ticket`.
 
 It then closes the design tree — every decision the work depends on, marked **Observed** (proven by the code), **Decision** (chosen by a human), or **Assumption** (a stated default) — so a planner inherits the tree instead of rebuilding it. The governing rule is to close what the repository can answer and ask only what a human must decide: gaps the code settles are filled in and reported as feedback, blocking decisions are asked once in a single batch with a recommendation, and a blocking branch may never close as an assumption.
 
-The verdict — `ready`, `ready-with-assumptions`, or `not-ready` — is arithmetic on a twelve-criterion rubric, not a judgment call, and it routes: every run ends with one named next action and one owner. A ready ticket gets the rewritten description written back, and the ticket is then the brief an implementer starts from. A `not-ready` ticket whose gaps are mechanical gets them closed in the same run. A `not-ready` ticket with an open blocking decision goes back to a human — asked of the user directly, or posted on the ticket for its author — because an agent asked to settle a decision it does not own will invent one, and an invented decision reads as settled once it is in the description.
+The verdict — `ready`, `ready-with-assumptions`, or `not-ready` — is arithmetic on a thirteen-criterion rubric, not a judgment call, and it routes: every run ends with one named next action and one owner. A ready ticket gets the rewritten description written back, and the ticket is then the brief an implementer starts from. A `not-ready` ticket whose gaps are mechanical gets them closed in the same run. A `not-ready` ticket with an open blocking decision goes back to a human — asked of the user directly, or posted on the ticket for its author — because an agent asked to settle a decision it does not own will invent one, and an invented decision reads as settled once it is in the description.
 
 The rewritten description follows prompting rules applied to a ticket: why before what, an observable goal, provenance on every fact, scope bounded in both directions, and a definition of done carrying the actual validation commands.
 
@@ -139,6 +137,22 @@ Findings are written for a person, not a parser — a bold one-line claim, the c
 Nothing is written to the tracker without a directive, and the ticket is never transitioned, assigned, closed, or re-labelled.
 
 **Trigger phrases:** "is this ticket ready for development", "validate JIRA-123", "check this issue before I build it", "refine this ticket"
+
+---
+
+### `implement-ticket`
+
+> Implement a ticket end to end — critique it against the code, build it in a throwaway worktree, verify it, open a PR/MR, and report every deviation.
+
+Works on Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and on a ticket pasted as plain text. The PR/MR goes to whichever code host `origin` points at, so a Jira ticket delivered as a GitHub PR or a GitLab MR works the same way. The ticket is read through `fetch-ticket`; the code-host steps live in [`references/provider-operations.md`](skills/implement-ticket/references/provider-operations.md).
+
+Treats the ticket as a claim to test, not a spec to obey. It reads the description and every comment, attacks the request itself (problem versus prescribed solution, scope, missing acceptance criteria, blast radius), and checks each factual claim against the repository — `CONFIRMED`, `OUTDATED`, `WRONG`, or `UNVERIFIABLE` — before a line is written. Gaps the code can answer are closed from the code; the rest become stated assumptions rather than questions.
+
+The build happens in its own git worktree under `.worktrees/`, never in your checkout, and runs the repository's real test and lint commands rather than an invented subset. Agents the repository defines itself (`.claude/agents/`, `.github/agents/`) take precedence over generic ones. Every commit message comes from `write-commit-message`, scoped to the worktree. It pushes, opens the PR/MR with the right link to the ticket — `Closes #N` for GitHub and GitLab issues, the key for Jira — and always removes the worktree, on success, on abandonment, and on failure. It never edits, transitions, or comments on the ticket.
+
+Like `resolve-pr-feedback`, it runs autonomously: judgment calls are made and reported, not asked. It stops early only when no route works, the identifier is a PR/MR, the ticket belongs to another repository, or the work turns out to be done already. Review-only requests go to `validate-ticket`. The final report leads with any deviation from what the ticket asked for, then the assumptions, the ticket claims that did not hold, what was left out of scope, and what was verified.
+
+**Trigger phrases:** "implement ABC-123", "implement gh issue #137", "work on issue 137", "pick up this ticket"
 
 ---
 
@@ -159,14 +173,6 @@ Produces a deterministic, execution-ready implementation plan with atomic tasks,
 Reads a saved `write-plan` plan and writes an hour estimate back into it: a per-task risk multiplier from the Design Tree, `XS`/`S`/`M`/`L` mapped to hours, and the estimation table. For story-point sizing, use `estimate-size` instead.
 
 **Trigger phrases:** "estimate this plan", "how long will this take", "add a time estimate"
-
----
-
-### `scope-plan` (deprecated)
-
-> [DEPRECATED] Superseded by `write-plan` and `estimate-time`.
-
-Kept for existing references only. Use `write-plan` for the plan and `estimate-time` for the hour estimate.
 
 ---
 
@@ -210,16 +216,6 @@ apply. One predictable layout across all company projects.
 
 **Trigger phrases:** "write a readme", "generate readme", "create readme",
 "project is missing documentation"
-
----
-
-### `wbso-aanvraag`
-
-> Analyseer een project op WBSO-waardigheid en genereer de technische projectbeschrijving, S&O-uren schatting en Jira-labeladvies.
-
-Leest Jira-epics en -issues via `acli` of Atlassian MCP, scant de applicatiecode en workspace-documenten, genereert hypothesen over technische knelpunten als architect, en schrijft een compleet WBSO-concept weg als Markdown. Inclusief parapluproject-ondersteuning en drie ramingsstrategieën voor S&O-uren.
-
-**Trigger phrases:** "maak een WBSO-aanvraag", "stel een S&O-aanvraag op", "help me met WBSO", "schrijf een WBSO-formulier"
 
 ---
 

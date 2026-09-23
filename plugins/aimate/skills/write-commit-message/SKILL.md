@@ -9,7 +9,7 @@ description: >
   Runs autonomously: reads the staged diff, drafts the message, and commits
   it without stopping for approval, then reports what was committed.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   author: "Johan Kromhout <johan.kromhout@dawn.tech>"
 ---
 
@@ -28,8 +28,18 @@ The **format rules themselves live in one shared file**,
 which the repo-root `commit-message.instructions.md` forwards to as well.
 Maintain the rules there, never here.
 
-Other skills that produce commits (e.g. `create-gitlab-mr`) delegate the
+Other skills that produce commits (e.g. `implement-ticket`) delegate the
 message to this skill instead of writing their own.
+
+## Execution & Model Tier
+
+Commit message authoring is a mechanical formatting task: reading a staged diff,
+extracting a ticket key, and applying formatting rules. It does not require
+high-tier reasoning models.
+
+When invoked programmatically or delegated by another workflow, execute this
+skill in an isolated subagent using the host platform's fast, lightweight model
+tier rather than running inside the caller's primary session.
 
 ## Autonomy
 

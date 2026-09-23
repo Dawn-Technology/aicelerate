@@ -3,7 +3,7 @@ name: resolve-pr-feedback
 description: Use when asked to resolve, address, fix, or reply to review feedback on a GitHub Pull Request or GitLab Merge Request, including review comments, unresolved threads, requested changes, or "apply the review comments" requests.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.1.0
   dependencies:
     - code-review
     - write-commit-message
@@ -273,12 +273,12 @@ Work through the accepted items one logical change at a time.
 - Stay inside the recorded plan. Anything you discover that the plan does not cover goes into the Step 11 report, not into the diff.
 - Track which thread ids each edit resolves. Step 10 needs that mapping.
 
-Commit each logical unit as you finish it — one commit per item, or one per group of items sharing a fix. That gives Step 8 a real diff and keeps each fix attributable to its thread. Invoke [write-commit-message](../write-commit-message/SKILL.md) for every message and use it verbatim; it runs autonomously, so add no approval step of your own.
+Commit each logical unit as you finish it — one commit per item, or one per group of items sharing a fix. That gives Step 8 a real diff and keeps each fix attributable to its thread. Delegate message drafting to [write-commit-message](../write-commit-message/SKILL.md) in an isolated subagent using the host platform's fast, lightweight model tier, and use it verbatim; it runs autonomously from draft to commit.
 
 That delegation must be scoped to `{wt}`. `write-commit-message` works on whatever repository it finds itself in and stages for you when nothing is staged, so an unscoped invocation can commit the user's unrelated work in the primary checkout and leave `{wt}` untouched. Before invoking it:
 
 - Stage the paths for this item yourself, in the worktree: `git -C {wt} add <paths>`. Name the paths explicitly — `git add -A` is prohibited here, because the worktree is not the only thing an agent may have touched.
-- Tell it to run every `git` command with `git -C {wt}`, that the change is already staged, and that it must not stage anything itself.
+- Run the subagent on the fast, lightweight model tier, instructing it to run every `git` command with `git -C {wt}`, that the change is already staged, and that it must not stage anything itself.
 - Have it commit with `git -C {wt} commit --cleanup=strip -F <tmpfile>`, generating the message from that staged diff.
 
 Scoping the invocation is not substituting the message; the wording stays entirely `write-commit-message`'s call.
@@ -342,7 +342,7 @@ Store the result as `self_review_result`:
 
 - Every `security-violation` and `request-for-change` finding blocks the push. Fix, re-run Step 7, and self-review again — at most twice. If a finding survives that, revert the item it belongs to, move that item to `needs-clarification`, and push the rest. Never push a change your own review still calls broken.
 - `optional` findings do not block. List them in the report and leave them.
-- If `chunking_required` is `true`, process every chunk in order and combine the results without reclassifying them, then apply this gate.
+- If `chunking_required` is `true`, process every chunk in order, without asking even when `confirm_scope` is `true`, and combine the results without reclassifying them, then apply this gate.
 
 Then check what `code-review` cannot, because it reviews the code and not the mandate:
 

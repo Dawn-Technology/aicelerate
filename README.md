@@ -178,7 +178,7 @@ Commit messages come from the [`write-commit-message`](plugins/aimate/skills/wri
 
 It runs autonomously: no approval step, no "shall I proceed", no questions about what to stage. It commits and then reports the SHA and the message it wrote. If something needs changing, `git commit --amend` is the fix.
 
-Skills that produce commits, such as `create-gitlab-mr`, delegate the message to this skill, so the same standard applies whether you commit by hand or through an automated workflow.
+Skills that produce commits, such as `implement-ticket` and `resolve-pr-feedback`, delegate the message to this skill, so the same standard applies whether you commit by hand or through an automated workflow.
 
 #### One shared rules file
 
@@ -322,8 +322,11 @@ Break down the spec into an atomic, dependency-mapped implementation plan with e
 
 Hand off the result of write-plan (and estimate-time, if a time forecast is needed) or the spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
 
+For work tracked as a ticket — Jira, GitHub, or GitLab — `implement-ticket` covers this stage end to end: it critiques the ticket against the code, builds it in an isolated worktree, runs the project's own checks, and opens the PR/MR.
+
 | Tool | Source | Purpose |
 | --- | --- | --- |
+| `implement-ticket` | aimate | Critique a Jira, GitHub, or GitLab ticket against the code, build it in an isolated worktree, verify it, open the PR/MR, and report deviations from the ticket |
 | Context7 MCP | [Recommended MCP](#context7-upstashcontext7) | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
 | Figma MCP | Project-configured via `configure-mcp` | Reference component specs and design tokens when generating UI code |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Create pull requests for changed code; GitLab always uses `glab` |
@@ -352,7 +355,6 @@ Produce a manual test guide and open the merge request. Local Git handles branch
 | --- | --- | --- |
 | `test-pr-guide` | aimate | Step-by-step manual testing guide for a branch or MR |
 | `write-commit-message` | aimate | Draft the commit message from the staged diff — triggers automatically on every commit |
-| `create-gitlab-mr` | aimate | Commit, push, and open a GitLab MR in one step through `glab` |
 | `glab` | Installed and authenticated locally | Open the MR with description and labels after local Git pushes the branch |
 
 ---
