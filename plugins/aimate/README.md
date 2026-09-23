@@ -98,6 +98,18 @@ Analyzes the diff, identifies what changed, and writes a guide a real person can
 
 ---
 
+### `playwright-test-pr`
+
+> Test a PR or MR like a human QA engineer using Playwright MCP.
+
+Analyzes the diff to generate a browser test scenario list (Phase 1), then executes each scenario live in a Playwright-controlled browser with inline step logging, automatic screenshot capture on failure, and a structured inline report. Supports GitHub and GitLab PR/MR URLs and local branches, as well as multi-service features spanning several PRs across different repos (e.g. a microservice architecture where a frontend PR and one or more backend-service PRs must run together) — with a pre-flight reachability check for each service before browser execution starts.
+
+Requires Microsoft's official [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp) server (`browser_*` tools). Run `configure-mcp` and select **Playwright** to add it — see [`mcp-catalog.md`](skills/configure-mcp/references/mcp-catalog.md) for the pinned version and template.
+
+**Trigger phrases:** "test this PR with Playwright", "browser-test this MR", "QA this PR", "QA this PR automatically", "run Playwright on this branch", "run browser tests on this PR", "test this feature across these PRs/services"
+
+---
+
 ### `write-commit-message`
 
 > Write a high-quality git commit message following the seven rules of great commit messages, and commit it.
