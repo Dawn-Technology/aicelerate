@@ -50,17 +50,17 @@ Verify the request-input flag against `glab api --help` before running it.
 
 ## Updating the title
 
-Written with the description, under the same approval, and only when the title changed. The old title goes into the comment that notes the rewrite, so it survives whatever the tracker keeps in its history.
+Written only when the title changed and the user's approval named it — normally the one rewrite approval that covers the description too. The old title goes into the comment that notes the rewrite, so it survives whatever the tracker keeps in its history.
 
 ### Jira
 
 The title is the `summary` field. Confirm the flag against `acli jira workitem edit --help` on this build, then:
 
 ```bash
-acli jira workitem edit --key {key} --summary "{title}"
+acli jira workitem edit --key {key} --summary "{title}" --yes
 ```
 
-Or use the Atlassian MCP route's issue-edit tool. Re-read the summary through the same route afterwards.
+`--yes` skips the confirmation prompt, which an agent's shell cannot answer. Or use the Atlassian MCP route's issue-edit tool. Re-read the summary through the same route afterwards.
 
 ### GitHub
 
@@ -88,7 +88,7 @@ The description is a formatted field, so the write path is the risky one. Verify
 acli jira workitem edit --help
 ```
 
-If the build cannot set a description from a file, use the Atlassian MCP route's issue-edit tool rather than forcing a long body through shell arguments. Re-read the field afterwards, always.
+Pass `--yes` on any `acli` edit, for the same reason as the title. If the build cannot set a description from a file, use the Atlassian MCP route's issue-edit tool rather than forcing a long body through shell arguments. Re-read the field afterwards, always.
 
 ### GitHub
 

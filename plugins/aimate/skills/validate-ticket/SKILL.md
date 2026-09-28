@@ -1,9 +1,9 @@
 ---
 name: validate-ticket
-description: Use when asked whether a ticket or issue is ready for development, or to validate, refine, challenge, or sanity-check a Jira work item, GitHub Issue, or GitLab Issue before building it. Traces every claim in the ticket against the repository, closes the design tree, rewrites the description as an agent-ready brief with intent, goal, acceptance criteria, and definition of done, and reports one verdict with the single next action it demands.
+description: Use when asked whether a ticket or issue is ready for development, or to validate, refine, challenge, or sanity-check a Jira work item, GitHub Issue, or GitLab Issue before building it. Traces every claim in the ticket against the repository, closes the design tree, rewrites the title and description as an agent-ready brief with intent, goal, acceptance criteria, and definition of done, and reports one verdict with the single next action it demands.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.1.0
+  version: 1.2.0
   dependencies:
     - fetch-ticket
 ---
@@ -41,7 +41,7 @@ This workflow is **read-first** and **non-invasive**:
 
 Load these reference files from the skill directory as needed:
 
-- [references/provider-operations.md](references/provider-operations.md) — Posting a comment, updating the description, Jira description formatting, write failure reconciliation.
+- [references/provider-operations.md](references/provider-operations.md) — Posting a comment, updating the title and the description, Jira description formatting, write failure reconciliation.
 - [`fetch-ticket`'s provider operations](../fetch-ticket/references/provider-operations.md) — Identifier parsing, route resolution, canonical ticket model, and every read, owned by `fetch-ticket`.
 - [references/readiness-rubric.md](references/readiness-rubric.md) — 13-criteria readiness rubric, verdict rules, finding format rules.
 - [references/description-template.md](references/description-template.md) — Agent-ready description template, title rules, description rules, and concrete examples. The [title rules](references/description-template.md#title-rules) are the only definition of a good title.
@@ -63,7 +63,7 @@ These rules are authoritative. Later sections define output structure and requir
 ## Inputs Required
 
 1. **Ticket identifier** — a URL, a Jira key such as `ABC-123`, `{owner, repo, issue_number}` for GitHub, `{project_path, issue_iid}` for GitLab, or a bare `#N` when the `origin` remote settles the provider.
-2. **Optional directive** — "and post the feedback", "and update the description", "and post the questions" grants that action up front and lifts the Step 7 stop for it.
+2. **Optional directive** — "and post the feedback", "and rewrite the ticket", "and post the questions" grants that action up front and lifts the Step 7 stop for it. A directive covers only what it names: "and update the description" leaves the title alone, and the report still asks about the new title.
 3. **Optional focus** — an area to weight the validation towards. It narrows what is *examined first*, never what is reported.
 
 A ticket pasted as plain text with no identifier is valid input: run the whole workflow with `provider = none`, skip the fetch and every remote write, and deliver the report and the proposed description in chat.
@@ -271,9 +271,9 @@ Those three names are for scoring only and are never printed. They become the he
 
 | Verdict | Remaining gaps | Action to propose | Carried out by |
 | --- | --- | --- | --- |
-| `ready` / `ready-with-assumptions` | None | Write the new title and description back to the ticket (8-B). The ticket becomes the brief an implementer starts from, and nothing further is produced | This session, on approval |
-| `not-ready` | Mechanical only — no open human decision | Close them: write the title and description back (8-B), and split the ticket (8-C) when that is the gap | This session, on approval |
-| `not-ready` | One or more open blocking questions | Post the question set on the ticket (8-A), addressed to its author, and leave the verdict where it is | This session posts; the user or the ticket author answers |
+| `ready` / `ready-with-assumptions` | None | Rewrite the ticket, title and description (8-B). The ticket becomes the brief an implementer starts from, and nothing further is produced | This session, on approval |
+| `not-ready` | Mechanical only — no open human decision | Close them: rewrite the ticket (8-B), and split it (8-C) when that is the gap | This session, on approval |
+| `not-ready` | One or more open blocking questions | Post the question set on the ticket (8-A), addressed to its author, and rewrite the ticket with the open questions in it (8-B). Leave the verdict where it is | This session posts and writes, on approval; the user or the ticket author answers |
 
 The questions themselves were already asked in Step 4. Do not ask them again here. But if the user answers them in their reply to the report, score again — an answered blocking question closes as a **Decision**, and the ticket can leave the same session ready.
 
@@ -307,13 +307,21 @@ In order:
 
 > Traced 9 claims against `a1b2c3d` (7 verified, 1 contradicted, 1 unverifiable) and closed 12 design branches — 9 from the code, 1 decided here, 2 assumed. Ask for the ledger, the tree, or the rubric if you want the detail.
 
-**4. The verdict and the next action, last**, set off by a rule so the eye lands on it:
+**4. The verdict, the next action, and the approval question, last**, set off by a rule so the eye lands on it:
 
 > ---
 > **ABC-123 — Not ready.** The refund claim contradicts `src/Payout.php:88`, and nobody has decided what a provider timeout does.
 > **Next:** answer the two blocking questions above, then it is ready to plan. *You, or whoever wrote the ticket.*
+>
+> **Post the 2 questions and rewrite the title and description?** yes / no
 
-Two lines: the ticket, the call, and the one thing that decided it; then the single action and its owner. If the verdict needs a paragraph, the findings above it did not do their job.
+Three lines: the ticket, the call, and the one thing that decided it; then the single action and its owner; then the question that asks to carry it out. If the verdict needs a paragraph, the findings above it did not do their job.
+
+**The approval question** is one short yes/no line, in bold, after a blank line, with nothing after it:
+
+- Name each write in a few words, and nothing more: "rewrite the title and description", "post the 2 questions", "split it into 3 tickets". The new title and the summary of the rewrite are already above it, in part 2; do not repeat them.
+- When the title stays, say so: **Rewrite the description? The title stays.** Never ask only about the description when the title is changing too. The user approves what the question names, and nothing else.
+- Leave the question out when there is nothing to write: `provider = none`, or a standing directive that already covers every write.
 
 A posted comment inverts this — see 8-A. A comment is a document somebody opens later and reads top-down, so the verdict leads there. Only the terminal has a bottom worth protecting.
 
@@ -328,9 +336,9 @@ A posted comment inverts this — see 8-A. A comment is a document somebody open
 
 Everything fits one screen. If there are more than seven findings, show every **Blocking** one, the count of the rest by group, and offer the remainder — a list nobody reads is worse than a shorter list.
 
-**HARD STOP.** End the response at the verdict block, with the next-action line carrying the question of how to proceed — post the feedback as a comment, update the title and description, split the ticket, hand a ready ticket on to planning, or nothing at all. Do not call a tool after the report in the same response, and do not act until the user gives a directive in a later turn.
+**HARD STOP.** End the response at the verdict block, with the approval question as its last line when there is one. Do not call a tool after the report in the same response, and do not act until the user answers in a later turn. The user may choose something else instead — only the comment, a split, a hand-on to planning, or nothing — and an answer that names part of the write authorizes only that part: "just update the description" leaves the title as it was.
 
-The stop is lifted only for an action already granted as `standing_directive` in Step 0. When it is lifted, still produce this report, then continue into Step 8 in the same turn — and end that turn with the verdict block, updated to say what was done.
+The stop is lifted only for an action already granted as `standing_directive` in Step 0. When it is lifted, still produce this report, then continue into Step 8 in the same turn — and end that turn with the verdict block, updated to say what was done. If the directive left out part of the proposed write, such as the new title, end with the approval question for that part.
 
 ---
 
@@ -349,18 +357,18 @@ Somebody will read this months from now with none of the context, so it has to s
 - Do not paste the rewritten description here when 8-B is going to write it into the description field. Say it was rewritten and let the field carry it.
 - Name an owner as the tracker shows them. Never invent a mention or a handle.
 
-#### 8-B: Update the Title and Description
+#### 8-B: Rewrite the Ticket
 
-The title and the description are one update under one approval: a directive to update the description covers the title too. The title is written only when Step 6 replaced it.
+A rewrite replaces the title and the description together, under one approval that names both. The Step 7 question names the new title, so a yes to it covers both fields. An approval or directive that names only the description writes only the description, and the title stays until the user approves it. The title is written only when Step 6 replaced it.
 
 Only with explicit approval, and only once the original description survives somewhere outside this conversation: the provider's own field or body edit history, or a comment carrying the original posted *before* the overwrite. Confirm which one applies first — do not assume the tracker keeps history.
 
-This is the action a `ready` verdict routes to, and on that verdict it is the *whole* action: the ticket becomes the brief, and there is nothing further to produce. It is also the right action on a `not-ready` ticket whose gaps are mechanical — a better description with the open questions visible in it beats a stale one with the gaps buried in a chat log. On a `not-ready` write-back, add the banner and the **Open questions — blocking** section exactly as the [template](references/description-template.md#template) sets them out, naming each unanswered question and its owner. Never write back a rewrite that reads as ready when it is not.
+This is the action a `ready` verdict routes to, and on that verdict it is the *whole* action: the ticket becomes the brief, and there is nothing further to produce. It is also the right action on a `not-ready` ticket, whether its gaps are mechanical or still waiting on an answer — a better title and description with the open questions visible in them beat a stale one with the gaps buried in a chat log. On a `not-ready` write-back, add the banner and the **Open questions — blocking** section exactly as the [template](references/description-template.md#template) sets them out, naming each unanswered question and its owner. Never write back a rewrite that reads as ready when it is not.
 
 1. Show what changes: the old and new title, and the sections added, rewritten, and removed. Not a character diff — the shape of the edit.
 2. Write the new title and description through `ticket_route`, per [updating the title](references/provider-operations.md#updating-the-title) and [updating the description](references/provider-operations.md#updating-the-description), in the format that provider accepts.
 3. Re-read both fields afterwards and confirm they rendered. A description mangled by a format conversion is worse than the original.
-4. Post a short comment noting the rewrite, the old title when it was replaced, the verdict, and where the original description is preserved.
+4. Post a short comment noting the rewrite, the old title when it was replaced, the verdict, and where the original description is preserved. When 8-A runs in the same pass, write the fields first and put this note in the 8-A comment, so the ticket gets one comment rather than two.
 
 Never delete a section you could not map. Never edit a comment somebody else wrote.
 
@@ -405,7 +413,7 @@ Skip an empty heading rather than printing it with "none". Then close with the v
 - Never close a blocking branch as an **Assumption**, and never hide an assumption from the description.
 - Never ask a question the repository already answers, and never ask twice — one batch, in Step 4.
 - Never ask a question that can only be answered with the code open. Ask which way the system should behave, what each answer means for the people using it, and what it costs to change later — never which function, field, or file changes.
-- Never write to the tracker without a directive, and never transition, assign, close, reopen, or re-label a ticket. Creating a child ticket happens only through 8-C, on request.
+- Never write to the tracker without a directive, and never change a title the user's approval did not name. Never transition, assign, close, reopen, or re-label a ticket. Creating a child ticket happens only through 8-C, on request.
 - Never overwrite a description before confirming the original survives outside this conversation, and never edit somebody else's comment.
 - Never post a rewritten description in a format the provider will render literally. Check, write, then re-read the field.
 - Never use raw `curl` for a provider API. Use `gh`, `glab`, `acli`, or the matching MCP route, and `git` only for local repository reads.
