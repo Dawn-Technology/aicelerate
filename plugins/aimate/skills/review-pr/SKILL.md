@@ -86,10 +86,10 @@ Retrieve all metadata needed for the review using the tools matching `provider` 
 
 **GitHub**:
 
-- Fetch the PR details (title, description, source/target branches, author, labels, milestone, `base_sha`, `head_sha`).
+- Fetch the PR details (title, description, source/target branches, author, labels, milestone, `base_sha`, `head_sha`) and store the author as `author`.
 - Fetch existing PR review threads and comments.
 - Fetch the authenticated user's identity for `provider_route` (e.g. `gh api user` or the GitHub MCP session identity) and store it as `authenticated_user`.
-- Store `is_self_review = (authenticated_user == pr_author)`. GitHub rejects `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author; Steps 7-B and 7-C use this flag to avoid attempting a call the API will reject.
+- Store `is_self_review = (authenticated_user == author)`. GitHub rejects `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author; Steps 7-B and 7-C use this flag to avoid attempting a call the API will reject.
 - Note: GitHub uses `base_sha` and `head_sha` for inline comment positioning in Step 7-A.
 
 **GitLab**:
