@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.1.0
+  version: 5.2.0
   dependencies:
     - code-review
 ---
@@ -88,6 +88,8 @@ Retrieve all metadata needed for the review using the tools matching `provider` 
 
 - Fetch the PR details (title, description, source/target branches, author, labels, milestone, `base_sha`, `head_sha`).
 - Fetch existing PR review threads and comments.
+- Fetch the authenticated user's identity for `provider_route` (e.g. `gh api user` or the GitHub MCP session identity) and store it as `authenticated_user`.
+- Store `is_self_review = (authenticated_user == pr_author)`. GitHub rejects `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author; Steps 7-B and 7-C use this flag to avoid attempting a call the API will reject.
 - Note: GitHub uses `base_sha` and `head_sha` for inline comment positioning in Step 7-A.
 
 **GitLab**:
@@ -264,7 +266,9 @@ If comment submission or publication fails after some comments may already have 
 
 If the user requests approval, confirm there are no unresolved security violations first. If there are, explicitly confirm the user wants to proceed despite the risks.
 
-**GitHub**: Submit an approving review through `gh pr review --approve` or the matching MCP review tool with event `APPROVE`.
+**GitHub**: If `is_self_review` is `true`, do not attempt `APPROVE`; GitHub rejects approvals from the PR's own author. Skip straight to the self-review fallback described below.
+
+Otherwise, submit an approving review through `gh pr review --approve` or the matching MCP review tool with event `APPROVE`.
 
 **GitLab**: Approve the MR through `glab mr approve`.
 
@@ -272,7 +276,14 @@ If the user requests approval, confirm there are no unresolved security violatio
 
 Formally mark the PR/MR as requiring changes.
 
-**GitHub**: Submit a review through `gh pr review --request-changes` or the matching MCP review tool with event `REQUEST_CHANGES` and a summary covering the key findings.
+**GitHub**: If `is_self_review` is `true`, do not attempt `REQUEST_CHANGES`; GitHub rejects both `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author (see [community discussion #8918](https://github.com/orgs/community/discussions/8918)). Do not wait for the API to reject the call; check `is_self_review` proactively before choosing this path. Inform the user up front and offer:
+
+- Posting a `COMMENT`-state review instead (via `gh pr review --comment` or the matching MCP tool with event `COMMENT`), summarizing the key findings so they stay visible on the PR, or
+- Asking a teammate with review rights to submit the formal approval/request-changes, or re-authenticating `gh`/the MCP server as a different account.
+
+If the user chooses the `COMMENT`-state fallback, post it and clearly report in Step 8 that no formal approval/request-changes state was set due to the self-review restriction.
+
+If `is_self_review` is `false`, submit a review through `gh pr review --request-changes` or the matching MCP review tool with event `REQUEST_CHANGES` and a summary covering the key findings.
 
 **GitLab**: Proceed in two distinct steps. Execute these GraphQL operations through authenticated `glab api graphql`.
 
@@ -385,4 +396,5 @@ Style rules:
 - Do not use raw `curl` for provider API interactions. Use `gh`, `glab`, or the matching MCP route. Use `git` only for local repository/worktree operations.
 - After an ambiguous remote write failure, reconcile published reviews/comments through the same route before retrying. Never silently switch routes and duplicate a mutation.
 - Keep findings tied to concrete diff evidence from the branch worktree.
+- GitHub rejects `APPROVE` and `REQUEST_CHANGES` reviews submitted by the PR's own author. Check `is_self_review` (Step 1) before attempting either action in Step 7-B/7-C; never rely on the API rejection to discover this. Offer a `COMMENT`-state review or a different reviewer/account as the documented fallback, analogous to the existing GitLab reviewer-assignment check in Step 7-C.
 - If the workflow is interrupted (user cancels, agent crashes), manually run `git worktree prune` to clean orphaned entries and recover disk space.
