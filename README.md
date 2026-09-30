@@ -65,7 +65,7 @@ claude plugin install aimate@aicelerate
 ```
 
 > [!NOTE]
-> Compatibility is provided by symlinks (`.claude-plugin/marketplace.json` and `plugins/aimate/.claude-plugin/plugin.json`) that point at the Copilot-canonical manifests. Git stores these as symlinks on macOS and Linux. On Windows they only check out as symlinks when `git config core.symlinks` is `true`; otherwise they become plain text stubs and Claude Code discovery will fail.
+> Claude Code discovers the marketplace and plugin through `.claude-plugin/marketplace.json` and `plugins/aimate/.claude-plugin/plugin.json`. These are regular JSON files that mirror the Copilot-canonical manifests (`marketplace.json` and `plugins/aimate/plugin.json`); a CI check (`manifest-sync`) keeps each mirror identical to its source. They are plain files rather than symlinks so a checkout works on every platform, including Windows.
 
 ## Requirements
 
