@@ -1,5 +1,9 @@
 # Release notes
 
+## 3.4.0
+
+Added `review-architecture`, a read-only review of how an existing codebase is designed. It starts from the git history rather than from random files. A bundled script, which needs only Python 3 and git, ranks the most changed files by size, growth and complexity, and lists the files that keep changing in the same PR. The review then checks those hot spots against layering, dependency direction, cohesion, SOLID and simplicity rules. It holds a codebase to the architecture it declares, so framework idiom is not reported as a flaw. Every finding cites a `file:line` that was read. The report goes to `docs/<project>-architecture-review-<date>.md` and ends with three refactoring milestones that each ship without breaking callers.
+
 ## 3.3.0
 
 `review-pr` (5.3.0) handles GitHub's restriction against self-review: `APPROVE` and `REQUEST_CHANGES` review events are rejected when submitted by the PR's own author. Step 1 now detects this and stores it as `is_self_review`, and a single GitHub Self-Review Fallback block (referenced by Steps 7-B and 7-C instead of being restated in each) offers a `COMMENT`-state review or a different reviewer/account, and reports in Step 8 that no formal approval/request-changes state was set.

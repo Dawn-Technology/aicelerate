@@ -32,6 +32,16 @@ Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requir
 
 ---
 
+### `review-architecture`
+
+> Architecture and design-quality review of an existing codebase, aimed at the places that change most.
+
+Starts from the git history instead of reading files at random: a bundled script ranks the most changed files by size, growth and complexity, and finds files that keep changing in the same PR. Those hot spots are then checked against layering, dependency direction, cohesion, SOLID and simplicity rules. Every finding cites a `file:line` that was read, names the rule it breaks, and comes with a concrete fix. The report ends with three refactoring milestones that each ship without breaking callers, with before and after code for the first one. Read-only apart from the report it writes to `docs/`.
+
+**Trigger phrases:** "architecture review", "design review", "tech debt assessment", "where is the code hardest to change", "what should we refactor first"
+
+---
+
 ### `review-pr`
 
 > Review a GitLab Merge Request or GitHub Pull Request and provide findings, and post structured review comments with issue explanation plus code fixes.

@@ -300,6 +300,7 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
+| `review-architecture` | aimate | Find where the current design hurts most, from git churn and design rules, before deciding what to change |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Stress-test architectural options before committing |
 | `adr-writing` | [External](#adr-writing-vercelai--adr-skill) | Write Architectural Decision Records in MADR format |
 
