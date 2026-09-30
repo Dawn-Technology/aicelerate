@@ -1,5 +1,16 @@
 # Release notes
 
+## 3.2.0
+
+`implement-ticket` (1.2.0) now reviews its own work before it opens the PR/MR. Stage 7 runs `review-local` on the finished diff, in its own subagent on the default model. Every finding, at every severity, must be resolved: fixed by default, or rejected only with `file:line` or command output showing it does not hold or is outside the change. The fixes are committed through `write-commit-message`, the repo's checks run again, and the fix commits are reviewed once more, up to three review passes. Anything still open after that is listed as unresolved. On a very large diff the reviewer reviews every chunk and does not stop to ask about scope. The closing report gains a Review line with the findings raised, fixed, rejected, and left open. `review-local` is now a dependency of `implement-ticket`.
+
+## 3.1.0
+
+The title of a ticket is now a write you approve by name. Before, `validate-ticket` could rewrite the title when you had only approved a new description.
+
+- **`validate-ticket` (1.2.0)**: The report ends with one short yes/no question that names each write, such as "Post the 2 questions and rewrite the title and description?". An approval that names only the description leaves the title alone, and a standing directive covers only what it names. A `not-ready` ticket with open questions now gets the questions posted and the ticket rewritten with those questions visible in it, and the rewrite note goes in the same comment as the questions, so the ticket gets one comment. Jira edits pass `--yes`, because an agent's shell cannot answer the confirmation prompt.
+- **`implement-ticket` (1.1.0)**: Rewritten to say what to do instead of what to avoid. PR/MR titles and bodies are written in plain English for a colleague new to the code, with the ticket link on the last line. The code-host route (which tool to use, how to check it, when to stop) now has its own section in `references/provider-operations.md`, separate from the tracker route in `fetch-ticket`.
+
 ## 3.0.0
 
 Added `implement-ticket`, which takes a ticket from request to open PR/MR in one autonomous pass. It supports Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and a ticket pasted as plain text. The PR/MR goes to whichever code host `origin` points at, independent of where the ticket lives, so a Jira ticket delivered as a GitHub PR works the same way as a GitLab issue delivered as a GitLab MR.

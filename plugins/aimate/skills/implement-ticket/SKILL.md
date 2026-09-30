@@ -1,11 +1,12 @@
 ---
 name: implement-ticket
-description: 'Use when asked to implement, build, or pick up a ticket end to end — a Jira work item, GitHub Issue, or GitLab Issue — including "implement ABC-123", "implement gh issue #137", "work on issue 137", or "pick up this ticket". Critiques the request against the code, builds it in a throwaway git worktree, verifies it with the repo''s own commands, opens a PR/MR, removes the worktree, and reports every deviation from the ticket.'
+description: 'Use when asked to implement, build, or pick up a ticket end to end — a Jira work item, GitHub Issue, or GitLab Issue — including "implement ABC-123", "implement gh issue #137", "work on issue 137", or "pick up this ticket". Critiques the request against the code, builds it in a throwaway git worktree, verifies it with the repo''s own commands and a code review whose findings it resolves, opens a PR/MR, removes the worktree, and reports every deviation from the ticket.'
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.1.0
+  version: 1.2.0
   dependencies:
     - fetch-ticket
+    - review-local
     - write-commit-message
 ---
 
@@ -322,15 +323,34 @@ out of scope.
 - **Run the repo's real commands yourself** — the full set from `CONTRIBUTING.md`,
   `CLAUDE.md`/`AGENTS.md`, package scripts, `Makefile`, or the CI workflow. Show the output, and report
   failures verbatim, including the ones you caused.
-- **Delegate the fresh-eyes review** of the diff: the repo's review agent where it defines one, a
-  generic reviewer otherwise. Give it the worktree path, the base to diff against, the plan and the
-  acceptance criteria — the path and `git diff --stat`, so it reads the diff itself. Ask for typos,
-  dead code, unnecessary complexity and missing coverage, with `file:line` on each.
+- **Review the diff with [review-local](../review-local/SKILL.md), then resolve every finding.**
+  Everything from stage 6 is committed, so review the commit range. Note the current `HEAD` before you
+  start fixing, so each re-review can cover just the fix commits:
+  1. **Review.** Delegate `review-local` to an isolated subagent on the host's default model, not the
+     lightweight tier: review quality is the point. Give it the absolute worktree path, the scope
+     `git -C <worktree-path> diff <base>...HEAD`, and the plan and acceptance criteria as context. Tell it
+     to run every `git` command with `git -C <worktree-path>`, and never to stop and ask about scope:
+     on a very large diff it reviews every chunk. It returns the `code-review` report:
+     findings at every severity, each with `file:line` evidence. It is read-only, so it changes
+     nothing. Where the repo also owns a review agent, run that as well and resolve its findings the same way.
+  2. **Resolve.** Give every finding a resolution, whatever its severity:
+     - **Fix** it. This is the default.
+     - **Reject** it only with `file:line` or command output showing it does not hold, or that it lies
+       outside this change. Record the finding and the reason.
+
+     A finding is not resolved because you disagree with it or find it minor. Fix the ones that hold up,
+     using the stage 6 rules: work in the worktree, stage the paths, and commit through
+     `write-commit-message`.
+  3. **Re-run and re-review.** After the fixes, run the repo's commands again. Then repeat step 1 on
+     the fix commits only (`<noted HEAD>..HEAD`), until a pass returns no new finding. A finding you
+     already rejected with evidence is not new. Stop after three review passes in all. Anything still
+     open goes in the stage 10 report as unresolved, with the finding as written.
 - Walk the acceptance criteria one by one and name the test or manual check that covers each.
 - Pre-existing failures unrelated to this change: leave them, and note them in the report.
 
-**Gate:** the suite (or the documented subset) has been run, its output is on screen, and every
-acceptance criterion maps to named evidence. Every "tests pass" points to a run on screen.
+**Gate:** the suite (or the documented subset) has been run after the last fix, and its output is on
+screen. Every acceptance criterion maps to named evidence. Every review finding is fixed, rejected
+with evidence, or (after three passes) listed as unresolved for the report, and the fixes are committed. Every "tests pass" points to a run on screen.
 
 ---
 
@@ -417,6 +437,7 @@ where everything that would have been a mid-flight question surfaces instead.
 - **Ticket claims that turned out wrong** — the OUTDATED and WRONG classifications from stage 3.
 - **Out of scope** — what was deliberately left out, and what should become a follow-up ticket.
 - **Verification** — what was run, what passed, what was already failing before this change.
+- **Review** — how many findings `review-local` raised, how many were fixed, and each one rejected or left open, with the reason.
 - **Agents** — which repo-owned agents ran, and any mandated agent that was unavailable, with what you
   did instead. Include when the repo owns agents.
 - **Routes** — any fallback route used for the tracker or the code host. Include when one was used.
