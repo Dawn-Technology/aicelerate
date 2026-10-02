@@ -1,5 +1,50 @@
 # Release notes
 
+## 3.3.0
+
+Added `test-pr-e2e`, which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. It analyzes the diff to generate a browser test scenario list through `test-pr-guide`, then drives a real browser through each scenario with inline logging, screenshots on failure, console/network error capture, and a structured report. It supports a single PR/branch and a multi-service feature split across several PRs (e.g. a frontend, API, and auth-service PR that must all run together). Diff fetching is delegated to `review-pr`'s Steps 0, 1, and 4 only — no worktree is created, and the app under test must already be running the PR's code at the `entry_url` you give it. Requires `configure-mcp`'s Playwright integration.
+
+## 3.2.0
+
+`implement-ticket` (1.2.0) now reviews its own work before it opens the PR/MR. Stage 7 runs `review-local` on the finished diff, in its own subagent on the default model. Every finding, at every severity, must be resolved: fixed by default, or rejected only with `file:line` or command output showing it does not hold or is outside the change. The fixes are committed through `write-commit-message`, the repo's checks run again, and the fix commits are reviewed once more, up to three review passes. Anything still open after that is listed as unresolved. On a very large diff the reviewer reviews every chunk and does not stop to ask about scope. The closing report gains a Review line with the findings raised, fixed, rejected, and left open. `review-local` is now a dependency of `implement-ticket`.
+
+## 3.1.0
+
+The title of a ticket is now a write you approve by name. Before, `validate-ticket` could rewrite the title when you had only approved a new description.
+
+- **`validate-ticket` (1.2.0)**: The report ends with one short yes/no question that names each write, such as "Post the 2 questions and rewrite the title and description?". An approval that names only the description leaves the title alone, and a standing directive covers only what it names. A `not-ready` ticket with open questions now gets the questions posted and the ticket rewritten with those questions visible in it, and the rewrite note goes in the same comment as the questions, so the ticket gets one comment. Jira edits pass `--yes`, because an agent's shell cannot answer the confirmation prompt.
+- **`implement-ticket` (1.1.0)**: Rewritten to say what to do instead of what to avoid. PR/MR titles and bodies are written in plain English for a colleague new to the code, with the ticket link on the last line. The code-host route (which tool to use, how to check it, when to stop) now has its own section in `references/provider-operations.md`, separate from the tracker route in `fetch-ticket`.
+
+## 3.0.0
+
+Added `implement-ticket`, which takes a ticket from request to open PR/MR in one autonomous pass. It supports Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and a ticket pasted as plain text. The PR/MR goes to whichever code host `origin` points at, independent of where the ticket lives, so a Jira ticket delivered as a GitHub PR works the same way as a GitLab issue delivered as a GitLab MR.
+
+The skill treats the ticket as a claim to test rather than a spec to obey. It critiques the request, classifies every factual claim against the repository, and closes the remaining gaps as stated assumptions instead of questions. The build runs in a throwaway worktree that is always removed, verification uses the repository's own commands, and agents the repository defines itself outrank generic ones. Every commit message is delegated to `write-commit-message`, scoped to that worktree. The PR/MR links the ticket — `Closes #N` for GitHub and GitLab issues, the key for Jira — and the skill never edits, transitions, or comments on the ticket. The closing report leads with any deviation from what the ticket asked for. Review-only requests are handed to `validate-ticket`.
+
+Added `fetch-ticket`, a reusable, read-only ticket reader that `validate-ticket` and `implement-ticket` both call. It parses the identifier, resolves the saved route, and returns one provider-neutral ticket with the description and every comment verbatim, plus the route it used and whether the ticket belongs to the current checkout. It is built to run as a lightweight subagent, so raw tracker payloads stay out of the caller's context. Identifier parsing, route resolution, field mapping, and every read now live only in `fetch-ticket`'s `references/provider-operations.md`; each caller keeps only its own writes.
+
+Changed skills:
+
+- **`validate-ticket` (1.1.0)**: Reads the ticket through `fetch-ticket`, and its `references/provider-operations.md` now holds only the tracker writes. Claim tracing is delegated to a lightweight explore subagent, so file views and search hits stay out of the main session. A new Voice section governs every question, finding, and comment. Blocking questions now carry context, choice, options, recommendation, and later cost, and must be answerable without opening the code. The rubric gains a thirteenth criterion, **Title**: the title is the Goal as a one-line instruction in plain language, a replaced title is printed in full, and it is written back to the ticket together with the description. A `stale` load-bearing claim is now a blocker, like a `contradicted` one. Open blocking questions are asked once, in Step 4, and a `not-ready` ticket's next action is to post them on the ticket rather than ask again. The closing report runs only when an action was taken. The rubric, finding format rules, and description template moved into `references/readiness-rubric.md` and `references/description-template.md`.
+- **`write-commit-message` (1.1.0)**: States that a delegating workflow should run it in an isolated subagent on the host's fast, lightweight model tier.
+- **`resolve-pr-feedback` (1.1.0)**, **`review-and-resolve-pr` (1.1.0)**: Delegate each commit message to `write-commit-message` in an isolated subagent on the fast, lightweight model tier. In `resolve-pr-feedback`, that subagent is still scoped to the worktree and told the change is already staged and it must not stage anything itself. Both skip the one-time scope question on very large reviews and run every chunk.
+- **`code-review` (1.2.0)**: Decides whether to split a review by the number of changed lines instead of the number of files. Many files with small edits are an easy review, and splitting them apart hides bugs that span files. A change of up to 1,500 lines, not counting lock files, generated code, vendored code, minified bundles, and snapshots, is now reviewed in one pass. A larger change is split into chunks of at most 1,500 lines that keep a directory's files and their tests together, instead of fixed batches of five files. Chunks run without asking for confirmation; the user is asked once, and only above 5,000 lines, whether to narrow the scope. The output gains `confirm_scope` and `counted_lines`, and `code_input.files` can carry per-file line counts.
+- **`review-pr` (5.1.0)**, **`review-local` (1.1.0)**: Run every chunk in order without stopping to confirm each one, and ask only the one-time scope question `code-review` raises above 5,000 lines. `review-pr` passes per-file line counts from the provider to `code-review`.
+
+### Breaking change
+
+- Removed `create-gitlab-mr`. It committed whatever was in the working tree and opened an MR in one step, without validating the work or running the project's checks. `implement-ticket` now covers the ticket-to-MR path on GitLab and GitHub, `write-commit-message` covers committing, and `glab mr create` opens an MR from an existing branch.
+- Removed `scope-plan`, deprecated since `write-plan` and `estimate-time` replaced it. Use `write-plan` for the implementation plan and `estimate-time` for the hour estimate.
+- Removed `wbso-aanvraag`. Drafting a Dutch WBSO subsidy application is a finance and advisory task, not part of the delivery workflow this plugin supports, and the skill no longer belongs here.
+
+### Migration from 2.x
+
+Replace any prompt, agent definition, or project instruction that names a removed skill:
+
+- `create-gitlab-mr` → `implement-ticket` when the work starts from a ticket, or commit through `write-commit-message` and run `glab mr create` yourself.
+- `scope-plan` → `write-plan`, then `estimate-time` when an hour estimate is needed.
+- `wbso-aanvraag` → no replacement in `aimate`. Keep a copy from the 2.x release if your team still uses it.
+
 ## 2.4.0
 
 Added `validate-ticket`, which decides whether one ticket is ready for development and rewrites its description into a brief an agent can build from. It supports Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and a ticket pasted as plain text when no tracker is reachable. Every provider difference — identifier parsing, field mapping, Jira custom-field discovery, and the ADF/wiki formatting trap on a description write — lives in `references/provider-operations.md` rather than in the workflow.

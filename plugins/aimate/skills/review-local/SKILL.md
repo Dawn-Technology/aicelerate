@@ -3,7 +3,7 @@ name: review-local
 description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request or merge request.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 1.0.2
+  version: 1.1.0
   dependencies:
     - code-review
 ---
@@ -110,15 +110,13 @@ The `code-review` dependency MUST review every file or snippet in the requested 
 
 Store the returned output as `code_review_result`. `code_review_result` is the only valid source for findings shown in Step 3.
 
-If `code_review_result.chunking_required` is `true`, do not continue to the normal Step 3 report:
+If `code_review_result.chunking_required` is `true`, the change is too large for one pass. Do not continue to the normal Step 3 report; run the chunks instead:
 
-1. Present the warning from `code_review_result.report` and the structured `code_review_result.chunk_plan`.
-2. Ask the user to confirm processing the first chunk, then end the response without further tool calls.
-3. After confirmation, invoke `code-review` for only that chunk and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, local diff context, repository context, and existing feedback.
-4. Present that chunk's report, identify its position in the plan, and ask for confirmation before processing the next chunk.
-5. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 3.
+1. If `code_review_result.confirm_scope` is `true`, present the warning from `code_review_result.report` and the `chunk_plan`, ask the user once whether to narrow the scope or review every chunk, and end the response without further tool calls. Otherwise do not ask; start the first chunk in the same turn.
+2. Invoke `code-review` for each chunk in `chunk_plan` order, passing only that chunk's files and diff, and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, local diff context, repository context, and existing feedback. Do not stop between chunks.
+3. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 3.
 
-If the user declines or stops chunking, state that the review is incomplete and list the unreviewed chunks.
+If the user narrows the scope, run the chunks for the files they kept and list the files left out as unreviewed in Step 3. If they stop, state that the review is incomplete and list the unreviewed chunks.
 
 Before moving to Step 3, perform this invariant check:
 

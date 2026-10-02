@@ -3,7 +3,7 @@ name: code-review
 description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 1.1.0
+  version: 1.2.0
   role: "reusable-review-core"
   dependencies: []
 ---
@@ -40,7 +40,7 @@ submission:
   target_ref: optional base branch, previous commit, or comparison target
 code_input:
   diff: optional unified diff or provider diff
-  files: optional changed file list with added / modified / deleted status
+  files: optional changed file list with added / modified / deleted status and added / deleted line counts when known
   snippets: optional code snippets with language and path hints
   repository_path: optional local checkout path
   review_baseline: optional project conventions already gathered by caller
@@ -62,10 +62,13 @@ Minimum viable input:
 Return review output to the caller in this shape:
 
 ```yaml
-chunking_required: optional boolean; true only when review is deferred pending caller or user confirmation
+chunking_required: optional boolean; true only when the change exceeds 1,500 counted lines and the caller must run the review chunk by chunk
+confirm_scope: optional boolean; true only when the change exceeds 5,000 counted lines and the user must be asked once, before the first chunk, whether to narrow the scope
+counted_lines: optional number; total counted lines, present when chunking_required is true
 chunk_plan:
   - chunk: sequential number
-    files: ordered list of up to 5 file paths
+    files: ordered list of file paths
+    counted_lines: number of counted lines in this chunk
 summary:
   submission: short description of reviewed input
   scope: reviewed files, snippets, or change set
@@ -89,7 +92,7 @@ report: formatted chat-ready findings report
 comment_bodies: provider-neutral comment text keyed by finding id; always present when output_target is calling-skill or inline-comments, omitted otherwise
 ```
 
-`chunk_plan` is required when `chunking_required` is `true` and omitted otherwise. A chunking response is a preflight result, not a completed review: return zero totals, empty `findings`, an explanatory `report`, and an empty `comment_bodies` map when the output target requires it. Record why chunking was proposed in `summary.residual_gaps`; callers must use `chunk_plan`, rather than parse `residual_gaps`, to drive chunk execution.
+`chunk_plan` and `counted_lines` are required when `chunking_required` is `true` and omitted otherwise; `confirm_scope` is omitted unless it is `true`. A chunking response is a preflight result, not a completed review: return zero totals, empty `findings`, an explanatory `report`, and an empty `comment_bodies` map when the output target requires it. Record the counted line total and why chunking was needed in `summary.residual_gaps`; callers must use `chunk_plan` and `confirm_scope`, rather than parse `residual_gaps`, to drive chunk execution.
 
 Do not invent precise line numbers when they cannot be derived. Use the best available location and state the limitation in `residual_gaps`.
 
@@ -136,7 +139,12 @@ Fallback if conventions are unclear:
    - **High priority**: core business logic, security-sensitive code, public APIs, data models.
    - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
    - **Within each tier, sort files alphabetically by path** to guarantee deterministic traversal order.
-3. For large reviews with more than 15 changed files or massive diffs, warn the caller or user. Propose reviewing the changes in chunks of 5 files at a time to maintain high-quality analysis, unless the caller has already established chunking. When `output_target` is `chat` or `report`, ask the user for confirmation before processing each chunk. When `output_target` is `calling-skill` or `inline-comments`, do not prompt the user directly — instead return the preflight response defined in the Output Interface with `chunking_required: true` and a deterministic `chunk_plan`, and let the calling skill handle user confirmation.
+3. Size the review by changed lines, not by file count. Review quality drops with the amount of changed code held at once; many files with small edits are an easy review, and splitting them apart hides cross-file bugs. Count the added plus deleted lines per file from the diff, or take them from `code_input.files` when the caller supplies them. With no diff, such as a folder or full-file review, count every line of the reviewed files. Leave lock files, generated files, vendored dependencies, minified bundles, and snapshot files out of the count; they are still reviewed. Then apply the first rule that matches:
+   - **The caller has already established chunking**: review only the files supplied for this chunk.
+   - **1,500 counted lines or fewer**: review everything in one pass. Do not propose chunking and do not ask.
+   - **More than 1,500 counted lines**: review in chunks, built deterministically. Group files by the directory that holds them, keeping each file with its tests and with the changed files that directly call it where the diff shows that. Order the groups by the priority in item 2, then pack them in order into chunks of at most 1,500 counted lines. Split a group only between files, never inside one; a single file over the limit is a chunk of its own. Files left out of the count go in the chunk of the group they belong to.
+
+   Chunks run in order without asking for confirmation. The only permitted question is a single one before the first chunk, and only when the count exceeds 5,000 lines: offer to narrow the scope or to review every chunk. When `output_target` is `chat` or `report`, ask that question yourself when it applies, then review the chunks in order and render one combined report. When `output_target` is `calling-skill` or `inline-comments`, do not prompt the user and do not review any chunk — return the preflight response defined in the Output Interface with `chunking_required: true` and the `chunk_plan`, and let the calling skill run the chunks.
 4. Do not evaluate diffs in isolation:
    - For logic changes, read the expanded surrounding context or the full file.
    - Trace dependencies by searching where modified functions, classes, routes, schemas, or variables are invoked.

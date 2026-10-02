@@ -3,7 +3,7 @@ name: review-and-resolve-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request and act on the result in one autonomous pass, including "review and fix this PR", "review this MR and resolve the feedback", "close the review loop on this PR", or any request that pairs reviewing a PR/MR with applying the findings. Reviews the PR/MR, posts every finding as an inline comment, resolves those comments into pushed code and per-thread replies, and reports the addressed findings.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.1.0
   dependencies:
     - review-pr
     - resolve-pr-feedback
@@ -129,7 +129,7 @@ Four overrides apply, and no others:
 
 - **Step 6's hard stop is satisfied.** `review-pr` ends its turn after presenting findings because it does not know what the user wants done with them. Here the user said, on invocation: post them all as inline comments. Still produce the Step 6 report in full — Step 4 of this skill is built from it — then continue into Step 7-A in the same turn instead of stopping.
 - **Step 7-A is the chosen action, and the only one.** Post every finding returned by `code-review`, at every severity, using the `comment_bodies` entries verbatim. Do not run 7-B or 7-C: approving a PR/MR this run is about to change is prohibited, and marking it changes-requested leaves a state only the reviewer can clear, on a review the same run is already clearing itself.
-- **Chunking does not pause.** Where `review-pr` asks the user to confirm each chunk, process every chunk in order and combine the results as its Step 5 describes. Publish only after the last chunk is reviewed, so the comment set is complete and ordered.
+- **Chunking does not pause.** Where `review-pr` asks the user once whether to narrow a very large review, do not ask: process every chunk in order and combine the results as its Step 5 describes. Publish only after the last chunk is reviewed, so the comment set is complete and ordered.
 - **Step 8 runs before Step 3 of this skill, not after it.** `{review_wt}` must be removed while the tree is still unmodified. Do not let a read-only worktree sit on disk through a write phase.
 
 Record from this step:
@@ -169,7 +169,7 @@ Two overrides apply, and no others:
 - **Scope is `thread_map`**, not every unresolved thread. The user asked for the findings this run posted to be addressed. A thread a human opened may be mid-conversation, and closing someone else's discussion is not this run's call — Step 4 lists those as untouched instead.
 - **`already-addressed` is a signal, not a shortcut.** These comments were written against `{review_head_sha}` minutes ago, so the verdict should be rare. Where it appears, record why: the head moved, or the review misread the code.
 
-Everything else is that skill's, unchanged and not negotiable here — the per-comment validation against the fix worktree, the verdict table, the plan, the quality gates and their baseline, the delegation of every commit message to `write-commit-message` scoped to `{fix_wt}`, the pre-push `code-review` self-review whose blocking findings stop the push, the no-force-push rule, and the rule that only threads whose fix actually landed get resolved.
+Everything else is that skill's, unchanged and not negotiable here — the per-comment validation against the fix worktree, the verdict table, the plan, the quality gates and their baseline, the delegation of every commit message to `write-commit-message` in a fast, lightweight subagent scoped to `{fix_wt}`, the pre-push `code-review` self-review whose blocking findings stop the push, the no-force-push rule, and the rule that only threads whose fix actually landed get resolved.
 
 Record `resolution` from its Step 11 report: the verdict, evidence, commit, and thread outcome per item, plus gate results, self-review findings, and anything deferred.
 
