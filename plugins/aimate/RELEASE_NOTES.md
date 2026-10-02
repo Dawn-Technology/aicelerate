@@ -1,5 +1,9 @@
 # Release notes
 
+## 3.3.0
+
+Added `test-pr-e2e`, which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. It analyzes the diff to generate a browser test scenario list through `test-pr-guide`, then drives a real browser through each scenario with inline logging, screenshots on failure, console/network error capture, and a structured report. It supports a single PR/branch and a multi-service feature split across several PRs (e.g. a frontend, API, and auth-service PR that must all run together). Diff fetching is delegated to `review-pr`'s Steps 0, 1, and 4 only — no worktree is created, and the app under test must already be running the PR's code at the `entry_url` you give it. Requires `configure-mcp`'s Playwright integration.
+
 ## 3.2.0
 
 `implement-ticket` (1.2.0) now reviews its own work before it opens the PR/MR. Stage 7 runs `review-local` on the finished diff, in its own subagent on the default model. Every finding, at every severity, must be resolved: fixed by default, or rejected only with `file:line` or command output showing it does not hold or is outside the change. The fixes are committed through `write-commit-message`, the repo's checks run again, and the fix commits are reviewed once more, up to three review passes. Anything still open after that is listed as unresolved. On a very large diff the reviewer reviews every chunk and does not stop to ask about scope. The closing report gains a Review line with the findings raised, fixed, rejected, and left open. `review-local` is now a dependency of `implement-ticket`.
