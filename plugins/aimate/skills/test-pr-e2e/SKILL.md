@@ -1,12 +1,16 @@
 ---
-name: playwright-test-pr
+name: test-pr-e2e
 description: Test a PR or MR like a human QA engineer using Playwright MCP. Analyzes the diff (or diffs, for a multi-service/microservice feature spanning several PRs) to generate a scenario list (Phase 1), then executes each scenario live in a browser with inline logging and screenshots (Phase 2). Use when asked to "test this PR with Playwright", "browser-test this MR", "QA this PR", "QA this PR automatically", "run Playwright on this branch", "run browser tests on this PR", or "test this feature across these PRs/services".
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
-  version: 2.0.0
+  version: 1.0.0
+  dependencies:
+    - review-pr
+    - test-pr-guide
+    - configure-mcp
 ---
 
-# playwright-test-pr
+# test-pr-e2e
 
 Test a PR or MR like a human QA engineer using the Playwright MCP. Two phases: static analysis generates a scenario list you can edit, then live browser execution runs each scenario and reports inline.
 
@@ -36,7 +40,7 @@ Do NOT proceed. Do NOT attempt any browser action. Do NOT fall back silently.
 
 ## Step 1 — Fetch the Diff(s) via `review-pr`
 
-> **Note on "delegate":** "Delegate to `review-pr`" means perform the specific `review-pr` steps described below (provider detection, MCP availability check, diff fetching) yourself, following that skill's documented behavior for those steps. If your agent runtime supports invoking `review-pr` as a literal nested skill/tool call, prefer that for consistency; otherwise, perform the equivalent steps directly. Either way, do not go beyond the steps listed below (no worktree, no findings, no comments).
+> **Note on "delegate":** "Delegate to `review-pr`" means perform the specific `review-pr` steps named below yourself, following that skill's documented behavior for those steps, and no others. If your agent runtime supports invoking `review-pr` as a literal nested skill/tool call, prefer that for consistency; otherwise, perform the equivalent steps directly. This skill needs no worktree, no findings, and no comments, so it only ever touches `review-pr` Steps 0, 1, and 4 — never Step 2 (worktree) or Step 3 (review-context prep for `code-review`), which this skill has no use for.
 
 **Determine scope first:**
 - If the user provided a single PR/MR URL or referenced the current local branch → single-service mode (unchanged behavior).
@@ -45,10 +49,10 @@ Do NOT proceed. Do NOT attempt any browser action. Do NOT fall back silently.
 **Multi-service mode:**
 1. For each PR/MR URL provided, ask the user (in one message, if not already stated) to label it with a short service name, e.g.:
    > Which service does each PR belong to? `https://github.com/org/frontend/pull/12` → ?, `https://github.com/org/auth-service/pull/7` → ?
-2. For each labeled PR, invoke `review-pr` Steps 0 and 1 independently:
-   - Provider detection (GitHub / GitLab / local)
-   - MCP availability check and fallback logic
-   - Fetching PR/MR title, description, source/target branches, and raw diff
+2. For each labeled PR, invoke `review-pr` Steps 0, 1, and 4 independently:
+   - Step 0 — provider detection and authenticated route resolution (GitHub / GitLab / local)
+   - Step 1 — fetching PR/MR title, description, source/target branches, and metadata
+   - Step 4 — retrieving the raw diff between source and target branches through the resolved route
 3. Build a list of service entries, each storing:
    - `service`: the label (e.g. `"frontend"`, `"auth-service"`)
    - `pr_title`: the PR/MR title
@@ -59,17 +63,17 @@ Do NOT proceed. Do NOT attempt any browser action. Do NOT fall back silently.
 
 Do not implement diff fetching here. Delegate it entirely to the `review-pr` skill.
 
-Invoke `review-pr` Steps 0 and 1 only:
-- Provider detection (GitHub / GitLab / local)
-- MCP availability check and fallback logic
-- Fetching PR/MR title, description, source/target branches, and raw diff
+Invoke `review-pr` Steps 0, 1, and 4 only:
+- Step 0 — provider detection and authenticated route resolution (GitHub / GitLab / local)
+- Step 1 — fetching PR/MR title, description, source/target branches, and metadata
+- Step 4 — retrieving the raw diff between source and target branches through the resolved route
 
 Extract and store from the result:
 - `pr_title`: the PR/MR title
 - `provider`: `"github"` / `"gitlab"` / `"local"`
 - `diff`: the full raw diff text
 
-In both modes: do NOT continue into `review-pr` Steps 2 onwards (no worktree, no findings, no comments). Stop after the diff(s) are in hand and proceed to Step 2 below.
+In both modes: do NOT continue into `review-pr` Steps 2, 3, 5 onwards (no worktree, no `code-review` invocation, no findings, no comments). Stop after the diff(s) are in hand and proceed to Step 2 below.
 
 ---
 
@@ -113,7 +117,9 @@ Take the scenarios from `test-pr-guide` and convert each one into the following 
 
 ### Step 3.5 — Confirm How the App Under Test Should Be Run
 
-Before asking the user for `entry_url` in Step 4, check whether the target repo documents its own required way of running/reaching the app for manual or QA testing — e.g. a `README`, `CONTRIBUTING.md`, `copilot-instructions.md`/`CLAUDE.md`, or a `docker-compose.yml` / devcontainer / dev-environment bootstrap script. Do this by looking at the repo root (already available from the worktree/diff fetched in Step 1) for these files, not by asking the user first.
+This skill never creates a worktree and never checks out or switches a branch — Step 1 only ever reads a diff, it does not touch the working tree. Any repo documentation this step reads comes from the **current local checkout**, as-is. The app under test must already be running the PR's code — reachable at the `entry_url` collected in Step 4 — before Phase 2 starts; getting it running is the user's responsibility, not this skill's.
+
+Before asking the user for `entry_url` in Step 4, check whether the current checkout documents its own required way of running/reaching the app for manual or QA testing — e.g. a `README`, `CONTRIBUTING.md`, `copilot-instructions.md`/`CLAUDE.md`, or a `docker-compose.yml` / devcontainer / dev-environment bootstrap script. Do this by looking at the repo root of the current checkout for these files, not by asking the user first. If the current checkout is not the PR's branch, note this to the user — the discovered docs are still a reasonable proxy for how to run the app, but confirm the `entry_url` they give you is actually serving the PR's code, not the checkout's.
 
 - If the repo documents a specific containerized or scripted dev environment (e.g. Docker Compose, a `start-dev-env.sh`-style script, a devcontainer), assume that is the intended way to reach the app, and ask the user to confirm it's already running and reachable at a specific URL — do NOT default to an ad hoc workaround (bare language-runtime dev server, spoofed hostnames, self-signed certs invented on the fly) unless the user explicitly says the documented environment isn't available.
 - If no such documentation exists, fall back to the plain `entry_url` question in Step 4 as before.
@@ -178,11 +184,11 @@ Before the first scenario, navigate to `entry_url` via `browser_navigate` and st
 
 If `viewport = "mobile"` or `viewport = "both"`, call `browser_resize` with `width: 390, height: 844` (iPhone 14) before this first navigation. `browser_resize` is a core `@playwright/mcp` tool and always available — no capability check or fallback is needed.
 
-If a login wall is detected (see below), perform login **once** at this step. After a successful login, all subsequent `browser_navigate` calls in this run will reuse the established session. If a scenario still triggers a login screen (e.g. after a logout action), handle it inline at that point.
+If a login wall is detected (see below), ask the user for credentials **once** at this step and perform login. Credentials are never logged or stored — only the resulting authenticated browser session (cookies/localStorage) is kept and reused across subsequent `browser_navigate` calls in this run. If a scenario still triggers a login screen (e.g. after a logout action), handle it inline at that point by asking the user for credentials again — never replay the earlier input.
 
 **Console and network monitoring (no setup required):**
 
-`@playwright/mcp` exposes `browser_console_messages` and `browser_network_requests` as built-in tools — no script injection is needed, and there is nothing to re-inject after a navigation. Both calls default to messages/requests captured **since the last navigation** and reset automatically on every `browser_navigate`. Pass `all: true` on either tool only when full-session history is explicitly needed (e.g. final failure diagnostics spanning multiple navigations).
+`@playwright/mcp` exposes `browser_console_messages` and `browser_network_requests` as built-in tools — no script injection is needed, and there is nothing to re-inject after a navigation. Both calls default to messages/requests captured **since the last navigation** and reset automatically on every `browser_navigate`. `browser_console_messages` supports `all: true` to return full-session history instead — pass it when full-session diagnostics are explicitly needed (e.g. final failure diagnostics spanning multiple navigations). `browser_network_requests` has no `all` option: it always scopes to the current page's requests since the last navigation, with no way to recover an earlier page's requests after navigating away. If a network trail spanning multiple navigations is needed, capture `browser_network_requests` immediately before the navigation that would reset it, or pass its `filename` option to persist the list to a file across the run.
 
 ### Step 6 — Execution Loop
 
@@ -213,7 +219,7 @@ If `requires_clean_state = true` for this scenario, wipe the session before the 
 
    > ⚠️ **HttpOnly cookie limitation (fallback path only):** JavaScript cannot read or delete HttpOnly cookies — which most session tokens are. If the app uses HttpOnly session cookies, this fallback wipe will not fully clear the session. To work around this, attempt to navigate to a known logout endpoint (e.g. `/logout`, `/auth/signout`) before wiping storage. If no logout endpoint is known, log: `⚠️ HttpOnly cookies may persist — clean state is best-effort for this scenario.` and continue.
 
-Then navigate to `entry_url` fresh via `browser_navigate`. Do NOT reuse the stored session credentials — if a login wall appears, ask the user again.
+Then navigate to `entry_url` fresh via `browser_navigate`. Do NOT reuse the established browser session — if a login wall appears, ask the user for credentials again (same one-time-use rule as Step 5: never store or replay them).
 
 **Viewport:**
 
@@ -256,7 +262,8 @@ Use `browser_wait_for` explicitly only when a scenario needs to wait for asynchr
 `browser_fill_form` fills every listed field in a single call, which removes most of the focus/event race a per-field fill approach was prone to. Still verify multi-field forms before submitting, since this remains a tooling-level risk, not an app bug, if left unchecked:
 
 Whenever a scenario fills **two or more** fields on the same form before submitting:
-- After all fills for that form are complete and immediately before the submitting click, run one `browser_evaluate` that reads back every filled field's live `.value` (e.g. `() => JSON.stringify({field1: document.getElementById('...').value, field2: ...})`) and confirm each matches exactly what was intended to be filled.
+- After all fills for that form are complete and immediately before the submitting click, run one `browser_evaluate` that reads back every filled field's live `.value` **except any `type="password"` field** (e.g. `() => JSON.stringify({field1: document.getElementById('...').value, field2: ...})`) and confirm each matches exactly what was intended to be filled. Never read back a password field's value — it would put the plaintext password into the tool output and session log.
+- For a `type="password"` field, only confirm it is non-empty (e.g. `() => document.getElementById('...').value.length > 0`) — do not compare its content.
 - If any field doesn't match (empty, truncated, or containing another field's text), do NOT submit yet — re-fill the mismatched field(s) via `browser_type` and re-verify before proceeding. Log: `⚠️ Field mismatch detected after fill, re-filling: [field]`.
 - Only click submit once every field's actual DOM value has been confirmed correct.
 
@@ -290,8 +297,8 @@ Mark as `⏭ skipped (missing data)` in the report and continue.
    - A submit/login button text (e.g. "Log in", "Sign in", "Inloggen")
    Only trigger when BOTH signals appear as primary page content — not inside a secondary embedded widget. (`browser_find` can be used instead for a cheaper targeted check once you know what to look for.)
    If detected and this is not the first scenario (login was already handled in Step 5), log:
-   > 🔐 Unexpected login screen at `[current URL]`. Attempting re-login with stored credentials.
-   If no stored credentials exist, pause and ask. Do NOT log or store credentials. Continue after login.
+   > 🔐 Unexpected login screen at `[current URL]`. Session appears to have expired or been cleared — asking for credentials again.
+   Credentials are never stored between logins, so pause and ask the user for them again (same rule as Step 5). Do NOT log or store credentials. Continue after login.
 
 2. **App reachability check**
    If `browser_navigate` returns an error, or the following `browser_snapshot` returns an empty/error result:
@@ -306,9 +313,9 @@ Mark as `⏭ skipped (missing data)` in the report and continue.
    - `level: "warning"` → log only. Never causes a scenario to fail or be flagged unless there are 5 or more `warning` entries in a single scenario, in which case surface as a notice.
 
 4. **Network error check**
-   Call `browser_network_requests` with `all: false` (the default) and filter the returned list for entries with `status >= 400`. If any exist, log:
+   Call `browser_network_requests` (its default `static: false` excludes images/fonts/scripts, which is fine here — only API-level failures matter) and filter the returned list for entries with `status >= 400`. If any exist, log:
    > ⚠️ Network errors detected: [url] → [status] [statusText]
-   No manual buffer reset is needed, for the same reason as the console check above. A 4xx or 5xx response is treated as a test warning by default. If the scenario's `expected` outcome explicitly requires a successful API call, treat a network error as a scenario failure.
+   No manual buffer reset is needed — the tool already scopes to requests since the last navigation, for the same reason as the console check above. A 4xx or 5xx response is treated as a test warning by default. If the scenario's `expected` outcome explicitly requires a successful API call, treat a network error as a scenario failure.
 
 **Evaluate outcome:**
 
@@ -417,15 +424,15 @@ If no temporary changes were made, state that explicitly (e.g. `No environment c
 | Situation | Behavior |
 |-----------|----------|
 | Playwright MCP not installed | Hard stop at Step 0 — point to `configure-mcp`'s Playwright integration, or manual pinned `@playwright/mcp@0.0.79` install |
-| Provider MCP not installed | Fall back to local git diff, notify user |
+| No working provider route (per `review-pr` Step 0) | Stop before Step 2; point to the relevant login command or `configure-mcp` — do not guess at a local diff |
 | Entry URL not reachable | Hard stop: "Could not reach [entry_url]. Is the app running?" |
 | Entry URL not provided, no documented dev environment found (Step 3.5) | Default to `http://localhost:3000`, mention this assumption |
 | Entry URL not provided, but a documented dev environment was found (Step 3.5) | Do not default — re-ask the user for the specific URL that environment exposes |
 | Backend service unreachable (multi-service pre-flight) | Warn, list affected scenarios, ask user to continue / skip / abort — do not guess |
 | Cross-service duplicate scenario detected | Merge into one scenario driven via the user-facing entry point; list all contributing services |
 | Backend-only scenario with no reachable UI route | Mark `testable: false`, `🚫 not browser-testable (backend-only)`, note the dependent scenario that covers it indirectly |
-| Login wall detected (first time) | Pause, ask credentials, reuse session for remaining scenarios |
-| Login wall detected (subsequent) | Re-login automatically with stored credentials or ask |
+| Login wall detected (first time) | Pause, ask credentials once, reuse the resulting browser session (not the credentials) for remaining scenarios |
+| Login wall detected (subsequent) | Session expired/cleared — pause and ask for credentials again; never store or replay them |
 | Action failed after retry (stale ref or timeout) | Re-snapshot and retry once; if it still fails, treat as test failure — screenshot + stop |
 | Multi-field form fill | Use `browser_fill_form`; verify each field's DOM value via `browser_evaluate` after filling, before submitting; re-fill mismatches |
 | Corrupted/concatenated form data observed on failure | Re-run scenario fresh before reporting; if it passes, treat as tooling flakiness, not a bug |
