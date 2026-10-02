@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.2.0
+  version: 5.3.0
   dependencies:
     - code-review
 ---
@@ -262,11 +262,20 @@ If comment submission or publication fails after some comments may already have 
 - After any ambiguous failure, fetch current MR discussions before retrying and submit only missing comments.
 - **Fallback**: If inline positioning fails, create a general MR note with `glab mr note create` and include the target file and line in the body.
 
+#### GitHub Self-Review Fallback
+
+GitHub rejects `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author (see [community discussion #8918](https://github.com/orgs/community/discussions/8918)). When `is_self_review` is `true` (Step 1), do not attempt either call in 7-B or 7-C below — check the flag proactively; never rely on the API rejection to discover this. Inform the user up front and offer:
+
+- Posting a `COMMENT`-state review instead (via `gh pr review --comment` or the matching MCP tool with event `COMMENT`), summarizing the key findings so they stay visible on the PR, or
+- Asking a teammate with review rights to submit the formal approval/request-changes, or re-authenticating `gh`/the MCP server as a different account.
+
+If the user chooses the `COMMENT`-state fallback, post it and clearly report in Step 8 that no formal approval/request-changes state was set due to the self-review restriction.
+
 #### 7-B: Approve
 
 If the user requests approval, confirm there are no unresolved security violations first. If there are, explicitly confirm the user wants to proceed despite the risks.
 
-**GitHub**: If `is_self_review` is `true`, do not attempt `APPROVE`; GitHub rejects approvals from the PR's own author. Skip straight to the self-review fallback described below.
+**GitHub**: If `is_self_review` is `true`, do not attempt `APPROVE` — follow the [GitHub Self-Review Fallback](#github-self-review-fallback) above instead.
 
 Otherwise, submit an approving review through `gh pr review --approve` or the matching MCP review tool with event `APPROVE`.
 
@@ -276,12 +285,7 @@ Otherwise, submit an approving review through `gh pr review --approve` or the ma
 
 Formally mark the PR/MR as requiring changes.
 
-**GitHub**: If `is_self_review` is `true`, do not attempt `REQUEST_CHANGES`; GitHub rejects both `APPROVE` and `REQUEST_CHANGES` review events submitted by the PR's own author (see [community discussion #8918](https://github.com/orgs/community/discussions/8918)). Do not wait for the API to reject the call; check `is_self_review` proactively before choosing this path. Inform the user up front and offer:
-
-- Posting a `COMMENT`-state review instead (via `gh pr review --comment` or the matching MCP tool with event `COMMENT`), summarizing the key findings so they stay visible on the PR, or
-- Asking a teammate with review rights to submit the formal approval/request-changes, or re-authenticating `gh`/the MCP server as a different account.
-
-If the user chooses the `COMMENT`-state fallback, post it and clearly report in Step 8 that no formal approval/request-changes state was set due to the self-review restriction.
+**GitHub**: If `is_self_review` is `true`, do not attempt `REQUEST_CHANGES` — follow the [GitHub Self-Review Fallback](#github-self-review-fallback) above instead.
 
 If `is_self_review` is `false`, submit a review through `gh pr review --request-changes` or the matching MCP review tool with event `REQUEST_CHANGES` and a summary covering the key findings.
 
@@ -396,5 +400,5 @@ Style rules:
 - Do not use raw `curl` for provider API interactions. Use `gh`, `glab`, or the matching MCP route. Use `git` only for local repository/worktree operations.
 - After an ambiguous remote write failure, reconcile published reviews/comments through the same route before retrying. Never silently switch routes and duplicate a mutation.
 - Keep findings tied to concrete diff evidence from the branch worktree.
-- GitHub rejects `APPROVE` and `REQUEST_CHANGES` reviews submitted by the PR's own author. Check `is_self_review` (Step 1) before attempting either action in Step 7-B/7-C; never rely on the API rejection to discover this. Offer a `COMMENT`-state review or a different reviewer/account as the documented fallback, analogous to the existing GitLab reviewer-assignment check in Step 7-C.
+- GitHub rejects `APPROVE` and `REQUEST_CHANGES` reviews submitted by the PR's own author. Check `is_self_review` (Step 1) before attempting either action in Step 7-B/7-C; never rely on the API rejection to discover this — see the [GitHub Self-Review Fallback](#github-self-review-fallback) for the documented `COMMENT`-state/different-reviewer alternative, analogous to the existing GitLab reviewer-assignment check in Step 7-C.
 - If the workflow is interrupted (user cancels, agent crashes), manually run `git worktree prune` to clean orphaned entries and recover disk space.
