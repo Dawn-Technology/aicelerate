@@ -1,5 +1,9 @@
 # Release notes
 
+## 3.3.0
+
+`review-pr` (5.3.0) handles GitHub's restriction against self-review: `APPROVE` and `REQUEST_CHANGES` review events are rejected when submitted by the PR's own author. Step 1 now detects this and stores it as `is_self_review`, and a single GitHub Self-Review Fallback block (referenced by Steps 7-B and 7-C instead of being restated in each) offers a `COMMENT`-state review or a different reviewer/account, and reports in Step 8 that no formal approval/request-changes state was set.
+
 ## 3.2.0
 
 `implement-ticket` (1.2.0) now reviews its own work before it opens the PR/MR. Stage 7 runs `review-local` on the finished diff, in its own subagent on the default model. Every finding, at every severity, must be resolved: fixed by default, or rejected only with `file:line` or command output showing it does not hold or is outside the change. The fixes are committed through `write-commit-message`, the repo's checks run again, and the fix commits are reviewed once more, up to three review passes. Anything still open after that is listed as unresolved. On a very large diff the reviewer reviews every chunk and does not stop to ask about scope. The closing report gains a Review line with the findings raised, fixed, rejected, and left open. `review-local` is now a dependency of `implement-ticket`.
