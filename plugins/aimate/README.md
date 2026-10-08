@@ -48,7 +48,7 @@ Starts from the git history instead of reading files at random: a bundled script
 
 Reviews application source against every WCAG 2.2 A/AA success criterion, distinguishes definite failures from rendering-dependent manual review, and writes a compliance-style report without claiming certified conformance.
 
-The coordinator maintains the checklist and uses two distinct available worker models for bounded evidence collection and cross-review, with follow-up assignments when needed. Model names are not prescribed. Rendering-dependent criteria remain manual-verification items; neither exhaustive rendered-instance inventories nor report-validation scripts are required.
+A deterministic scanner (`scripts/scan.py`) inventories the source and emits candidate leads. Two evaluator subagents on distinct models (exactly two calls) decide verdicts, and the coordinator arbitrates disagreements. `scripts/report.py` merges the outputs, enforces the verdict gates (rendering-dependent criteria can only be NEEDS_REVIEW or N/A), verifies citations, and renders and checks the report. Python 3.8+ is required. Run the self-tests with `python3 -m unittest discover -s plugins/aimate/skills/wcag-audit/tests`.
 
 **Trigger phrases:** "accessibility audit", "a11y audit", "WCAG audit", "accessibility compliance review"
 
