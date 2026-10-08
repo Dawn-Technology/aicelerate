@@ -38,3 +38,5 @@ Temporary Items
 
 # --- Git worktrees created by aimate review skills ---
 .worktrees/
+
+__pycache__/
