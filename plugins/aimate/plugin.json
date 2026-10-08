@@ -1,7 +1,7 @@
 {
   "name": "aimate",
-  "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security auditing, repository workflows, integration setup, and development planning.",
-  "version": "3.3.0",
+  "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
+  "version": "3.5.0",
   "author": {
     "name": "Dawn Technology",
     "url": "https://github.com/Dawn-Technology"
@@ -15,6 +15,9 @@
     "gitlab",
     "github",
     "code-review",
+    "architecture-review",
+    "end-of-life",
+    "dependency-health",
     "resolve-pr-feedback",
     "review-and-resolve-pr",
     "commit-message",

@@ -300,6 +300,7 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
+| `review-architecture` | aimate | Find where the current design hurts most, from git churn, import checks and design rules, and whether the runtime and frameworks are still supported, before deciding what to change |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Stress-test architectural options before committing |
 | `adr-writing` | [External](#adr-writing-vercelai--adr-skill) | Write Architectural Decision Records in MADR format |
 
@@ -342,7 +343,7 @@ Review the resulting code changes for correctness, quality, and security, then w
 | `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions through the saved provider route |
 | `resolve-pr-feedback` | aimate | Validate the review threads, fix what holds up in an isolated worktree, run the project's quality gates, self-review, push, and reply per thread |
 | `review-and-resolve-pr` | aimate | Both halves in one pass — review, publish every finding as an inline comment, then fix, push, reply per thread, and report the addressed findings |
-| `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings |
+| `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings; also the place to check known vulnerabilities that `review-architecture` leaves out |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Fetch the diff, read existing comments, and post structured review comments |
 
 ---

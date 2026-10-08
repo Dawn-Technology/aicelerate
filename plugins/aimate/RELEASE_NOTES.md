@@ -1,8 +1,24 @@
 # Release notes
 
-## 3.3.0
+## 3.5.0
 
 Added `test-pr-e2e`, which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. It analyzes the diff to generate a browser test scenario list through `test-pr-guide`, then drives a real browser through each scenario with inline logging, screenshots on failure, console/network error capture, and a structured report. It supports a single PR/branch and a multi-service feature split across several PRs (e.g. a frontend, API, and auth-service PR that must all run together). Diff fetching is delegated to `review-pr`'s Steps 0, 1, and 4 only — no worktree is created, and the app under test must already be running the PR's code at the `entry_url` you give it. Requires `configure-mcp`'s Playwright integration.
+
+## 3.4.0
+
+Added `review-architecture` (1.2.0), a read-only review of how an existing codebase is designed. It starts from the git history rather than from random files. Three bundled scripts, which need only Python 3 and git, do the measuring so every run counts the same way:
+
+- `hotspots.py` ranks the most changed files by size, growth and complexity, lists the files that keep changing in the same PR, and lists large, complex files nobody touches.
+- `deps.py` reads the imports to find dependency cycles, imports that point the wrong way between layers, and framework leaks in the domain.
+- `packages.py` reads the package manager files, Dockerfiles, compose files and CI workflows to find runtimes and frameworks past their end of life, deprecated or abandoned packages, and stale lockfiles.
+
+The review checks the hot spots against layering, dependency direction, cohesion, SOLID, simplicity, error handling and test safety rules. It holds a codebase to the architecture it declares, so framework idiom is not reported as a flaw. Every finding cites a `file:line` that was read. A runtime or main framework past its end of life is rated High from the end-of-life date, because security fixes stop that day; components that end within six months, and databases or images that production is not shown to run on, are Medium, in a separate finding. The report goes to `docs/<project>-architecture-review-<date>.md` and ends with three refactoring milestones that each ship without breaking callers.
+
+`packages.py` is the only script that uses the network. It sends one request per product to endoflife.date, with nothing from the repo but the product name. `--offline` skips it, and the versions are then listed as not checked. Known vulnerabilities are not checked; the report points to `asvs-audit` and the package manager's audit command.
+
+## 3.3.0
+
+`review-pr` (5.3.0) handles GitHub's restriction against self-review: `APPROVE` and `REQUEST_CHANGES` review events are rejected when submitted by the PR's own author. Step 1 now detects this and stores it as `is_self_review`, and a single GitHub Self-Review Fallback block (referenced by Steps 7-B and 7-C instead of being restated in each) offers a `COMMENT`-state review or a different reviewer/account, and reports in Step 8 that no formal approval/request-changes state was set.
 
 ## 3.2.0
 
