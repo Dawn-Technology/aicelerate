@@ -2,7 +2,15 @@
 
 ## 3.4.0
 
-Added `review-architecture`, a read-only review of how an existing codebase is designed. It starts from the git history rather than from random files. A bundled script, which needs only Python 3 and git, ranks the most changed files by size, growth and complexity, and lists the files that keep changing in the same PR. The review then checks those hot spots against layering, dependency direction, cohesion, SOLID and simplicity rules. It holds a codebase to the architecture it declares, so framework idiom is not reported as a flaw. Every finding cites a `file:line` that was read. The report goes to `docs/<project>-architecture-review-<date>.md` and ends with three refactoring milestones that each ship without breaking callers.
+Added `review-architecture` (1.2.0), a read-only review of how an existing codebase is designed. It starts from the git history rather than from random files. Three bundled scripts, which need only Python 3 and git, do the measuring so every run counts the same way:
+
+- `hotspots.py` ranks the most changed files by size, growth and complexity, lists the files that keep changing in the same PR, and lists large, complex files nobody touches.
+- `deps.py` reads the imports to find dependency cycles, imports that point the wrong way between layers, and framework leaks in the domain.
+- `packages.py` reads the package manager files, Dockerfiles, compose files and CI workflows to find runtimes and frameworks past their end of life, deprecated or abandoned packages, and stale lockfiles.
+
+The review checks the hot spots against layering, dependency direction, cohesion, SOLID, simplicity, error handling and test safety rules. It holds a codebase to the architecture it declares, so framework idiom is not reported as a flaw. Every finding cites a `file:line` that was read. A runtime or main framework past its end of life is rated High from the end-of-life date, because security fixes stop that day; components that end within six months, and databases or images that production is not shown to run on, are Medium, in a separate finding. The report goes to `docs/<project>-architecture-review-<date>.md` and ends with three refactoring milestones that each ship without breaking callers.
+
+`packages.py` is the only script that uses the network. It sends one request per product to endoflife.date, with nothing from the repo but the product name. `--offline` skips it, and the versions are then listed as not checked. Known vulnerabilities are not checked; the report points to `asvs-audit` and the package manager's audit command.
 
 ## 3.3.0
 

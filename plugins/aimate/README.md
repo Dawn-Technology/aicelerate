@@ -2,7 +2,7 @@
 
 AI Automation Teamate.
 
-AI Acceleration supporting SDLC — reusable skills for security auditing, repository workflows, project integration setup, and development planning.
+AI Acceleration supporting SDLC — reusable skills for security auditing, architecture review, repository workflows, project integration setup, and development planning.
 
 ## Compatibility Note
 
@@ -36,9 +36,9 @@ Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requir
 
 > Architecture and design-quality review of an existing codebase, aimed at the places that change most.
 
-Starts from the git history instead of reading files at random: a bundled script ranks the most changed files by size, growth and complexity, and finds files that keep changing in the same PR. Those hot spots are then checked against layering, dependency direction, cohesion, SOLID and simplicity rules. Every finding cites a `file:line` that was read, names the rule it breaks, and comes with a concrete fix. The report ends with three refactoring milestones that each ship without breaking callers, with before and after code for the first one. Read-only apart from the report it writes to `docs/`.
+Starts from the git history instead of reading files at random: a bundled script ranks the most changed files by size, growth and complexity, finds files that keep changing in the same PR, and lists large complex files nobody touches. A second script reads the imports to find dependency cycles, imports that point the wrong way between layers, and framework leaks in the domain. A third reads the package manager files to flag runtimes and frameworks past their end of life, deprecated or abandoned packages, and stale lockfiles. A runtime or main framework past its end of life is rated High, because security fixes stop on that date. The hot spots are then checked against layering, dependency direction, cohesion, SOLID, simplicity, error handling and test safety rules. Every finding cites a `file:line` that was read, names the rule it breaks, and comes with a concrete fix. The report ends with three refactoring milestones that each ship without breaking callers, with before and after code for the first one. Read-only apart from the report it writes to `docs/`. The scripts need only Python 3 and git. The end-of-life lookup sends the product name, such as `nextjs`, to endoflife.date and nothing else from the repo; it can be switched off, and the versions are then listed as not checked. Known vulnerabilities are out of scope: run `asvs-audit` or the package manager's audit command for those.
 
-**Trigger phrases:** "architecture review", "design review", "tech debt assessment", "where is the code hardest to change", "what should we refactor first"
+**Trigger phrases:** "architecture review", "design review", "tech debt assessment", "where is the code hardest to change", "what should we refactor first", "end-of-life check", "dependency health check"
 
 ---
 

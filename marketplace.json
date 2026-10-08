@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "aimate",
-      "description": "AI Automation teammate — reusable SDLC skills for security auditing, repository workflows, integration setup, and development planning.",
+      "description": "AI Automation teammate — reusable SDLC skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
       "version": "3.4.0",
       "source": "./plugins/aimate",
       "repository": "https://github.com/Dawn-Technology/aimate",
@@ -23,6 +23,8 @@
         "gitlab",
         "code-review",
         "architecture-review",
+        "end-of-life",
+        "dependency-health",
         "resolve-pr-feedback",
         "review-and-resolve-pr",
         "commit-message",
