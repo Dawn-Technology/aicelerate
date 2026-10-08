@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accessible home — Sample</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <nav aria-label="Main"><a href="/">Home</a> <a href="/contact.html">Contact</a></nav>
+  <main id="main">
+    <h1>Welcome</h1>
+    <img src="team.jpg" alt="Our five-person support team">
+    <form action="/subscribe" method="post">
+      <label for="email">Your email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required>
+      <button type="submit">Subscribe</button>
+    </form>
+  </main>
+</body>
+</html>
