@@ -14,6 +14,7 @@ SKILL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCAN = os.path.join(SKILL, "scripts", "scan.py")
 REPORT = os.path.join(SKILL, "scripts", "report.py")
 FIXTURE = os.path.join(SKILL, "tests", "fixtures", "sample-site")
+EXPECTED = os.path.join(SKILL, "tests", "fixtures", "sample-site.expected.json")
 ROWS = list(csv.DictReader(open(os.path.join(SKILL, "assets", "wcag-2.2-aa.csv"), encoding="utf-8")))
 LIMIT_S = 120
 
@@ -302,6 +303,62 @@ class T05_Check(Base):
         self.assertIn("rendering-dependent", p.stdout)
         p = run(REPORT, "check", self.write("t2.md", text.replace("not a certified conformance claim", "")))
         self.assertIn("disclaimer missing", p.stdout)
+
+
+class T06_Expected(Base):
+    """Expected verdicts for the fixture; set WCAG_RUN_FINAL=/path/final.json to score a real audit run."""
+
+    def setUp(self):
+        super().setUp()
+        self.exp = json.load(open(EXPECTED, encoding="utf-8"))["verdicts"]
+
+    def test_expected_file_is_consistent(self):
+        flags = {r["sc_id"]: r["static_analyzable"] for r in ROWS}
+        self.assertEqual(sorted(self.exp, key=lambda s: [int(x) for x in s.split(".")]), [r["sc_id"] for r in ROWS])
+        for sid, e in self.exp.items():
+            self.assertTrue(set(e["allowed"]) <= {"PASS", "N/A", "NEEDS_REVIEW", "FAIL"}, sid)
+            if flags[sid] == "no":
+                self.assertFalse({"PASS", "FAIL"} & set(e["allowed"]), f"{sid} is rendering-dependent")
+        for sid in ("1.1.1", "1.3.5", "2.4.2", "3.1.1"):
+            self.assertEqual(self.exp[sid]["allowed"], ["FAIL"])
+        for sid in ("1.4.3", "1.4.10", "2.4.7"):
+            self.assertEqual(self.exp[sid]["allowed"], ["NEEDS_REVIEW"])
+
+    def matching_doc(self):
+        over = {}
+        for sid, e in self.exp.items():
+            v = e["allowed"][0]
+            if v == "FAIL":
+                c = e["cite"][0]
+                over[sid] = {"verdict": "FAIL", "severity": "Serious", "instances": [c + " x"], "total": "1",
+                             "remediation": "fix", "evidence": c}
+            elif v == "NEEDS_REVIEW":
+                over[sid] = {"verdict": v, "evidence": "x", "verify": "check"}
+            elif v == "N/A":
+                over[sid] = {"verdict": v, "evidence": "N/A - absent"}
+            else:
+                over[sid] = {"verdict": v, "evidence": "index.html:2 ok"}
+        return final_doc(over)
+
+    def test_compare_match_and_mismatch(self):
+        doc = self.matching_doc()
+        p = run(REPORT, "compare", self.write("ok.json", doc), EXPECTED)
+        self.assertEqual(p.returncode, 0, p.stdout)
+        self.assertIn("55/55", p.stdout)
+        for v in doc["verdicts"]:
+            if v["sc_id"] == "1.4.3":
+                v.update(verdict="PASS")
+            if v["sc_id"] == "1.1.1":
+                v.update(instances=["broken.html:80 x"], evidence="broken.html:80")
+        p = run(REPORT, "compare", self.write("bad.json", doc), EXPECTED)
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("1.4.3: got PASS", p.stdout)
+        self.assertIn("1.1.1: FAIL cites none", p.stdout)
+
+    @unittest.skipUnless(os.environ.get("WCAG_RUN_FINAL"), "set WCAG_RUN_FINAL to score a real audit run")
+    def test_real_run(self):
+        p = run(REPORT, "compare", os.environ["WCAG_RUN_FINAL"], EXPECTED)
+        self.assertEqual(p.returncode, 0, p.stdout)
 
 
 if __name__ == "__main__":

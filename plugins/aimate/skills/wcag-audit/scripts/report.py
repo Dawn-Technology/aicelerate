@@ -4,6 +4,7 @@
   report.py merge A.json B.json --out merged.json   # diff two evaluator outputs
   report.py build final.json --out REPORT.md [--partial] [--verify-citations TARGET]
   report.py check REPORT.md
+  report.py compare final.json EXPECTED.json        # score a run against expected verdicts
 
 Evaluator/final verdict file: {"meta": {...}, "verdicts": [ {sc_id, verdict, evidence, ...}, ... ]}
 Exit codes: 0 ok, 1 validation failed, 2 bad input.
@@ -289,6 +290,35 @@ def cmd_check(a):
     return 0
 
 
+def cmd_compare(a):
+    rows = load_csv()
+    idx, _ = index(load_json(a.final)["verdicts"])
+    try:
+        with open(a.expected, encoding="utf-8") as f:
+            exp = json.load(f)["verdicts"]
+    except (OSError, ValueError, KeyError) as e:
+        print(f"ERROR: cannot read expected file {a.expected}: {e}", file=sys.stderr)
+        return 2
+    misses = []
+    for r in rows:
+        sid = r["sc_id"]
+        want = exp.get(sid)
+        if not want:
+            misses.append(f"{sid}: no expectation defined")
+            continue
+        got = (idx.get(sid) or {}).get("verdict")
+        if got not in want["allowed"]:
+            misses.append(f"{sid}: got {got}, expected {'|'.join(want['allowed'])}")
+        elif got == "FAIL" and want.get("cite"):
+            cited = " ".join(idx[sid].get("instances") or []) + " " + idx[sid].get("evidence", "")
+            if not any(re.search(re.escape(c) + r"(?!\d)", cited) for c in want["cite"]):
+                misses.append(f"{sid}: FAIL cites none of {want['cite']}")
+    print(f"compare: {55 - len(misses)}/55 match")
+    for m in misses:
+        print("  " + m)
+    return 1 if misses else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -303,8 +333,11 @@ def main():
     b.add_argument("--verify-citations", metavar="TARGET")
     c = sp.add_parser("check")
     c.add_argument("report")
+    k = sp.add_parser("compare")
+    k.add_argument("final")
+    k.add_argument("expected")
     a = ap.parse_args()
-    return {"merge": cmd_merge, "build": cmd_build, "check": cmd_check}[a.cmd](a)
+    return {"merge": cmd_merge, "build": cmd_build, "check": cmd_check, "compare": cmd_compare}[a.cmd](a)
 
 
 if __name__ == "__main__":
