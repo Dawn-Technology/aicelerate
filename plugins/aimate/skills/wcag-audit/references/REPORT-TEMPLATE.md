@@ -1,127 +1,39 @@
-# [[project_name]] · WCAG 2.2 Level AA · Static Source Audit
+# {{PROJECT}} · WCAG 2.2 Level AA · Static Source Audit
 
-**Coordinator:** [[actual_coordinator_model_or_unavailable]]
+{{PARTIAL_NOTE}}
+| Field | Value |
+|---|---|
+| Date | {{DATE}} |
+| Target | {{TARGET}} |
+| Git commit | {{COMMIT}} |
+| Stack | {{STACK}} |
+| Scope | {{SCOPE}} |
+| Inventory | {{SCAN}} |
+| Evaluation mode | {{MODE}} |
+| Standard | [WCAG 2.2](https://www.w3.org/TR/WCAG22/), Levels A + AA (55 success criteria) |
 
-**Evidence workers:** [[actual_model_identifiers_and_collection_review_assignments]]
-
-**Execution mode:** [[dual_model_or_user_authorized_single_model]]
-
-**Report date:** [[report_date]]
-
-**Skill version:** [[loaded_skill_version]]
-
-**Skill source:** [[actual_loaded_skill_path]]
-
-**WCAG version:** 2.2
-
-**Git commit:** [[git_commit_hash]]
-
-**Assessment coverage:** [[state_the_number_of_collection_batches_from_the_batch_register_then_list_each_one_with_its_SC_ids_and_source_boundary]]
-
-**Evidence review coverage:** [[state_the_review_count_from_the_batch_register_then_per_batch_list_the_SC_ids_the_review_actually_covered_and_how_challenges_resolved]]
-
-<!-- Derive coverage from the batch register, not from memory or a worker's completion claim. Report SC IDs the reviews covered, not a per-batch yes/no. Assigned minus covered must be empty in a normal report; if it is not, use the partial template and list the uncovered IDs. -->
-
-## Scope and evidence boundary
-
-**Target:** [[target_path]]
-
-**Included scope:** [[included_scope]]
-
-**Excluded scope:** [[excluded_scope]]
-
-**Technology stack:** [[technology_stack]]
-
-**Source limitations:** [[source_limitations]]
-
-**Search method:** [[verified_search_method_and_how_the_boundary_probe_was_confirmed]]
-
-> This report is a static source-code audit against the 55 WCAG 2.2 Level A and AA success criteria. It is an audit finding, not a certification or WCAG conformance claim. Source review cannot establish rendered behavior, full-page and complete-process coverage, accessibility-supported behavior, or compatibility with assistive technologies. All NEEDS_REVIEW items require the stated browser, keyboard, content, and/or assistive-technology testing before any conformance claim is considered.
+> **Disclaimer.** This is a static source-code audit finding, not a certified conformance claim. Source review cannot establish rendered contrast, focus visibility, reflow, actual CMS content, complete-process behavior, or assistive-technology support. Full conformance requires manual browser, keyboard, and assistive-technology testing of every NEEDS_REVIEW item. Regimes that reference WCAG 2.x AA — EN 301 549, Section 508, the ADA, and the European Accessibility Act — are listed for context only; this report does not assert legal compliance with any of them.
 
 ## Summary
 
-<!-- Fill last from frozen coordinator decision records. Tally SC IDs by verdict and, for FAIL only, severity in working notes. Do not copy worker totals or invent narrative counts. -->
+### Scorecard
 
-[[executive_summary]]
+{{SCORECARD}}
 
-| Verdict | Count |
-|---|---:|
-| ✅ PASS | [[count_pass]] |
-| ⚪ N/A | [[count_na]] |
-| ⚠️ NEEDS_REVIEW | [[count_needs_review]] |
-| ❌ FAIL | [[count_fail]] |
-| **Total** | **55** |
+### FAIL severity
 
-### Confirmed FAIL severity
+{{SEVERITY}}
 
-| Severity | Count |
-|---|---:|
-| Critical | [[count_critical]] |
-| Serious | [[count_serious]] |
-| Moderate | [[count_moderate]] |
-| Minor | [[count_minor]] |
-
-Checklist completion is reported as verdict counts, not as a compliance percentage.
-
-## Conformance criteria ledger
-
-<!-- Exactly 55 body rows in canonical CSV order, copied from finalized records. Pending source/review work requires the partial template. A CSV no row may only be NEEDS_REVIEW or conclusively justified N/A. -->
+## Conformance table
 
 | SC | Name | Level | Verdict | Evidence |
-|---|---|:---:|---|---|
-| [[sc_id]] | [[name]] | [[level]] | [[verdict]] | [[evidence_short]] |
+|---|---|---|---|---|
+{{TABLE}}
 
-## Confirmed findings
+## Detailed findings (FAIL)
 
-<!-- Repeat in CSV order for every FAIL record only. Copy its severity unchanged; do not reassign severity during prose generation. -->
+{{FINDINGS}}
 
-### [[verdict]] [[sc_id]] — [[name]]
+## Manual verification plan (NEEDS_REVIEW)
 
-- **WCAG level:** [[level]]
-- **Severity / review priority:** [[Critical_Serious_Moderate_or_Minor]]
-- **Affected or unresolved instances:** [[instance_count]]
-- **Coverage:** [[bounded_coverage]]
-- **Normative requirement:** [[W3C_SC_link_and_failed_condition]]
-- **Applicability and exceptions:** [[applicability_and_exceptions_resolved]]
-- **Counterevidence checked:** [[reviewer_inspected_mitigation_or_alternative_with_source_and_resolution]]
-- **Representative evidence:**
-  [[representative_evidence]]
-- **Impact or uncertainty:** [[impact_or_uncertainty]]
-- **Remediation or exact manual verification:**
-  [[remediation_or_manual_check]]
-
-## Manual verification plan
-
-<!-- Exactly one row for every NEEDS_REVIEW record, in canonical CSV order; no PASS/N/A rows and no unfinished source work disguised as a manual check. -->
-
-| SC | Priority | Unresolved boundary | Required verification |
-|---|---|---|---|
-| [[sc_id]] | [[Critical_Serious_Moderate_or_Minor]] | [[unresolved_boundary]] | [[exact_manual_verification]] |
-
-## Supplemental observations
-
-<!-- Optional non-verdict notes, disputed external claims, and advisory improvements. Do not duplicate or override ledger verdicts here. -->
-
-[[supplemental_observations]]
-
-## Regulatory context
-
-<!-- Keep this generic. Do not add project-specific legal applicability claims unless the user requested legal analysis and authoritative evidence was verified. -->
-
-WCAG is a technical accessibility standard, not a legal-compliance certification. Related regimes reference different WCAG versions and may add requirements:
-
-- The [US Revised Section 508 Standards](https://www.section508.gov/develop/applicability-conformance/) incorporate WCAG 2.0 Level A and AA success criteria and conformance requirements.
-- [EN 301 549 v3.2.1](https://commission.europa.eu/accessibility-statement_en) maps web requirements to WCAG 2.1 Level AA and contains additional ICT accessibility requirements.
-- The European Accessibility Act and disability-rights laws such as the ADA may create obligations depending on the organization, product, service, jurisdiction, and current implementing rules.
-
-This audit does not determine whether any law, procurement standard, or contractual obligation applies, and it does not assert compliance with one.
-
-## Recommended next verification
-
-[[next_verification_steps]]
-
-## Conclusion
-
-<!-- Do not repeat numeric verdict counts here; the Summary is the single source for counts. -->
-
-[[qualitative_conclusion_without_verdict_or_severity_counts]]
+{{MANUAL}}
