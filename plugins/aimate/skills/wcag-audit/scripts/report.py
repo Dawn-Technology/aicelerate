@@ -24,6 +24,18 @@ NOT_EVAL = "⏳ NOT_EVALUATED"
 SEVERITIES = ["Critical", "Serious", "Moderate", "Minor"]
 CITE = re.compile(r"([\w./@\-\[\]]+\.[A-Za-z0-9]+):(\d+)")
 DISCLAIMER_MARK = "not a certified conformance claim"
+# NEEDS_REVIEW justified by editor content contradicts the scope rule, so the coordinator re-checks it.
+CONTENT_HINT = re.compile(r"\b(content|editor\w*|editorial|cms|author(ed|ing)?|route titl\w*)\b", re.I)
+# Manual checks are grouped so a tester runs a few sessions instead of one task per criterion.
+SESSIONS = [
+    ("Keyboard", "2.1.1 2.1.2 2.1.4 2.2.1 2.2.2 1.4.2 2.4.1 2.4.3 2.4.7 2.5.1 2.5.2 2.5.4 2.5.7 3.2.1"),
+    ("Visual and zoom", "1.3.4 1.4.1 1.4.3 1.4.4 1.4.5 1.4.10 1.4.11 1.4.12 1.4.13 2.3.1 2.4.11 2.5.8"),
+    ("Screen reader", "1.1.1 1.3.1 1.3.2 1.3.3 2.4.2 2.4.4 2.4.6 2.5.3 3.1.1 3.1.2 4.1.2 4.1.3"),
+    ("Forms and errors", "1.3.5 3.2.2 3.3.1 3.3.2 3.3.3 3.3.4 3.3.7 3.3.8"),
+    ("Media", "1.2.1 1.2.2 1.2.3 1.2.4 1.2.5"),
+    ("Navigation consistency", "2.4.5 3.2.3 3.2.4 3.2.6"),
+]
+SESSION_OF = {sid: name for name, ids in SESSIONS for sid in ids.split()}
 
 
 def load_csv():
@@ -80,6 +92,9 @@ def cmd_merge(a):
             # Agreement between evaluators is not proof: consequential verdicts get a coordinator check.
             if ra == "FAIL" or (ra == "PASS" and r["static_analyzable"] == "partial"):
                 verify.append(sid)
+            elif ra == "NEEDS_REVIEW" and r["static_analyzable"] != "no" and (
+                    r["static_analyzable"] == "yes" or CONTENT_HINT.search(va.get("evidence", "") + " " + vb.get("evidence", ""))):
+                verify.append(sid)
             # Union of unique FAIL instances from both evaluators.
             if ra == "FAIL":
                 inst = []
@@ -101,6 +116,22 @@ def cmd_merge(a):
     if not ma or not mb or ma == mb:
         print(f"WARNING: evaluator models not distinct/explicit (a={ma!r}, b={mb!r})")
     return 0
+
+
+def resolve(target, path, cache={}):
+    """Return the cited file under target; a bare filename is accepted if it is unique in the target."""
+    full = os.path.join(target, path)
+    if os.path.isfile(full) or "/" in path:
+        return full if os.path.isfile(full) else None
+    if target not in cache:
+        names = {}
+        for dp, dn, fns in os.walk(target):
+            dn[:] = [d for d in dn if d not in ("node_modules", ".git", "vendor", "dist", "build")]
+            for fn in fns:
+                names.setdefault(fn, []).append(os.path.join(dp, fn))
+        cache[target] = names
+    hits = cache[target].get(path, [])
+    return hits[0] if len(hits) == 1 else None
 
 
 def validate(data, rows, partial, target):
@@ -155,12 +186,14 @@ def validate(data, rows, partial, target):
                 errs.append(f"{sid}: FAIL needs remediation")
         if verdict == "NEEDS_REVIEW" and not str(v.get("verify", "")).strip():
             errs.append(f"{sid}: NEEDS_REVIEW needs a concrete 'verify' instruction")
-        if target and verdict in ("PASS", "FAIL"):
+        if verdict == "NEEDS_REVIEW" and flag != "no" and not CITE.search(v.get("evidence", "")):
+            errs.append(f"{sid}: NEEDS_REVIEW on a {flag} row must cite the unresolved instance (file:line)")
+        if target and verdict in ("PASS", "FAIL", "NEEDS_REVIEW"):
             text = v.get("evidence", "") + " " + " ".join(v.get("instances") or [])
             for path, line in CITE.findall(text):
-                full = os.path.join(target, path)
-                if not os.path.isfile(full):
-                    errs.append(f"{sid}: cited file not found: {path}")
+                full = resolve(target, path)
+                if not full:
+                    errs.append(f"{sid}: cited file not found (or bare name not unique): {path}")
                     continue
                 with open(full, encoding="utf-8", errors="replace") as f:
                     n = sum(1 for _ in f)
@@ -176,6 +209,9 @@ def cell(s):
 def cmd_build(a):
     rows = load_csv()
     data = load_json(a.final)
+    if os.path.exists(a.out) and not a.overwrite:
+        print(f"ERROR: {a.out} already exists; reports are written once (use --overwrite to replace)", file=sys.stderr)
+        return 2
     errs = validate(data, rows, a.partial, a.verify_citations)
     if errs:
         print("VALIDATION FAILED:", *errs, sep="\n  ")
@@ -183,7 +219,7 @@ def cmd_build(a):
     meta, (idx, _) = data["meta"], index(data["verdicts"])
     counts = {k: 0 for k in VERDICTS}
     sev = {s: [] for s in SEVERITIES}
-    table, findings, manual = [], [], []
+    table, findings, manual = [], [], {name: [] for name, _ in SESSIONS}
     not_eval = []
     for r in rows:
         sid = r["sc_id"]
@@ -204,7 +240,7 @@ def cmd_build(a):
                 f"- **Evidence:** {v['evidence']}\n- **Representative instances ({len(v['instances'])} shown, total {v['total']}):**\n{inst}\n"
                 f"- **Remediation:** {v['remediation']}\n")
         elif vd == "NEEDS_REVIEW":
-            manual.append(f"| {sid} | {cell(r['name'])} | {cell(v.get('priority', '—'))} | {cell(v['verify'])} |")
+            manual[SESSION_OF[sid]].append(f"| {sid} | {cell(r['name'])} | {cell(v.get('priority', '—'))} | {cell(v['verify'])} |")
     evaluated = sum(counts.values())
     scorecard = "\n".join([
         "| Verdict | Count |", "|---|---|",
@@ -221,14 +257,16 @@ def cmd_build(a):
         partial_note = (f"> **PARTIAL REPORT.** Stopping condition: {meta.get('stop_reason', 'not stated')}. "
                         f"Not evaluated: {', '.join(not_eval) or 'none'}. Not evaluated criteria are excluded "
                         "from verdict totals.\n")
+    manual_blocks = [f"### {name} session ({len(rows_)} checks)\n\n| SC | Name | Priority | What to verify |\n|---|---|---|---|\n" + "\n".join(rows_)
+                     for name, rows_ in manual.items() if rows_]
     subs = {
         "PROJECT": meta["project"], "DATE": meta.get("date", ""), "TARGET": meta["target"],
         "COMMIT": meta["commit"], "STACK": meta["stack"], "SCOPE": meta["scope"], "MODE": mode,
         "SCAN": meta.get("scan_summary", "—"), "PARTIAL_NOTE": partial_note,
         "SCORECARD": scorecard, "SEVERITY": severity, "TABLE": "\n".join(table),
         "FINDINGS": "\n".join(findings) or "No FAIL findings.",
-        "MANUAL": "\n".join(["| SC | Name | Priority | What to verify (browser / AT / content) |", "|---|---|---|---|", *manual])
-        if manual else "No NEEDS_REVIEW items.",
+        "MANUAL": (f"{sum(map(len, manual.values()))} checks in {len(manual_blocks)} test sessions.\n\n" + "\n\n".join(manual_blocks))
+        if manual_blocks else "No NEEDS_REVIEW items.",
     }
     with open(TEMPLATE, encoding="utf-8") as f:
         out = f.read()
@@ -274,7 +312,7 @@ def cmd_check(a):
         if not re.search(r"^### " + re.escape(sid) + r" .*❌ FAIL", text, re.M):
             errs.append(f"{sid}: FAIL lacks a detailed finding section")
     for sid, _, l in found:
-        if l.strip() == VERDICTS["NEEDS_REVIEW"] and not re.search(r"^\| " + re.escape(sid) + r" \| [^|]+ \| [^|]+ \| [^|]+ \|$", text.split("## Manual verification plan")[-1], re.M):
+        if l.strip() == VERDICTS["NEEDS_REVIEW"] and not re.search(r"^\| " + re.escape(sid) + r" \| (?:[^|\\]|\\.)+ \| (?:[^|\\]|\\.)+ \| (?:[^|\\]|\\.)+ \|$", text.split("## Manual verification plan")[-1], re.M):
             errs.append(f"{sid}: NEEDS_REVIEW lacks a manual verification row")
     if DISCLAIMER_MARK not in text:
         errs.append("compliance disclaimer missing")
@@ -331,6 +369,7 @@ def main():
     b.add_argument("--out", required=True)
     b.add_argument("--partial", action="store_true")
     b.add_argument("--verify-citations", metavar="TARGET")
+    b.add_argument("--overwrite", action="store_true")
     c = sp.add_parser("check")
     c.add_argument("report")
     k = sp.add_parser("compare")

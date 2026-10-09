@@ -86,6 +86,36 @@ def snip(s):
     return re.sub(r"\s+", " ", s)[:160]
 
 
+SKIP_LINK = re.compile(r"<a\b[^>]*href=[\"']#([\w-]+)[\"'][^>]*>(?:(?!</a>).){0,200}?(skip|main content|naar (de )?(hoofd)?inhoud|spring)", re.I | re.S)
+STATIC_ID = re.compile(r"\bid\s*=\s*[\"']([\w-]+)[\"']")
+
+
+def skip_link_leads(markup):
+    """Cross-file: skip-link targets that exist nowhere, and <main> elements that lack the skip target id."""
+    targets, ids, mains = {}, set(), []
+    for path, text in markup:
+        for m in SKIP_LINK.finditer(text):
+            targets.setdefault(m.group(1), []).append((path, text, m))
+        ids.update(STATIC_ID.findall(text))
+        for m in re.finditer(r"(?<![\"'])<main\b[^>]*>", text, re.I):
+            mains.append((path, text, m))
+    out = []
+    for tid, links in sorted(targets.items()):
+        if tid not in ids:
+            for path, text, m in links:
+                out.append({"sc_id": "2.4.1", "rule": "skip-link-target-missing", "file": path,
+                            "line": line_of(text, m.start()), "snippet": snip(m.group(0))})
+    if targets:
+        for path, text, m in mains:
+            tag = m.group(0)
+            got = STATIC_ID.search(tag)
+            if "{{" in tag or (got and got.group(1) in targets):
+                continue
+            out.append({"sc_id": "2.4.1", "rule": f"main-without-skip-target (#{'/#'.join(sorted(targets))})",
+                        "file": path, "line": line_of(text, m.start()), "snippet": snip(tag)})
+    return out
+
+
 def lead_rules(path, ext, text):
     out = []
 
@@ -216,7 +246,7 @@ def main():
     exts, skipped_sensitive, skipped_large, truncated = {}, 0, 0, False
     features = {k: {"count": 0, "files": [], "governs": v[1]} for k, v in FEATURES.items()}
     feat_re = {k: re.compile(v[0], re.I) for k, v in FEATURES.items()}
-    leads, seen = [], 0
+    leads, seen, markup_texts = [], 0, []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d not in EXCLUDED_DIRS and not d.startswith("."))
         rel_dir = os.path.relpath(dirpath, root)
@@ -254,12 +284,15 @@ def main():
                     if len(features[k]["files"]) < 10:
                         features[k]["files"].append(rel)
             leads.extend(lead_rules(rel, ext, text))
+            if kind == "markup":
+                markup_texts.append((rel, text))
         if truncated:
             break
 
     if seen == 0:
         print(f"ERROR: no auditable markup/script/style files under {root}", file=sys.stderr)
         return 2
+    leads.extend(skip_link_leads(markup_texts))
 
     by_rule = {}
     for l in leads:

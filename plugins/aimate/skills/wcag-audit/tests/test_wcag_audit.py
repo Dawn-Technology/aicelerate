@@ -183,6 +183,18 @@ class T02_Scan(Base):
         _, b = self.scan(FIXTURE)
         self.assertEqual(a, b)
 
+    def test_broken_skip_link(self):
+        d = os.path.join(self.tmp, "site")
+        os.makedirs(d)
+        open(os.path.join(d, "layout.html"), "w").write('<html lang="en"><title>t</title>\n<a href="#main-content">Skip to main content</a>\n<a href="#top">Skip to nav</a></html>')
+        open(os.path.join(d, "ok.html"), "w").write('<main id="main-content">x</main>')
+        open(os.path.join(d, "article.html"), "w").write('<div>\n<main class="article" role="main">x</main></div>')
+        _, inv = self.scan(d)
+        got = {(g["rule"].split(" ")[0], i["file"], i["line"]) for g in inv["lead_groups"] if g["sc_id"] == "2.4.1" for i in g["instances"]}
+        self.assertIn(("main-without-skip-target", "article.html", 2), got)
+        self.assertIn(("skip-link-target-missing", "layout.html", 3), got)
+        self.assertNotIn("ok.html", {f for _, f, _ in got})
+
 
 class T03_Build(Base):
     def test_valid_report(self):
@@ -205,6 +217,14 @@ class T03_Build(Base):
         _, out1 = self.build(final_doc(), name="a.md")
         _, out2 = self.build(final_doc(), name="b.md")
         self.assertEqual(open(out1).read(), open(out2).read())
+
+    def test_existing_report_not_overwritten(self):
+        _, out = self.build(final_doc())
+        p, _ = self.build(final_doc())
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("already exists", p.stderr)
+        p, _ = self.build(final_doc(), "--overwrite")
+        self.assertEqual(p.returncode, 0, p.stdout)
 
     def assertRejected(self, doc, msg, *extra):
         p, out = self.build(doc, *extra)
@@ -236,6 +256,20 @@ class T03_Build(Base):
         self.assertRejected(final_doc({"3.1.1": {"evidence": "looks fine"}}), "PASS needs a file:line")
         self.assertRejected(final_doc({"1.4.10": {"verify": ""}}), "needs a concrete 'verify'")
 
+    def test_generic_needs_review_rejected(self):
+        doc = final_doc({"1.3.1": {"verdict": "NEEDS_REVIEW", "evidence": "verify across CMS content", "verify": "check"}})
+        self.assertRejected(doc, "1.3.1: NEEDS_REVIEW on a partial row must cite")
+        p, _ = self.build(final_doc({"1.4.3": {"evidence": "rendered colours"}}))
+        self.assertEqual(p.returncode, 0, p.stdout)  # 'no' rows need no citation
+
+    def test_manual_plan_grouped_by_session(self):
+        p, out = self.build(final_doc({"1.4.10": {"verify": "translate with |t and recheck"}}))
+        self.assertEqual(run(REPORT, "check", out).returncode, 0)  # escaped pipe in a cell
+        text = open(out, encoding="utf-8").read()
+        self.assertRegex(text, r"### Visual and zoom session \(\d+ checks\)")
+        self.assertRegex(text, r"### Keyboard session \(\d+ checks\)")
+        self.assertIn("outside the scope of this audit", text)
+
     def test_models_must_be_distinct(self):
         self.assertRejected(final_doc(models=("m", "m")), "two distinct models")
         doc = final_doc(models=("m",))
@@ -246,6 +280,18 @@ class T03_Build(Base):
     def test_fabricated_citation_rejected(self):
         self.assertRejected(final_doc({"1.1.1": {"instances": ["broken.html:999 <img>"]}}), "beyond end of file", "--verify-citations", FIXTURE)
         self.assertRejected(final_doc({"1.1.1": {"instances": ["ghost.html:3 <img>"]}}), "cited file not found", "--verify-citations", FIXTURE)
+
+    def test_unique_bare_filename_accepted(self):
+        d = os.path.join(self.tmp, "t", "deep", "dir")
+        os.makedirs(d)
+        open(os.path.join(d, "broken.html"), "w").write("\n" * 20)
+        open(os.path.join(d, "index.html"), "w").write("\n" * 20)
+        p, _ = self.build(final_doc(), "--verify-citations", os.path.join(self.tmp, "t"))
+        self.assertEqual(p.returncode, 0, p.stdout)
+        os.makedirs(os.path.join(self.tmp, "t", "other"))
+        open(os.path.join(self.tmp, "t", "other", "broken.html"), "w").write("x\n" * 20)
+        os.remove(os.path.join(self.tmp, "docs", "r.md"))
+        self.assertRejected(final_doc(), "bare name not unique", "--verify-citations", os.path.join(self.tmp, "t"))
 
     def test_malformed_json(self):
         p = run(REPORT, "build", self.write("bad.json", "{not json"), "--out", os.path.join(self.tmp, "x.md"))
@@ -292,6 +338,19 @@ class T04_Merge(Base):
         p = run(REPORT, "merge", self.write("a.json", a), self.write("b.json", a), "--out", os.path.join(self.tmp, "m.json"))
         self.assertIn("WARNING", p.stdout)
 
+    def test_agreed_needs_review_routing(self):
+        nr = lambda ev: {"verdict": "NEEDS_REVIEW", "evidence": ev, "verify": "v"}
+        doc = final_doc({"2.4.2": nr("index.html:6 title wiring"),  # yes row
+                         "1.3.1": nr("index.html:12 depends on editorial content"),  # partial + content
+                         "1.3.2": nr("index.html:12 CSS order")})  # partial, runtime
+        out = os.path.join(self.tmp, "m.json")
+        run(REPORT, "merge", self.write("a.json", doc), self.write("b.json", doc), "--out", out)
+        m = json.load(open(out))
+        self.assertIn("2.4.2", m["verify"])
+        self.assertIn("1.3.1", m["verify"])
+        self.assertNotIn("1.3.2", m["verify"])
+        self.assertNotIn("1.4.3", m["verify"])
+
 
 class T05_Check(Base):
     def test_check_detects_tampering(self):
@@ -333,7 +392,7 @@ class T06_Expected(Base):
                 over[sid] = {"verdict": "FAIL", "severity": "Serious", "instances": [c + " x"], "total": "1",
                              "remediation": "fix", "evidence": c}
             elif v == "NEEDS_REVIEW":
-                over[sid] = {"verdict": v, "evidence": "x", "verify": "check"}
+                over[sid] = {"verdict": v, "evidence": "index.html:2 x", "verify": "check"}
             elif v == "N/A":
                 over[sid] = {"verdict": v, "evidence": "N/A - absent"}
             else:
