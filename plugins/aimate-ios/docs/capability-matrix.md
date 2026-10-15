@@ -1,28 +1,36 @@
 # Capability Matrix
 
-External providers are optional. Selection prefers official ownership, suitable licensing, current maintenance, portable skill content, and low company maintenance. Verify versions and licenses again before organization-wide installation. Runtime selection rules are copied into `skills/ios-standards/references/capability-providers.md` so a skills-only installation remains self-contained.
+External providers are optional. Selection prefers native Apple tooling, then company-owned references, then third-party providers only when they add clear value without extra installation burden. Verify versions and licenses again before organization-wide installation. Runtime selection rules are copied into `skills/ios-standards/references/capability-providers.md` so a skills-only installation remains self-contained.
 
 | Capability | Preferred provider | Decision | License / source | Standalone fallback |
 | --- | --- | --- | --- | --- |
-| TCA guidance | [Point-Free Way](https://www.pointfree.co/the-way) | Adopt when the subscription and skill-content terms are acceptable; it is official and supports OpenCode, Claude Code, Codex, and Copilot | Commercial subscription; installer [`pointfreeco/pfw`](https://github.com/pointfreeco/pfw) is MIT | Qualities-first company policy plus current official TCA documentation |
-| Open TCA guidance | [`kwon2540/tca-agent-skills`](https://github.com/kwon2540/tca-agent-skills) | Compose only after pinning and reviewing; current but has limited adoption history | MIT | Inspect the installed TCA version and use official documentation |
-| Architecture selection | [`efremidze/swift-architecture-skill`](https://github.com/efremidze/swift-architecture-skill) | Compose; it supports selecting among TCA, MVVM, and simpler patterns | MIT | Company qualities-first architecture reference |
-| Xcode build and tests | [`getsentry/MobileBuildMCP`](https://github.com/getsentry/MobileBuildMCP) | Adopt as the preferred optional executable provider | MIT | Host-native Xcode integration, approved local CLI, then static inspection |
-| Simulator UI automation | MobileBuildMCP; optionally [Maestro](https://github.com/mobile-dev-inc/Maestro) for durable high-level flows | Adopt MobileBuildMCP; compose Maestro only where checked-in flows add value | MIT / Apache-2.0 | Existing XCUITest through available Xcode tooling |
-| Physical-device interaction | [`mobile-next/mobile-mcp`](https://github.com/mobile-next/mobile-mcp) | Compose only for approved devices after trust, signing, and privacy preflight | Apache-2.0 | `device-not-run` with reason |
-| SwiftUI implementation | [`AvdLee/SwiftUI-Agent-Skill`](https://github.com/AvdLee/SwiftUI-Agent-Skill) | Adopt as preferred optional SwiftUI specialist | MIT | Company project-precedence and visual-validation policy |
-| SwiftUI review | [`twostraws/SwiftUI-Agent-Skill`](https://github.com/twostraws/SwiftUI-Agent-Skill) | Compose selectively; do not enable overlapping SwiftUI specialists at equal priority | MIT | `review-ios` deterministic checklist |
-| Swift Testing | [`twostraws/Swift-Testing-Agent-Skill`](https://github.com/twostraws/Swift-Testing-Agent-Skill) | Adopt for Swift Testing; retain company naming and XCTest/XCUITest policy | MIT | Company testing reference plus compiler/project evidence |
-| Accessibility | [`dadederk/iOS-Accessibility-Agent-Skill`](https://github.com/dadederk/iOS-Accessibility-Agent-Skill) | Adopt after organizational review; manual assistive-technology checks remain necessary | MIT | Company accessibility checks in specialist review |
-| Apple documentation | [`NSHipster/sosumi.ai`](https://github.com/NSHipster/sosumi.ai); optionally [`apple-docs-mcp`](https://github.com/kimsungwhee/apple-docs-mcp) | Adopt Sosumi for portable retrieval; compose MCP for structured search | MIT | Installed SDK declarations, compiler diagnostics, and source inspection |
+| Xcode build, tests, diagnostics, previews, documentation search | Xcode MCP (`xcrun mcpbridge`) | First route when Xcode is open with the project; native and nothing to install | Apple, bundled with Xcode | `MobileBuildMCP`, then `xcodebuild`/`simctl`, then static inspection |
+| Build and tests without Xcode open; simulator control | [`getsentry/MobileBuildMCP`](https://github.com/getsentry/MobileBuildMCP) | Adopt as the preferred optional provider after Xcode MCP; disable Sentry telemetry for client work | MIT | `xcodebuild` and `xcrun simctl`, then static inspection |
+| TCA guidance | Company [`tca.md`](../skills/ios-standards/references/tca.md) reading the TCA DocC articles at the resolved version | Own; Point-Free Way subscription not adopted | TCA documentation is MIT ([`pointfreeco/swift-composable-architecture`](https://github.com/pointfreeco/swift-composable-architecture)) | Local checkout, GitHub at the resolved tag, then Sosumi |
+| Architecture checks | Company [`architecture.md`](../skills/ios-standards/references/architecture.md) | Own; TCA and MVVM + Coordinators are company standards, legacy patterns are followed | Company | Checks for every pattern |
+| Apple documentation | Company [`apple-docs.md`](../skills/ios-standards/references/apple-docs.md); [`NSHipster/sosumi.ai`](https://github.com/NSHipster/sosumi.ai) as last fallback | Own the lookup order; adopt Sosumi because it needs no installation | Apple; Sosumi is MIT | Installed SDK declarations and compiler diagnostics |
+| SwiftUI review | [`twostraws/SwiftUI-Agent-Skill`](https://github.com/twostraws/SwiftUI-Agent-Skill) | Compose as optional depth; text-only | MIT | `review-ios` SwiftUI module |
+| Swift Testing | [`twostraws/Swift-Testing-Agent-Skill`](https://github.com/twostraws/Swift-Testing-Agent-Skill) | Compose as optional depth; company naming wins over its raw-identifier style | MIT | Company testing reference plus compiler/project evidence |
+| Accessibility | [`dadederk/iOS-Accessibility-Agent-Skill`](https://github.com/dadederk/iOS-Accessibility-Agent-Skill) | Compose as optional depth; covers SwiftUI and UIKit; manual assistive-technology checks remain necessary | MIT | `review-ios` accessibility module |
+| UI automation | XCUITest through Xcode MCP or `MobileBuildMCP` | Company standard | Apple | Static inspection |
+| Physical-device interaction | None in V1 | Deferred until simulator automation is reliable | — | `device-not-run` with reason |
 | GitHub operations | Generic `aimate` through `gh` | Reuse; do not duplicate in this plugin | Existing aimate behavior | Report manual remote action when no route works |
 
-## Rejected as Defaults
+## Rejected
 
-- Do not adopt non-OSI or restrictive skill licenses without Legal approval.
-- Do not use abandoned `xclaude-plugin`; its maintainer points to newer alternatives.
-- Do not make Appium the default unless a project already standardizes on it.
-- Do not fork external skills merely to adjust company policy; compose a small local reference instead.
+| Provider | Reason |
+| --- | --- |
+| [Point-Free Way](https://www.pointfree.co/the-way) | Requires a commercial subscription; replaced by `tca.md` |
+| [`kwon2540/tca-agent-skills`](https://github.com/kwon2540/tca-agent-skills) | Unversioned third-party copy of TCA guidance; replaced by `tca.md` |
+| [`efremidze/swift-architecture-skill`](https://github.com/efremidze/swift-architecture-skill) | Competes with company architecture policy and produces migration plans; replaced by `architecture.md` |
+| [Maestro](https://github.com/mobile-dev-inc/Maestro) | Third-party framework to install; conflicts with the XCUITest standard |
+| [`mobile-next/mobile-mcp`](https://github.com/mobile-next/mobile-mcp) | Third-party install; overlaps `MobileBuildMCP` on simulators; device automation is deferred |
+| [`AvdLee/SwiftUI-Agent-Skill`](https://github.com/AvdLee/SwiftUI-Agent-Skill) | Implementation-focused; reconsider at the `build-swiftui` evaluation |
+| [`kimsungwhee/apple-docs-mcp`](https://github.com/kimsungwhee/apple-docs-mcp) | Third-party install; replaced by Xcode `DocumentationSearch`, Apple documentation JSON, and Sosumi |
+| `xclaude-plugin` | Abandoned; its maintainer points to newer alternatives |
+| Appium | Not a default unless a project already standardizes on it |
+
+Do not adopt non-OSI or restrictive skill licenses without Legal approval. Do not fork external skills merely to adjust company policy; compose a small local reference instead.
 
 ## Project Record
 

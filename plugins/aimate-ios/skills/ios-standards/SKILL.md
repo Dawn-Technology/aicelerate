@@ -1,6 +1,6 @@
 ---
 name: ios-standards
-description: Use when another aimate-ios skill needs company policy for an existing or new native iOS project, especially architecture selection, legacy constraints, testing conventions, deployment targets, or tool capability resolution.
+description: Internal company iOS policy, loaded by other aimate-ios skills such as review-ios. Not for direct use; use review-ios for reviews.
 metadata:
   author: "Dawn Technology"
   version: 0.1.0
@@ -16,7 +16,9 @@ This internal foundation contains only company-owned policy. Load the references
 | Need | Read |
 | --- | --- |
 | Conflicting rules or company-standard deviation | `references/precedence.md` |
-| TCA, MVVM, native state, or pattern selection | `references/architecture.md` |
+| Which architecture applies, or MVVM + Coordinators checks | `references/architecture.md` |
+| Project that imports `ComposableArchitecture` | `references/tca.md` |
+| Apple API availability, deprecation, or documentation | `references/apple-docs.md` |
 | Existing UIKit, SwiftUI, XCTest, or mixed codebase | `references/legacy-projects.md` |
 | XCTest, XCUITest, or Swift Testing | `references/testing.md` |
 | Xcode, simulator, device, or host capability | `references/tooling.md` |
