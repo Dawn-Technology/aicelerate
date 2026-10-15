@@ -1,6 +1,6 @@
 # Agent-Ready Description Template and Rules
 
-Authoritative template, rules, and examples for rewriting ticket descriptions in [`validate-ticket`](../SKILL.md).
+Authoritative template, rules, and examples for rewriting ticket descriptions in [`prepare-ticket`](../SKILL.md).
 
 ---
 

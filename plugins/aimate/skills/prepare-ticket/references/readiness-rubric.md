@@ -1,6 +1,6 @@
 # Readiness Rubric and Finding Format
 
-Authoritative rubric, verdict rules, and finding formatting used by [`validate-ticket`](../SKILL.md).
+Authoritative rubric, verdict rules, and finding formatting used by [`prepare-ticket`](../SKILL.md).
 
 ---
 

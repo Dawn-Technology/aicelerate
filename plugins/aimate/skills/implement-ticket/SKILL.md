@@ -3,7 +3,7 @@ name: implement-ticket
 description: 'Use when asked to implement, build, or pick up a ticket end to end — a Jira work item, GitHub Issue, or GitLab Issue — including "implement ABC-123", "implement gh issue #137", "work on issue 137", or "pick up this ticket". Critiques the request against the code, builds it in a throwaway git worktree, verifies it with the repo''s own commands and a code review whose findings it resolves, opens a PR/MR, removes the worktree, and reports every deviation from the ticket.'
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.2.0
+  version: 1.2.1
   dependencies:
     - fetch-ticket
     - review-local
@@ -51,7 +51,7 @@ Four rules hold across every stage:
 Every other situation, uncertainty included, is a judgement call to make and record.
 
 **Review-only requests** — "critique this ticket", "is this ready to build?" — belong to
-`validate-ticket`. Hand them over and stop there, before any worktree, branch, code, or PR/MR.
+`prepare-ticket`. Hand them over and stop there, before any worktree, branch, code, or PR/MR.
 
 Requires git ≥ 2.31. Two routes are in play: `ticket_route`, which `fetch-ticket` resolves and
 returns in stage 1, and `code_route`, which pushes and opens the PR/MR. Resolve `code_route` from the

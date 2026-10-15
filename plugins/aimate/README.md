@@ -102,7 +102,7 @@ Provides the shared analysis workflow, input/output interfaces, severity classif
 
 > Reusable ticket reader for Jira work items, GitHub Issues, and GitLab Issues.
 
-Parses the identifier, resolves the project's saved route, and returns one provider-neutral ticket with the description and every comment verbatim, plus the route it used and whether the ticket belongs to the current checkout. It is read-only and built to run as a lightweight subagent, so raw tracker output stays out of the calling skill's context. Used by `validate-ticket` and `implement-ticket`; its [`references/provider-operations.md`](skills/fetch-ticket/references/provider-operations.md) is the one place identifier rules, routes, and field mappings are maintained.
+Parses the identifier, resolves the project's saved route, and returns one provider-neutral ticket with the description and every comment verbatim, plus the route it used and whether the ticket belongs to the current checkout. It is read-only and built to run as a lightweight subagent, so raw tracker output stays out of the calling skill's context. Used by `prepare-ticket` and `implement-ticket`; its [`references/provider-operations.md`](skills/fetch-ticket/references/provider-operations.md) is the one place identifier rules, routes, and field mappings are maintained.
 
 ---
 
@@ -130,7 +130,7 @@ The format rules live in one shared file, [`references/commit-message-rules.md`]
 
 ---
 
-### `validate-ticket`
+### `prepare-ticket`
 
 > Decide whether one ticket or issue is ready for development, and rewrite its description into a brief an agent can build from.
 
@@ -146,7 +146,15 @@ Findings are written for a person, not a parser — a bold one-line claim, the c
 
 Nothing is written to the tracker without a directive, and the ticket is never transitioned, assigned, closed, or re-labelled.
 
-**Trigger phrases:** "is this ticket ready for development", "validate JIRA-123", "check this issue before I build it", "refine this ticket"
+**Trigger phrases:** "is this ticket ready for development", "prepare JIRA-123", "validate JIRA-123", "check this issue before I build it", "refine this ticket"
+
+---
+
+### `validate-ticket` (deprecated)
+
+> [DEPRECATED] Renamed to `prepare-ticket`.
+
+Kept so existing references keep working. It tells the user about the new name and then runs `prepare-ticket`. It will be removed in a future major release.
 
 ---
 
@@ -160,7 +168,7 @@ Treats the ticket as a claim to test, not a spec to obey. It reads the descripti
 
 The build happens in its own git worktree under `.worktrees/`, never in your checkout, and runs the repository's real test and lint commands rather than an invented subset. The finished diff is then reviewed with `review-local`, and every finding is fixed or rejected with evidence before the PR/MR opens. Agents the repository defines itself (`.claude/agents/`, `.github/agents/`) take precedence over generic ones. Every commit message comes from `write-commit-message`, scoped to the worktree. It pushes, opens the PR/MR with the right link to the ticket — `Closes #N` for GitHub and GitLab issues, the key for Jira — and always removes the worktree, on success, on abandonment, and on failure. It never edits, transitions, or comments on the ticket.
 
-Like `resolve-pr-feedback`, it runs autonomously: judgment calls are made and reported, not asked. It stops early only when no route works, the identifier is a PR/MR, the ticket belongs to another repository, or the work turns out to be done already. Review-only requests go to `validate-ticket`. The final report leads with any deviation from what the ticket asked for, then the assumptions, the ticket claims that did not hold, what was left out of scope, what was verified, and how the review findings were resolved.
+Like `resolve-pr-feedback`, it runs autonomously: judgment calls are made and reported, not asked. It stops early only when no route works, the identifier is a PR/MR, the ticket belongs to another repository, or the work turns out to be done already. Review-only requests go to `prepare-ticket`. The final report leads with any deviation from what the ticket asked for, then the assumptions, the ticket claims that did not hold, what was left out of scope, what was verified, and how the review findings were resolved.
 
 **Trigger phrases:** "implement ABC-123", "implement gh issue #137", "work on issue 137", "pick up this ticket"
 

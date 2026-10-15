@@ -1,5 +1,16 @@
 # Release notes
 
+## 3.6.0
+
+`validate-ticket` is renamed to `prepare-ticket` (2.0.0). The skill does more than check a ticket: it rewrites the title and description into a brief an agent can build from, so "prepare" says what it does better. Its behaviour is unchanged.
+
+- `validate-ticket` (2.0.0) stays as a deprecated wrapper so existing prompts, agent definitions, and project instructions keep working. It tells the user about the new name and then runs `prepare-ticket`. It will be removed in a future major release.
+- `fetch-ticket` (1.0.1) and `implement-ticket` (1.2.1) now name `prepare-ticket`.
+
+### Migration
+
+Replace `validate-ticket` with `prepare-ticket` in any prompt, agent definition, or project instruction that names it.
+
 ## 3.5.0
 
 `validate-ticket` (1.3.0) is shorter and gives each rule once, with its reason, instead of repeating it across steps and a closing list of prohibitions. The approval rule for tracker writes now lives in one place in Step 7, and the guardrails are replaced by a short final check. Rules are written as what to do rather than what to avoid.

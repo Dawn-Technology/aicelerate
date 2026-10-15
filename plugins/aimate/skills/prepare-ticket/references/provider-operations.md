@@ -1,6 +1,6 @@
 # Provider operations for writing to a ticket
 
-The tracker writes used by [`validate-ticket`](../SKILL.md): comments, title and description updates, and their formatting. Identifier parsing, route resolution, field mapping, and every read live in [`fetch-ticket`'s provider operations](../../fetch-ticket/references/provider-operations.md). Read the section you need at the step that needs it.
+The tracker writes used by [`prepare-ticket`](../SKILL.md): comments, title and description updates, and their formatting. Identifier parsing, route resolution, field mapping, and every read live in [`fetch-ticket`'s provider operations](../../fetch-ticket/references/provider-operations.md). Read the section you need at the step that needs it.
 
 Rules that apply to every command here:
 

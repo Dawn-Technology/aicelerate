@@ -1,9 +1,9 @@
 ---
 name: fetch-ticket
-description: Reusable ticket reader that resolves a Jira work item, GitHub Issue, or GitLab Issue through the project's saved route and returns it as one provider-neutral ticket with every comment verbatim. Invoked by validate-ticket and implement-ticket; not for validating or implementing a ticket directly, use those skills instead.
+description: Reusable ticket reader that resolves a Jira work item, GitHub Issue, or GitLab Issue through the project's saved route and returns it as one provider-neutral ticket with every comment verbatim. Invoked by prepare-ticket and implement-ticket; not for validating or implementing a ticket directly, use those skills instead.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.0.0
+  version: 1.0.1
   role: "reusable-ticket-reader"
   dependencies: []
 ---

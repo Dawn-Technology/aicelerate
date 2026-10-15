@@ -270,11 +270,11 @@ The stages below describe the recommended workflow and which skills and MCP serv
 
 Before writing a line of spec, stress-test the problem statement and approach. Pull in existing Jira context documentation to ground the conversation.
 
-When the work arrives as a ticket rather than as a conversation, start with `validate-ticket`: it traces the ticket's claims against the repository, closes the design tree, and decides whether the ticket is ready for development. It then acts on that verdict — writing the improved description back to the tracker, splitting a ticket that turned out to be two, or putting an open decision back in front of a human. The ready ticket is what Stage 4 plans against and what a coding agent in Stage 5 reads first.
+When the work arrives as a ticket rather than as a conversation, start with `prepare-ticket`: it traces the ticket's claims against the repository, closes the design tree, and decides whether the ticket is ready for development. It then acts on that verdict — writing the improved description back to the tracker, splitting a ticket that turned out to be two, or putting an open decision back in front of a human. The ready ticket is what Stage 4 plans against and what a coding agent in Stage 5 reads first.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
-| `validate-ticket` | aimate | Validate a Jira, GitHub, or GitLab ticket against the repository, close the design tree, and rewrite the description into an agent-ready brief |
+| `prepare-ticket` | aimate | Prepare a Jira, GitHub, or GitLab ticket against the repository, close the design tree, and rewrite the description into an agent-ready brief |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
