@@ -20,7 +20,8 @@
         "scope the work for adding CSV export"
       ],
       "negative": [
-        "write a PRD for the new dashboard feature"
+        "write a PRD for the new dashboard feature",
+        "split this spec into tickets"
       ],
       "tier3_only": [
         "maak een implementatieplan voor dit ticket"
@@ -202,6 +203,17 @@
       ],
       "negative": [
         "is this ticket ready for development?"
+      ]
+    },
+    "split-spec": {
+      "positive": [
+        "break this work down into tickets our developers can pick up",
+        "split this spec into tickets",
+        "turn this feature description into tickets",
+        "cut this epic into tickets"
+      ],
+      "negative": [
+        "break down this ticket into an implementation plan"
       ]
     }
   },

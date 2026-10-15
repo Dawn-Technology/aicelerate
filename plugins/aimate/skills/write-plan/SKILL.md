@@ -19,6 +19,10 @@ Name all files, types, tests, conventions, and docs explicitly so that an engine
 
 ## 2. Workflow
 
+### Phase 0: Size gate
+
+If the whole request fits one small, focused change — roughly one concern, a handful of files, a single session — do not produce a plan document. Say the work needs no plan and return a single task with its acceptance criteria. Producing planning artifacts for work this small is a failure, not thoroughness.
+
 ### Phase 1: Discovery
 
 Build enough understanding to produce a concrete plan by resolving decisions in dependency order.
@@ -74,6 +78,8 @@ Stop discovery only when:
 Compile a single **Design Tree** summary that lists each branch, its status (**Observed**, **Decision**, or **Assumption**), and the supporting evidence or rationale.
 
 Validate the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
+
+When nobody can answer — an unattended or headless run, or a session where the asker is not available — do not stop. Close each open branch as an **Assumption** with its rationale, list those assumptions prominently at the top of the plan, and deliver the plan. Never end without the plan that was asked for: a plan built on stated assumptions can be corrected; a session that only asks questions delivers nothing.
 
 ### Phase 2: Planning
 

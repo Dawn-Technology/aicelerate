@@ -1,5 +1,11 @@
 # Release notes
 
+## 3.8.0
+
+- New skill `split-spec`: split a spec, feature or epic into vertical, independently deliverable tickets — size gate first (small work stays one ticket), a demo line per ticket, acceptance criteria that fail on the current code, blockers as tracker links, a numbered list for approval before full tickets, and explicit handling for layered, oversized and vague input. Fills the measured gap where "break this work down into tickets" fired no skill at all.
+- `write-plan`: a size gate returns a single task instead of a plan document for small work, and unattended runs close open design branches as stated assumptions and always deliver the plan instead of halting on questions. Both behaviors were measured failures in the eval suite.
+- `prepare-ticket`: description now names natural readiness phrasings and applies when the ticket is pasted inline, aimed at hosts whose routers did not fire it.
+
 ## 3.7.0
 
 Added `test-pr-e2e` (1.0.0), which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. Phase 1 delegates to `test-pr-guide` to turn the diff into an editable scenario list; Phase 2 runs each scenario live in a Playwright-controlled browser with inline step logging, failure screenshots, and a structured report. It supports a single PR/branch or a multi-service feature split across several repos, with a pre-flight reachability check per service.
