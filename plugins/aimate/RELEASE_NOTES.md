@@ -1,5 +1,13 @@
 # Release notes
 
+## 3.7.0
+
+Added `test-pr-e2e` (1.0.0), which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. Phase 1 delegates to `test-pr-guide` to turn the diff into an editable scenario list; Phase 2 runs each scenario live in a Playwright-controlled browser with inline step logging, failure screenshots, and a structured report. It supports a single PR/branch or a multi-service feature split across several repos, with a pre-flight reachability check per service.
+
+The skill never checks out a branch or creates a worktree — it runs against whatever is already serving the PR's code at the `entry_url` given to it. Login is handled by asking for credentials once and reusing only the resulting browser session; credentials are never logged or stored. Console/network monitoring reuses the server's own tools, clean-state falls back to a `browser_evaluate` reset when `--caps=storage` isn't enabled, and password fields are excluded from DOM read-back checks.
+
+Playwright MCP setup is delegated to `configure-mcp` and its pinned `@playwright/mcp@0.0.79` catalog entry rather than bundling a server directly, consistent with the plugin's 2.0.0 architecture. `test-pr-e2e` depends on `review-pr`, `test-pr-guide`, and `configure-mcp`.
+
 ## 3.6.0
 
 `validate-ticket` is renamed to `prepare-ticket` (2.0.0). The skill does more than check a ticket: it rewrites the title and description into a brief an agent can build from, so "prepare" says what it does better. Its behaviour is unchanged.
