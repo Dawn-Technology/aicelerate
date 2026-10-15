@@ -1,0 +1,23 @@
+{
+  "skill_name": "review-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this iOS 17 MVVM snippet without recommending an architecture migration:\n```swift\n@MainActor final class ProfileViewModel: ObservableObject { @Published var name = \"\"; func load() async { name = await profileClient.name() } }\nstruct ProfileView: View { @ObservedObject var model = ProfileViewModel(); var body: some View { Button(action: { Task { await model.load() } }) { Image(systemName: \"arrow.clockwise\") } } }\n```",
+      "expected_output": "Finds lifecycle, accessibility, and ordering risks without recommending a TCA migration.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Review this iOS 17 snippet. SearchService is Sendable and may return after cancellation is ignored:\n```swift\n@MainActor final class SearchViewModel: ObservableObject { @Published private(set) var results: [Result] = []; let service: SearchService; func search(query: String) { Task { let values = try? await service.fetch(query: query); results = values ?? [] } } }\n```",
+      "expected_output": "Finds stale-result ordering, lifecycle/cancellation, and swallowed-error behavior while recognizing that @MainActor prevents a direct results data race.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Review this iOS 15 UIKit + MVVM snippet. The project uses XCTest and forbids architecture migrations in feature PRs:\n```swift\nfinal class SettingsViewModel { private let store: SettingsStore; private(set) var notificationsEnabled = false; init(store: SettingsStore) { self.store = store }; func load() { notificationsEnabled = store.notificationsEnabled } }\nfinal class SettingsViewController: UIViewController { private let model: SettingsViewModel; init(model: SettingsViewModel) { self.model = model; super.init(nibName: nil, bundle: nil) }; required init?(coder: NSCoder) { fatalError() } }\n```",
+      "expected_output": "Finds concrete behavior or binding defects and does not demand SwiftUI, TCA, or a test-framework migration.",
+      "files": []
+    }
+  ]
+}
