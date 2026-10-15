@@ -1,6 +1,6 @@
 # Aimate integration catalog
 
-Last verified: 2026-08-12
+Last verified: 2026-10-15
 
 This file is the source of truth for the implementations, versions, authentication, recognition rules, and questions used by `configure-mcp`. Use the [tool-routing matrix](../SKILL.md#tool-routing) for CLI/MCP selection. Re-check the linked official source before changing a version, endpoint, package, or authentication method.
 
@@ -55,7 +55,7 @@ Playwright has no authentication step and no CLI/MCP route choice: selecting it 
 
 ### Q2a — Shared route preference
 
-Ask once only when GitHub or Jira is selected, both routes could satisfy the selected capability, and no valid project preference exists:
+Ask once only when GitHub, Atlassian (Jira/Confluence) is selected, both routes could satisfy the selected capability, and no valid project preference exists:
 
 > How should Aimate choose when both an official CLI and MCP can perform the action?
 
@@ -63,21 +63,9 @@ Ask once only when GitHub or Jira is selected, both routes could satisfy the sel
 - **Prefer CLI** — Prefer `gh` or `acli`; use MCP for capabilities without a CLI equivalent.
 - **Prefer MCP** — Prefer the matching MCP; keep local Git and CLI-only release/build operations on CLI.
 
-GitLab always uses `glab`, regardless of this preference. Translate the answer into explicit preferred and fallback routes in the marked `AGENTS.md` block when the user agrees. Do not ask separate GitHub/Jira preference questions.
+GitLab always uses `glab`, regardless of this preference. Translate the answer into explicit preferred and fallback routes in the marked `AGENTS.md` block when the user agrees. Do not ask separate GitHub/Atlassian preference questions.
 
-### Q2b — Atlassian capabilities
-
-Ask only when Atlassian is selected and existing project guidance does not answer it:
-
-> Which Atlassian capabilities does this project need?
-
-- **Jira only** — Use `acli` or Atlassian MCP according to the route preference.
-- **Jira and Confluence** — Jira follows the preference; Confluence uses Atlassian MCP.
-- **Confluence only** — Use Atlassian MCP.
-
-Do not install Atlassian MCP for Jira-only when authenticated `acli` is the resolved route.
-
-### Q2c — Sentry hosting
+### Q2b — Sentry hosting
 
 Ask only after Sentry is selected and existing configuration does not answer it:
 
@@ -110,7 +98,7 @@ When Jira is selected, combine that with:
 
 > Should I also add project-specific Jira guidance to `AGENTS.md`?
 
-- **Yes** — Ask for Jira site URL and default project key only when unknown.
+- **Yes** — Ask for Jira site URL and default project key, as separate questions, only when unknown.
 - **No** — Configure the selected routes without changing `AGENTS.md`.
 
 ### Q5 — Confirmation
@@ -160,11 +148,11 @@ Do not list removals unless the user explicitly requested them.
 
 - **Selected implementation:** Atlassian's official `acli` CLI.
 - **Minimum tested release line:** `1.3.15-stable`, which includes the current OAuth permission update. Newer stable versions are allowed.
-- **Capabilities:** Jira Cloud work-item search/view/create/edit/comment/transition/assignment and related project/sprint commands.
-- **Install:** On macOS use `brew tap atlassian/homebrew-acli && brew install acli`. For other platforms, follow the official installation options.
-- **Not covered:** Confluence and Jira/Confluence Data Center.
-- **Safe validation:** Verify `acli` exists, run `acli --version`, then `acli jira auth status`. Do not switch accounts during preflight.
-- **Repair action:** Ask the user to run `acli jira auth login` or `acli jira auth switch`; site-admin re-authorization may be required after the 1.3.15 OAuth scope update.
+- **Capabilities:** Jira Cloud work-item search/view/create/edit/comment/transition/assignment and related project/sprint commands, Confluence page read/write.
+- **Install:** On macOS use `brew install atlassian/homebrew-acli/acli`. For other platforms, follow the official installation options. Send the user to https://id.atlassian.com/manage-profile/security/api-tokens. Then run `acli jira auth login` and `acli confluence auth login` to login for both services.
+- **Not covered:** Jira Data Center / Confluence Data Center.
+- **Safe validation:** Verify `acli` exists, run `acli --version`, then `acli <jira|confluence> auth status`. Do not switch accounts during preflight.
+- **Repair action:** Ask the user to run `acli <jira|confluence> auth login` or `acli <jira|confluence> auth switch`; site-admin re-authorization may be required after the 1.3.15 OAuth scope update.
 - **Official sources:** https://developer.atlassian.com/cloud/acli/reference/commands/, https://developer.atlassian.com/cloud/acli/guides/install-acli/ (install guide), and https://developer.atlassian.com/cloud/acli/changelog/
 
 ### Sentry CLI
