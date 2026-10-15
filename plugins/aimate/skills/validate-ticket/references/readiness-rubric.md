@@ -6,7 +6,7 @@ Authoritative rubric, verdict rules, and finding formatting used by [`validate-t
 
 ## Readiness Rubric
 
-Thirteen criteria, scored internally. This table is the scoring instrument, not report content: the reader gets the verdict, the findings, and a count — never a line per pass. Print a criterion only when it failed, and then as a finding in plain language, or when the user asks to see the rubric.
+Twelve criteria, scored internally. This table is the scoring instrument, not report content: the reader gets the verdict, the findings, and a count — never a line per pass. Print a criterion only when it failed, and then as a finding in plain language, or when the user asks to see the rubric.
 
 `Closable from` lists the sources permitted to close each one, cheapest first: repository evidence, then a draft this skill writes from that evidence, then a human.
 
@@ -15,22 +15,23 @@ Thirteen criteria, scored internally. This table is the scoring instrument, not 
 | 1 | **Why** | The user or business reason is stated, and it is a reason rather than a restatement of the task | human |
 | 2 | **Goal** | The desired end state is observable, and someone could tell from outside whether it holds | human |
 | 3 | **Title** | It states that outcome in plain language, per the [title rules](description-template.md#title-rules) | skill |
-| 4 | **Scope** | One change, with in-scope and out-of-scope both stated | human |
+| 4 | **Scope** | One change: the requirements under What changes say what is in, and Out of scope names the adjacent work that is not | human |
 | 5 | **Claims** | Every load-bearing claim is `verified`, or `unverifiable` with a reason. No `contradicted` claim the work depends on | repo |
 | 6 | **Blocking decisions** | Every blocking branch closed as **Observed** or **Decision** | repo, human |
-| 7 | **Requirements** | User-visible behaviour listed in plain language a product owner can validate | repo, skill |
-| 8 | **Acceptance criteria** | Testable criteria covering the primary flow, the known edge cases, and the error paths | repo, skill, human |
-| 9 | **Definition of done** | Tests, docs, and the actual validation commands, plus any migration or rollout step | repo, skill |
-| 10 | **Dependencies** | Blockers named with their status; nothing waiting on an unnamed thing | repo, human |
-| 11 | **Agent entry point** | The exact repository paths, contracts, and conventions the implementer reads first | repo |
-| 12 | **References** | Every linked spec, ADR, or design resolves, and repository links are pinned where the repo convention asks | repo |
-| 13 | **Size** | The work is one ticket. If not, a split is proposed | repo, human |
+| 7 | **Acceptance criteria** | Every requirement has testable criteria under it, in words a product owner can confirm, covering the primary flow, the known edge cases, and the error paths. Every outcome traces to an Observed fact, a Decision, or a non-blocking Assumption, per [description rule 8](description-template.md#description-rules) | repo, human |
+| 8 | **Definition of done** | Tests, docs, and the actual validation commands, plus any migration or rollout step | repo, skill |
+| 9 | **Dependencies** | Blockers named with their status; nothing waiting on an unnamed thing | repo, human |
+| 10 | **Agent entry point** | The Implementation notes name the exact repository paths, contracts, and conventions the implementer reads first | repo |
+| 11 | **References** | Every linked spec, ADR, or design resolves, and repository links are pinned where the repo convention asks | repo |
+| 12 | **Size** | The work is one ticket. If not, a split is proposed | repo, human |
 
 Work down that list, and let where it actually closed set the severity:
 
 - Closed from *repo* or *skill* — the ticket should have said it and the run filled it in. Report it as `request-for-change`, naming what closed it.
 - Reached *human* and answered — closed as a **Decision**. No finding.
-- Reached *human* and unanswered — `blocker`. That is the only path to a blocker on criteria 1, 2, 4, 6, 8, 10, and 13.
+- Reached *human* and unanswered — `blocker`. That is the only path to a blocker on criteria 1, 2, 4, 6, 7, 9, and 12.
+
+**Acceptance criteria** close from *repo* when the outcome is behaviour the code already shows, and from *human* when it is new behaviour someone must choose. The skill writes the wording either way, but it never supplies an undecided user-visible outcome itself.
 
 Two criteria sit outside that rule:
 - **Title** can never block: the title is this skill's to fix, so a bad one is rewritten, proposed, and reported as a `request-for-change`.
@@ -55,7 +56,7 @@ A finding follows the skill voice rules and contains no ids, slugs, severity tok
 Use two paragraphs:
 
 1. A bold problem statement followed by the repository evidence, in no more than two sentences.
-2. One action paragraph starting with `→`. For a **Blocking** finding, this paragraph also contains the context, choice, options, recommendation, and later cost required by Step 4.
+2. One action paragraph starting with `→`. For a **Blocking** finding, this paragraph also contains the context, choice, options, recommendation, and later cost required by Step 5.
 
 ```text
 **{The problem, as a short claim.}** {What the repository actually shows, with the path.}
@@ -84,7 +85,7 @@ Rules:
 
 - The bold lead must carry the gist on its own, because that is all a skim reads.
 - Every reference is a path with a line — `src/Payout.php:88`, never "see the payout service". The path belongs in the evidence sentence; the question and its answers stay in plain language.
-- A **Blocking** finding carries its own context, question, recommendation, and what changes if answered differently, written the way Step 4 writes them and answerable without opening the code. There is no separate questions section to repeat it in.
+- A **Blocking** finding carries its own context, question, recommendation, and what changes if answered differently, written the way Step 5 asks them and answerable without opening the code. There is no separate questions section to repeat it in.
 - A **Filled in for you** finding says what closed it: "now follows `src/Importer/Errors.php`" or "assumed unit tests, since the module has no integration harness".
 - Name an owner only when it is not the reader.
 - Order: **Blocking**, then **Filled in for you**, then **Worth a look**; most consequential first inside each group.

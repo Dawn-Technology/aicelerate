@@ -1,5 +1,20 @@
 # Release notes
 
+## 3.5.0
+
+`validate-ticket` (1.3.0) is shorter and gives each rule once, with its reason, instead of repeating it across steps and a closing list of prohibitions. The approval rule for tracker writes now lives in one place in Step 7, and the guardrails are replaced by a short final check. Rules are written as what to do rather than what to avoid.
+
+- The design tree gains an eleventh area, **Security, performance, and cost**, so these are settled before a ticket is called ready rather than found during the build.
+- The rewritten description cites code by path and symbol instead of line number, and names the evidence commit at the top of Context, so the brief stays usable after the code moves on. Findings, the report, and the comment keep `path:line`.
+- Every description rule now says why it exists.
+- Steps 4 and 5 are reordered: Step 4 closes the design tree without asking, and Step 5 scores the rubric first and then asks every human-only question in one batch. Before, the questions were asked before the rubric that finds half of them had been scored. With nobody there to answer, the questions stay open and the ticket is not ready.
+- The description is reordered so a human can review it before an agent builds it. Everything above a horizontal rule fits on one screen and says what will be built: Why, Goal with a **How to check** line, What changes, Out of scope, Decisions and assumptions to check, and Definition of done. The code detail comes after the rule. Before, a long Context section sat between the goal and the requirements.
+- The description has one list of behaviour. Each requirement is a plain heading under **What changes**, with its acceptance criteria directly under it, replacing the separate in-scope, requirements, and acceptance-criteria lists that drifted apart. Definition of done covers only how the work is checked and shipped. The rubric drops from thirteen criteria to twelve.
+- Acceptance criteria are no longer the skill's to invent. Each outcome traces to a fact in the code, a human decision, or a visible default marked *(assumed)*. A new user-visible outcome nobody has decided becomes a blocking question.
+- Context is replaced by **Implementation notes**: an optional suggested approach the implementer may set aside, where the code is, and the constraints to honour, one fact per line. Facts about the code no longer read as orders to edit it.
+- Decisions and assumptions are a list of only what a human should check, not a table that also held facts from the code.
+- Measurements, run identifiers, and the argument for the diagnosis go in the ticket comment instead of the description, which links to it.
+
 ## 3.4.0
 
 Added `review-architecture` (1.2.0), a read-only review of how an existing codebase is designed. It starts from the git history rather than from random files. Three bundled scripts, which need only Python 3 and git, do the measuring so every run counts the same way:
