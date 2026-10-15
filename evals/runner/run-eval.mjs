@@ -70,6 +70,8 @@ const STRATEGIES = {
   // not missing infrastructure. How the skills degrade without a tracker is a
   // separate case to test on purpose, not by accident.
   "aimate-validate-implement": (t) => `Here is the ticket:\n\n${t}\n\nUse the prepare-ticket skill to prepare this ticket, then use the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
+  "aimate-implement": (t) => `Here is the ticket:\n\n${t}\n\nUse the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
+  "aimate-full": (t) => `Here is the ticket:\n\n${t}\n\nWork it end to end with the aimate skills: use the prepare-ticket skill to prepare it, the write-plan skill to plan it, then the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
   spike: (t) => `${t}\n\nImplement this in the current repository.`,
 };
 if (!(STRATEGY in STRATEGIES)) {
