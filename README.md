@@ -403,3 +403,9 @@ Nothing here asks you to do factory work today. Keep writing and retiring specs 
 ## Plugin
 
 See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details.
+
+---
+
+## Testing and evals
+
+The repository carries a tiered test suite for the plugin itself. Free, deterministic checks run in CI on every pull request and block merge: structural validation of manifests, skills and links ([tests/](tests/README.md)) and skill-routing checks over the descriptions ([tests/triggers/](tests/README.md)). Host smoke tests run aimate headlessly on Claude Code and the Copilot CLI, and token-spending behavioral evals grade workflow quality against fixed requirements ([evals/](evals/README.md)). When you change a skill, add its routing prompts in the same pull request; when a behavioral report flags your change, the report names the failed requirement and the one-case command to reproduce it locally.
