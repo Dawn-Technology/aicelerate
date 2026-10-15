@@ -7,6 +7,7 @@ Automated checks for the aicelerate marketplace and the aimate plugin. The suite
 ```
 tests/
   structural/     deterministic validation of manifests, skills and links (CI, blocking)
+  triggers/       deterministic skill-routing checks over descriptions (CI, blocking)
   claude-code/    headless smoke tests against the Claude Code CLI
   copilot-cli/    headless smoke tests against the GitHub Copilot CLI
   manual/         checklists for hosts without a headless mode
@@ -27,6 +28,20 @@ Validates, with no dependencies and no network:
 - No `SKILL.md` exceeds the line budget (500 lines, set at the top of the script).
 
 Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. A failure here means the plugin is broken as shipped — fix the finding, don't loosen the check.
+
+## Trigger and routing checks
+
+```bash
+node tests/triggers/run-triggers.mjs                 # report, exit 1 on violations
+node tests/triggers/run-triggers.mjs --min-rank1 90  # enforce the rank-1 floor (%)
+node tests/triggers/run-triggers.mjs --verbose       # top-3 ranking per prompt
+```
+
+`tests/triggers/prompts.json` holds, per skill, positive prompts (things a developer actually types that must route to the skill) and negative prompts (adjacent requests that must not). The checker ranks each prompt against every skill description with stemmed TF-IDF over unigrams and bigrams, cosine-normalized so long descriptions carry no advantage, and also flags any two descriptions similar enough to misroute (allow-list intentional pairs under `collision_allow`).
+
+This is a lexical approximation of routing: it catches a description missing the vocabulary users type, and an over-broad description that outranks the right skill. It cannot judge semantics — prompts that need semantic routing (for example non-English phrasings) go under `tier3_only` and are exercised by the behavioral tier instead. A failure here usually means the description needs fixing, not the eval.
+
+When adding or changing a skill, add its prompts here in the same pull request; the structural and trigger checks both run in CI and block merge.
 
 ## Claude Code smoke tests
 

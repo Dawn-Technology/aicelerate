@@ -1,0 +1,222 @@
+{
+  "skills": {
+    "write-commit-message": {
+      "positive": [
+        "write the commit message for my staged changes",
+        "generate a commit message",
+        "I'm done, commit this with a proper message"
+      ],
+      "negative": [
+        "review my last commit for bugs"
+      ],
+      "tier3_only": [
+        "schrijf een commit message voor deze changes"
+      ]
+    },
+    "write-plan": {
+      "positive": [
+        "create an implementation plan for this ticket",
+        "break down this ticket into tasks",
+        "scope the work for adding CSV export"
+      ],
+      "negative": [
+        "write a PRD for the new dashboard feature"
+      ],
+      "tier3_only": [
+        "maak een implementatieplan voor dit ticket"
+      ]
+    },
+    "write-prd": {
+      "positive": [
+        "write a PRD for the reporting module",
+        "create a product requirements document with user stories",
+        "help me plan a new feature from scratch with user stories"
+      ],
+      "negative": [
+        "break this ticket down into an implementation plan"
+      ]
+    },
+    "prepare-ticket": {
+      "positive": [
+        "is this ticket ready for development?",
+        "prepare ticket ABC-123 before we build it",
+        "sanity-check this Jira issue before a developer picks it up",
+        "challenge this ticket against the codebase"
+      ],
+      "negative": [
+        "implement ticket ABC-123"
+      ],
+      "tier3_only": [
+        "is dit ticket klaar om opgepakt te worden?"
+      ]
+    },
+    "implement-ticket": {
+      "positive": [
+        "implement ABC-123",
+        "pick up this ticket and build it end to end",
+        "work on gh issue #137"
+      ],
+      "negative": [
+        "is ticket ABC-123 ready for development?"
+      ],
+      "tier3_only": [
+        "implementeer dit ticket"
+      ]
+    },
+    "review-pr": {
+      "positive": [
+        "review pull request 42",
+        "review this merge request before it goes into main",
+        "post review findings on PR #88 as inline comments"
+      ],
+      "negative": [
+        "review my uncommitted changes"
+      ]
+    },
+    "review-local": {
+      "positive": [
+        "review my staged changes before I commit",
+        "review this file for issues without opening a PR",
+        "check my uncommitted changes"
+      ],
+      "negative": [
+        "review pull request 42"
+      ]
+    },
+    "review-and-resolve-pr": {
+      "positive": [
+        "review and fix this PR in one pass",
+        "review this MR and resolve the feedback",
+        "close the review loop on PR 12"
+      ],
+      "negative": [
+        "review pull request 42 and post your findings"
+      ]
+    },
+    "resolve-pr-feedback": {
+      "positive": [
+        "address the review comments on my PR",
+        "resolve the unresolved threads on merge request 7",
+        "apply the review feedback and reply to the comments"
+      ],
+      "negative": [
+        "review this PR and post findings"
+      ]
+    },
+    "review-architecture": {
+      "positive": [
+        "do an architecture review of this codebase",
+        "where is this code hardest to change, what should we refactor first?",
+        "give me a technical debt assessment",
+        "run a code health check with a refactoring roadmap"
+      ],
+      "negative": [
+        "run a security audit on this repo"
+      ]
+    },
+    "asvs-audit": {
+      "positive": [
+        "run a security audit on this application",
+        "do an ASVS compliance review",
+        "scan this codebase for vulnerabilities"
+      ],
+      "negative": [
+        "do an architecture review of this codebase"
+      ]
+    },
+    "test-pr-e2e": {
+      "positive": [
+        "test this PR with Playwright",
+        "browser-test this MR end to end",
+        "QA this PR automatically in a real browser"
+      ],
+      "negative": [
+        "how do I manually test this PR?"
+      ]
+    },
+    "test-pr-guide": {
+      "positive": [
+        "how do I manually test this PR?",
+        "write a QA checklist for this branch",
+        "give me a step-by-step test plan for these changes"
+      ],
+      "negative": [
+        "run Playwright on this branch"
+      ]
+    },
+    "estimate-time": {
+      "positive": [
+        "add time estimates to this implementation plan",
+        "how long will this plan take in hours?"
+      ],
+      "negative": [
+        "estimate the size of these tickets"
+      ]
+    },
+    "estimate-size": {
+      "positive": [
+        "estimate the size of these tickets",
+        "do a relative sizing of this backlog"
+      ],
+      "negative": [
+        "how many hours will this plan take?"
+      ]
+    },
+    "write-readme": {
+      "positive": [
+        "write a README for this repository",
+        "this project is missing documentation, generate the README",
+        "standardize the README to the company layout"
+      ],
+      "negative": [
+        "document the release notes for this version"
+      ]
+    },
+    "configure-mcp": {
+      "positive": [
+        "set up the Jira integration for this project",
+        "configure the GitHub MCP tooling",
+        "onboard aimate integrations for this repo"
+      ],
+      "negative": [
+        "fetch ticket ABC-123 from Jira"
+      ]
+    },
+    "code-review": {
+      "positive": [],
+      "negative": [
+        "review pull request 42",
+        "review my staged changes"
+      ]
+    },
+    "fetch-ticket": {
+      "positive": [],
+      "negative": [
+        "implement ticket ABC-123",
+        "is this ticket ready for development?"
+      ]
+    },
+    "validate-ticket": {
+      "positive": [
+        "run validate-ticket on ABC-123"
+      ],
+      "negative": [
+        "is this ticket ready for development?"
+      ]
+    }
+  },
+  "collision_allow": [
+    [
+      "prepare-ticket",
+      "validate-ticket"
+    ],
+    [
+      "review-pr",
+      "review-and-resolve-pr"
+    ],
+    [
+      "review-and-resolve-pr",
+      "resolve-pr-feedback"
+    ]
+  ]
+}
