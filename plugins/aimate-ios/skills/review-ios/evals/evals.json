@@ -18,6 +18,12 @@
       "prompt": "Review this iOS 15 UIKit + MVVM snippet. The project uses XCTest and forbids architecture migrations in feature PRs:\n```swift\nfinal class SettingsViewModel { private let store: SettingsStore; private(set) var notificationsEnabled = false; init(store: SettingsStore) { self.store = store }; func load() { notificationsEnabled = store.notificationsEnabled } }\nfinal class SettingsViewController: UIViewController { private let model: SettingsViewModel; init(model: SettingsViewModel) { self.model = model; super.init(nibName: nil, bundle: nil) }; required init?(coder: NSCoder) { fatalError() } }\n```",
       "expected_output": "Finds concrete behavior or binding defects and does not demand SwiftUI, TCA, or a test-framework migration.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Review this iOS 17 TCA snippet. Package.resolved pins swift-composable-architecture 1.23.1:\n```swift\n@Reducer struct SearchFeature { @ObservableState struct State: Equatable { var query = \"\"; var results: [String] = [] }; enum Action { case queryChanged(String); case response([String]) }; var body: some ReducerOf<Self> { Reduce { state, action in switch action { case let .queryChanged(query): state.query = query; return .run { send in let results = try await SearchClient.live.search(query); await send(.response(results)) }; case let .response(results): state.results = results; return .none } } } }\n```",
+      "expected_output": "Records TCA 1.23.1 as the baseline and uses documentation for that version; finds the missing cancellation ID that lets an older response overwrite newer results, the directly constructed SearchClient.live instead of @Dependency, and the unhandled error thrown inside .run; does not suggest leaving TCA.",
+      "files": []
     }
   ]
 }

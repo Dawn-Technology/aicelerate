@@ -1,6 +1,6 @@
 # aimate-ios
 
-Optional native iOS specialist skills that work standalone and compose with `aimate` when its generic delivery or review workflows are installed. The plugin keeps company policy small and prefers suitable third-party skills and native tooling for framework-specific knowledge and automation.
+Optional native iOS specialist skills that work standalone and compose with `aimate` when its generic delivery or review workflows are installed. The plugin keeps company policy small, uses native Xcode tooling first, and composes a few optional third-party skills where they add depth.
 
 ## Status
 
@@ -42,13 +42,37 @@ Install or symlink the individual skill folders into the host's Agent Skills dir
 
 Read-only specialist review for Swift and native iOS code. It applies project precedence, checks iOS-specific risk areas, composes optional specialist skills when available, and returns findings compatible with generic `aimate` review workflows.
 
+Generic `aimate` review skills never call `review-ios`, so teams that do not build iOS apps are unaffected. Run it in one of two ways:
+
+- **Manually**: ask for an iOS review, for example "run review-ios on this branch".
+- **Per project**: add this block to the project's `AGENTS.md`, ideally in the company iOS template so new projects get it automatically.
+
+```markdown
+<!-- aimate-ios:start -->
+## aimate-ios
+
+- Architecture: TCA <!-- or: MVVM + Coordinators -->
+- When a review includes Swift or Xcode project files, also run `review-ios` from `aimate-ios` and merge its findings with the generic review.
+<!-- aimate-ios:end -->
+```
+
 ### `ios-standards`
 
-Internal company-policy foundation used by the user-facing iOS skills. It is not a replacement for official Apple, Point-Free, or maintained community guidance.
+Internal company-policy foundation used by the user-facing iOS skills. It is not a replacement for official Apple or maintained community guidance.
+
+## Xcode Tools
+
+When Xcode is open with the project, the skills use Xcode's built-in MCP tools first for builds, tests, compiler diagnostics, previews, and documentation search. Add `xcrun mcpbridge` as a stdio MCP server in your agent host, for example:
+
+```bash
+claude mcp add xcode -- xcrun mcpbridge
+```
+
+Xcode may ask you to allow the agent's connection. Read-only skills such as `review-ios` never use Xcode's file-editing tools.
 
 ## Optional Capability Providers
 
-See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review.
+See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review. When using `MobileBuildMCP` on client work, set `MOBILEBUILDMCP_SENTRY_DISABLED=true` to turn off its error telemetry.
 
 Projects should record approved providers and project-specific architecture or toolchain rules in `AGENTS.md`. Explicit project policy and actual Xcode settings outrank company defaults.
 
