@@ -38,5 +38,8 @@
     "browser-testing",
     "e2e"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "experimental": {
+    "evals": "evals/plugin"
+  }
 }
