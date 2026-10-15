@@ -77,12 +77,16 @@ const STRATEGIES = {
   // interactive by design; how it behaves unattended is part of the measurement.
   "aimate-full": (t) => `Here is the ticket:\n\n${t}\n\nWork it end to end following the full spec-driven workflow with the aimate skills: use the prepare-ticket skill to prepare it, use the grilling skill to stress-test the problem, use the write-prd skill to write the PRD, grill the PRD with the grilling skill, use the write-plan skill to plan it, then use the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
   spike: (t) => `${t}\n\nImplement this in the current repository.`,
+  // Real spiking: N throwaway attempts as research, then one fresh build that
+  // has seen their diffs and reports. Independent `spike` buys reliability only
+  // (quality never exceeds the best single draw); this one lets attempts teach.
+  "spike-informed": (t) => `${t}\n\nImplement this in the current repository.`,
 };
 if (!(STRATEGY in STRATEGIES)) {
   console.error(`unknown strategy "${STRATEGY_INPUT}"; known: ${Object.keys(STRATEGIES).join(", ")} (spike takes --spikes N, default 3)`);
   process.exit(2);
 }
-const STRATEGY_LABEL = STRATEGY === "spike" ? `spike${SPIKES}` : STRATEGY;
+const STRATEGY_LABEL = STRATEGY === "spike" ? `spike${SPIKES}` : STRATEGY === "spike-informed" ? `spike-informed${SPIKES}` : STRATEGY;
 
 if (GEN_MODEL === JUDGE_MODEL) {
   console.error("generator and judge must be different models");
@@ -370,6 +374,37 @@ try {
         };
         checks.push({ check: "held-out acceptance tests pass (winning spike)", by: "behavioral", pass: !!winner.acc?.pass, evidence: winner.acc?.evidence ?? "no acceptance script" });
         extras.spikeAttemptsPassed = `${attempts.filter((a) => a.acc?.pass).length}/${SPIKES}`;
+      } else if (isDelivery && STRATEGY === "spike-informed") {
+        // N throwaway spikes (reduced turn budget), then one informed build.
+        // Spikes never see the held-out tests, and their hidden-test results are
+        // never fed back — the final build learns only from diffs and reports.
+        const attempts = [];
+        for (let a = 1; a <= SPIKES; a++) {
+          const w = makeWorkdir(c, `${run}si${a}`);
+          const res = runAgent(STRATEGIES.direct(ticket), w.workdir, GEN_MODEL, Math.min(c.max_turns ?? MAX_TURNS, 15), 15 * 60 * 1000);
+          let diff = "";
+          try {
+            sh("git add -A", w.workdir);
+            diff = execSync(`git diff ${w.baselineSha} --staged`, { cwd: w.workdir, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+          } catch { /* no diff */ }
+          attempts.push({ res, diff });
+          console.log(`    spike ${a}: ${res.turns ?? "?"} turns, $${res.costUsd?.toFixed(3) ?? "?"}`);
+        }
+        const learnings = attempts
+          .map((a, i) => `--- Spike ${i + 1} (throwaway attempt) ---\nIts report: ${a.res.finalText.slice(0, 800)}\nIts diff:\n${a.diff.slice(0, 3000) || "(no changes made)"}`)
+          .join("\n\n");
+        ({ workdir, baselineSha } = makeWorkdir(c, run));
+        const finalPrompt = `${ticket}\n\n${SPIKES} quick throwaway spike attempts were already made at this task. Study what they tried, keep what worked, avoid what didn't, and implement it properly in the current repository. You are building the real version from scratch; the spikes are reference material only.\n\n${learnings}`;
+        agent = runAgent(finalPrompt, workdir, GEN_MODEL, c.max_turns ?? MAX_TURNS, 20 * 60 * 1000);
+        agent = {
+          ...agent,
+          costUsd: attempts.reduce((s, a) => s + (a.res.costUsd ?? 0), agent.costUsd ?? 0),
+          turns: attempts.reduce((s, a) => s + (a.res.turns ?? 0), agent.turns ?? 0),
+          wallMs: attempts.reduce((s, a) => s + a.res.wallMs, agent.wallMs),
+        };
+        const acc = runAcceptance(c, workdir);
+        if (acc) checks.push({ check: "held-out acceptance tests pass", by: "behavioral", pass: acc.pass, evidence: acc.evidence });
+        extras.spikeCount = SPIKES;
       } else {
         ({ workdir, baselineSha } = makeWorkdir(c, run));
         const prompt = isDelivery ? STRATEGIES[STRATEGY](ticket) : ticket;
