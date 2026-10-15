@@ -115,7 +115,12 @@ export function buildReport(runs, meta = {}) {
   // routing
   lines.push("## Skill routing", "");
   const firedCases = cases.filter((c) => subjectRuns.some((r) => r.case === c && r.skillsFired?.length));
-  lines.push(`Skills fired in ${firedCases.length} of ${cases.length} cases. A run without a fired skill measures the base model, not ${subject}.`, "");
+  lines.push(`Skills fired in ${firedCases.length} of ${cases.length} cases. A run without a fired skill measures the base model, not ${subject} — which is also what a developer typing that prompt gets today.`, "");
+  const hasExplicit = runs.some((r) => r.strategy?.startsWith("aimate-"));
+  const hasRace = runs.some((r) => r.strategy);
+  if (hasRace && firedCases.length === 0 && !hasExplicit) {
+    lines.push(`So read the strategy race below as methodology data (which workflow shape wins), not as a measure of ${subject}'s skill content. To measure skill content, run the explicit-invocation arm (--strategy aimate-plan) and compare it against spec-first, the same workflow shape without the skill.`, "");
+  }
   for (const c of cases) {
     const fired = [...new Set(subjectRuns.filter((r) => r.case === c).flatMap((r) => r.skillsFired ?? []))];
     lines.push(`- ${c}: ${fired.length ? fired.join(", ") : "none"}`);
