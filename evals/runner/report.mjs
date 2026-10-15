@@ -147,6 +147,7 @@ export function buildReport(runs, meta = {}) {
         for (const strat of [...new Set(stateRuns.filter((r) => r.case === c).map((r) => r.strategy))].sort()) {
           const rs = stateRuns.filter((r) => r.case === c && r.strategy === strat);
           const accChecks = rs.map((r) => r.checks.find((x) => x.check.startsWith("held-out acceptance")));
+          const measured = accChecks.some(Boolean);
           const accPass = accChecks.filter((a) => a?.pass).length;
           const rev = rs.map((r) => r.review).filter(Boolean);
           const revStr = rev.length
@@ -155,7 +156,8 @@ export function buildReport(runs, meta = {}) {
           const cost = rs.reduce((s, r) => s + (r.costUsd ?? 0), 0) / rs.length;
           const turns = rs.reduce((s, r) => s + (r.turns ?? 0), 0) / rs.length;
           const spikes = rs[0]?.spikeAttemptsPassed ? ` (spikes passing: ${rs.map((r) => r.spikeAttemptsPassed).join(", ")})` : "";
-          lines.push(`| ${c} | ${strat} | ${accPass}/${rs.length}${spikes} | ${revStr} | $${cost.toFixed(3)} | ${turns.toFixed(0)} |`);
+          const accCell = measured ? `${accPass}/${rs.length}${spikes}` : "not measured (judge-only)";
+          lines.push(`| ${c} | ${strat} | ${accCell} | ${revStr} | $${cost.toFixed(3)} | ${turns.toFixed(0)} |`);
         }
       }
       lines.push("");
