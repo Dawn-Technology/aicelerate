@@ -1,9 +1,9 @@
 ---
 name: test-pr-guide
-description: Use when the user wants to know how to manually test code changes on a branch or PR - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR".
+description: Use when the user wants to know how to manually test code changes on a branch or PR - analyzes the diff, identifies what changed, and produces a step-by-step guide a real person can follow to verify the feature or fix works, including any required setup like fixtures, mock SPs, or config. Also use when asked for a test plan, QA checklist, or "how do I test this PR". Triggers only on a diff/branch/PR/MR reference — a request anchored on a ticket or issue instead (no diff), e.g. "write test scenarios for ABC-123", goes to write-test-scenarios.
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
-  version: 1.3.0
+  version: 1.4.0
 ---
 
 # Test PR Guide
