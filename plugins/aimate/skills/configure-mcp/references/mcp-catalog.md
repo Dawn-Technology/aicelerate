@@ -65,7 +65,7 @@ Ask once only when GitHub, Atlassian (Jira/Confluence) is selected, both routes 
 
 GitLab always uses `glab`, regardless of this preference. Translate the answer into explicit preferred and fallback routes in the marked `AGENTS.md` block when the user agrees. Do not ask separate GitHub/Atlassian preference questions.
 
-### Q2c — Sentry hosting
+### Q2b — Sentry hosting
 
 Ask only after Sentry is selected and existing configuration does not answer it:
 
