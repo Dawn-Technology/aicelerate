@@ -177,13 +177,13 @@ export function buildReport(runs, meta = {}) {
         const ranked = [...armStats].sort((a, b) =>
           b.accRate - a.accRate || b.expRate - a.expRate || (a.cr + a.ma) - (b.cr + b.ma) || a.mi - b.mi || a.cost - b.cost);
         const lead = ranked[0];
-        const cheapestPassing = [...armStats].filter((a) => a.accRate === 1 && a.expRate >= lead.expRate).sort((a, b) => a.cost - b.cost)[0];
+        const cheapestPassing = [...armStats].filter((a) => a.accRate === 1).sort((a, b) => a.cost - b.cost)[0];
         const majors = (n) => (n === 0 ? "no major problems" : n < 1 ? `a major problem in some runs (${n.toFixed(1)} per run on average)` : `about ${Math.round(n)} major problem(s) in every run`);
         const stateRunCount = stateRuns.length;
         let verdictText = `**In plain terms:** for ${state.replace(/-/g, " ")} work, **${lead.strat}** delivered the best quality here — ${Math.round(lead.accRate * 100)}% of its runs passed the hidden tests and reviewers found ${majors(lead.ma)}, at $${lead.cost.toFixed(2)} per run.`;
         if (lead.expRate < 1) verdictText += ` It did miss some of the case's own expectations (${Math.round(lead.expRate * 100)}% met), so read its row before trusting it.`;
         if (cheapestPassing && cheapestPassing.strat !== lead.strat) {
-          verdictText += ` If you care about cost first, **${cheapestPassing.strat}** was the cheapest route that still passed every hidden test ($${cheapestPassing.cost.toFixed(2)} per run), but reviewers found ${majors(cheapestPassing.ma)} in its results.`;
+          verdictText += ` If you care about cost first, **${cheapestPassing.strat}** was the cheapest route that still passed every hidden test ($${cheapestPassing.cost.toFixed(2)} per run); reviewers found ${majors(cheapestPassing.ma)} in its results${cheapestPassing.expRate < 1 ? `, and it met ${Math.round(cheapestPassing.expRate * 100)}% of the case's own expectations` : ""}.`;
         }
         verdictText += ` These are early signals from ${stateRunCount} runs, not final verdicts.`;
         lines.push("", verdictText);
