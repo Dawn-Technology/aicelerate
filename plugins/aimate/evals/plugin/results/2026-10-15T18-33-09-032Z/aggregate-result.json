@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.300",
+  "startedAt": "2026-10-15T18:33:09.032Z",
+  "durationSeconds": 207,
+  "costUsd": 1.0495664,
+  "partial": false,
+  "suite": {
+    "root": "/home/tim/projects/aicelerate/plugins/aimate",
+    "ablation": "with-without",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "aimate",
+        "version": "3.7.0",
+        "path": "/home/tim/projects/aicelerate/plugins/aimate"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "commit-message-fires",
+      "dir": "evals/plugin/commit-message-fires",
+      "source": "prose",
+      "promptMarkdown": "I've staged my changes — write the commit message for them. Here is the staged diff:\n\n```diff\ndiff --git a/src/export.php b/src/export.php\n--- a/src/export.php\n+++ b/src/export.php\n@@ -18,7 +18,7 @@ class CsvExporter\n-                $order->orderedAt->format('m/d/Y'),\n+                $order->orderedAt->format('Y-m-d'),\ndiff --git a/tests/run.php b/tests/run.php\n--- a/tests/run.php\n+++ b/tests/run.php\n@@ -26,7 +26,7 @@\n-check(str_contains($csv, '03/09/2026'), 'export date format');\n+check(str_contains($csv, '2026-03-09'), 'export date format');\n```",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "dawn-format",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the drafted commit message has a short imperative subject line with no Conventional-Commits prefix (no \"fix:\", \"feat:\" or similar), followed by body text that explains the problem (dates read wrong in the US format) and the approach, as the Dawn commit rules require.\n\nFAIL if the message is subject-only, uses a type/scope prefix, merely lists the files changed, or restates the diff line by line instead of explaining why.",
+          "config": {
+            "criteria": "PASS if the drafted commit message has a short imperative subject line with no Conventional-Commits prefix (no \"fix:\", \"feat:\" or similar), followed by body text that explains the problem (dates read wrong in the US format) and the approach, as the Dawn commit rules require.\n\nFAIL if the message is subject-only, uses a type/scope prefix, merely lists the files changed, or restates the diff line by line instead of explaining why.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "no-conventional-prefix",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^(?!.*\\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\\([^)]*\\))?!?:)",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?write-commit-message\""
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 4,
+            "costUsd": 0.13261550000000003,
+            "judgeCostUsd": 0.0001905,
+            "durationSeconds": 18,
+            "startedAt": "2026-10-15T18:33:09.085Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Hsfox8/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "dawn-format",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Here's the commit message. Branch `main` has no ticket key, so there's no links line.\n\n```text\nUse ISO 8601 dates in CSV export\n\nPrior to this change, the CSV export wrote order dates in US\nmonth/day/year format (03/09/2026). Readers outside the US can take\nthat as 9 March or 3 September, and the dates don't sort correctly\nas text.\n\nThis change writes dates as year-month-day (2026-03-09). That format\nhas only one reading, sorts in date order, and spreadsheets and other\nimporters parse it reliably.\n```\n\nI haven't committed it. I don't have shell access in this session, so I couldn't run `git commit`. To commit it yourself, save the message to a file and run `git commit -F <file>`.\n\nThe diff shows the format change but not your reason for making it. I filled in the usual reasons for switching to ISO dates. If you had a specific reason, like a downstream importer that misread the old dates, put it in the second paragraph instead.\n\nAnyone who parses this CSV and expects `m/d/Y` will break after this change, so it's worth checking for downstream users."
+              },
+              {
+                "name": "no-conventional-prefix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^(?!.*\\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\\([^)]*\\))?!?:)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0486512,
+            "judgeCostUsd": 0.00014099999999999998,
+            "durationSeconds": 6,
+            "startedAt": "2026-10-15T18:33:27.062Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xeernn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "dawn-format",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "```\nUse ISO 8601 dates in CSV export\n\nFormat orderedAt as Y-m-d instead of m/d/Y. US-style dates are\nambiguous to non-US readers, sort wrong as text, and spreadsheet apps\ncan misread them depending on locale. ISO dates avoid all three\nproblems.\n\nUpdate the export date format test to match.\n```\n\nAnything that reads these CSV files and expects `m/d/Y` dates will break with this change. If there are known consumers, add a note like `BREAKING: CSV date column is now YYYY-MM-DD` to the message body."
+              },
+              {
+                "name": "no-conventional-prefix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^(?!.*\\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\\([^)]*\\))?!?:)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "decompose-routes-to-a-skill",
+      "dir": "evals/plugin/decompose-routes-to-a-skill",
+      "source": "prose",
+      "promptMarkdown": "Break this work down into tickets our developers can pick up.\n\nSpec: customers must be able to import a CSV of contacts (name, email, city), up to 50,000 rows. Rows with an invalid email or a duplicate of an existing contact are rejected, and after the import the user gets an error report listing every rejected row with the reason. Imports must not block the API for other users.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?(write-plan|prepare-ticket|write-prd)\""
+          }
+        },
+        {
+          "name": "vertical-tickets",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the reply cuts the work into tickets where the first ticket delivers one demonstrable end-to-end slice (for example: one valid row imported from upload through stored contact), and no ticket covers only a single layer such as \"parsing only\", \"storage only\" or \"endpoint only\".\n\nFAIL if the tickets mirror the layers (parser ticket, storage ticket, API ticket), if any ticket cannot be demonstrated on its own, or if the reply is a single implementation plan rather than independent tickets.",
+          "config": {
+            "criteria": "PASS if the reply cuts the work into tickets where the first ticket delivers one demonstrable end-to-end slice (for example: one valid row imported from upload through stored contact), and no ticket covers only a single layer such as \"parsing only\", \"storage only\" or \"endpoint only\".\n\nFAIL if the tickets mirror the layers (parser ticket, storage ticket, API ticket), if any ticket cannot be demonstrated on its own, or if the reply is a single implementation plan rather than independent tickets.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 4,
+            "costUsd": 0.15953859999999997,
+            "judgeCostUsd": 0.00038579999999999995,
+            "durationSeconds": 23,
+            "startedAt": "2026-10-15T18:33:33.558Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-3fsYKz/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "vertical-tickets",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "The working directory (`/tmp/claude-eval-3fsYKz/home/cwd`) is empty, so there's no code to base the tickets on. Before I write the plan I need a few answers, mostly because the spec doesn't define some behaviour and the answers change what the tickets contain.\n\n**1. Where is the code, and what does it run on?** *(blocking)*\n- **Recommendation:** Give me the repo path so I can match its framework, job queue, database and test setup.\n- **If I don't have it:** I can still write tickets, but file paths, the job queue and test commands would be guesses that developers would have to rework.\n\n**2. What counts as a duplicate?**\n- **Recommendation:** The same email within the same customer account, ignoring case and surrounding spaces. If the same email appears twice in one file, keep the first row and reject the later ones as \"duplicate in file.\"\n- **Why:** Email is the only field that reliably identifies a person.\n- **If you choose differently:** Matching on name plus email, or across all accounts, changes the database index and the lookup query.\n\n**3. If some rows fail, do the good rows still get imported?**\n- **Recommendation:** Yes. Import the valid rows, reject the bad ones and report them.\n- **Why:** The spec's \"rejected row\" wording suggests this.\n- **If you choose differently:** All-or-nothing needs one transaction or a staging table for the whole file, which is a different design.\n\n**4. How does the user get the error report?**\n- **Recommendation:** A status endpoint the client checks, plus a downloadable CSV of the rejected rows (original row number, the row's data, the reason).\n- **If you choose differently:** Sending it by email adds an email-sending ticket. A screen in the app adds frontend tickets.\n\n**5. Is a frontend in scope** (upload screen, progress, report download), or only the API?\n- **Recommendation:** Only the API, unless you have a web app in this repo.\n\n**6. What makes an email invalid, and what about other fields?**\n- **Recommendation:**\n  - Check the email's format only, without checking that the domain can receive mail.\n  - Reject a row with no name as \"missing name.\" City is optional.\n  - Reject a file with more than 50,000 rows, or the wrong headers, before any processing.\n- **Why:** The spec only names invalid email and duplicates as reasons, so a missing name or city is a decision you need to make.\n\n**7. Does the app already have a background job system** (e.g. Sidekiq, Celery, BullMQ, Hangfire, SQS) and file storage (e.g. S3)?\n- **Recommendation:** Use what's already there. Running the import in a background worker is how \"must not block the API for other users\" gets met.\n- **If you choose differently:** If there's no job system, setting one up becomes its own ticket.\n\nSend me the repo path, or say \"use your defaults\" and name a stack. I'll then save the full ticket breakdown to `docs/plans/2026-10-15-contact-csv-import.md`."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 2,
+            "costUsd": 0.11315960000000001,
+            "judgeCostUsd": 0.0010927999999999999,
+            "durationSeconds": 41,
+            "startedAt": "2026-10-15T18:33:56.773Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-KBsL3B/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "vertical-tickets",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I couldn't find a codebase in the working directory, so these tickets don't assume a particular stack. Before anyone picks them up, a few decisions are needed (listed at the end). Where the spec is silent I made an assumption and marked it **[Assumption]**.\n\n---\n\n### IMP-1 — Data model for imports and rejected rows\n**Size:** S · **Depends on:** none\n\n- Add an `import_jobs` table: id, account_id, user_id, status (`queued` / `processing` / `completed` / `failed`), file reference, total_rows, imported_count, rejected_count, timestamps, error_message.\n- Add an `import_rejections` table: job_id, row_number, the raw row values, reason_code, and a reason message.\n- Add a unique index on contacts `(account_id, normalized_email)`. This is the backstop that stops two imports running at once from both inserting the same contact.\n\n**Acceptance criteria**\n- Migrations run forward and back cleanly.\n- If the contacts table already has duplicates, the index migration finds them and reports them instead of failing partway.\n\n---\n\n### IMP-2 — Upload endpoint (async handoff)\n**Size:** M · **Depends on:** IMP-1\n\n- `POST /contacts/imports` accepts the file, stores it in object storage, creates an `import_jobs` row with status `queued`, puts a job on the queue and returns **202** with the job id.\n- It checks only what's cheap: file size limit, content type, readable encoding, and a header row containing `name`, `email`, `city`. It does no row-by-row work.\n- **[Assumption]** Files over 50,000 data rows are rejected outright, not cut off at 50,000. The worker checks the count; the endpoint only enforces the size limit.\n\n**Acceptance criteria**\n- Responds in under about 1s for a 50k-row file.\n- Bad headers or a wrong file type return 400 with a clear message.\n- Requests without auth or permission are rejected.\n\n---\n\n### IMP-3 — Row validation rules\n**Size:** S · **Depends on:** none (can run in parallel)\n\n- Write a pure function that takes a row and returns either a normalized contact or a rejection reason.\n- Email: trim it, check the syntax, and lowercase it for comparison.\n- Name and city: trim them. Whether they're required is open question 3.\n- Use stable reason codes such as `INVALID_EMAIL`, `MISSING_FIELD`, `DUPLICATE_EXISTING`, `DUPLICATE_IN_FILE`.\n\n**Acceptance criteria**\n- Unit tests cover valid and invalid emails, whitespace, unicode, empty cells, extra or missing columns, and quoted fields with commas or newlines.\n\n---\n\n### IMP-4 — Background import worker\n**Size:** L · **Depends on:** IMP-1, IMP-2, IMP-3\n\n- Read the stored file as a stream. Don't load all 50k rows into memory.\n- Work in batches of about 500–1,000 rows. For each batch:\n  - validate each row (IMP-3)\n  - look up existing emails for the account in one query\n  - check for duplicates against emails seen earlier in the same file\n  - bulk insert using insert-or-skip-on-conflict, and record any conflicts as `DUPLICATE_EXISTING`\n  - write the rejected rows\n  - update the job's progress counters\n- Set the job status to `completed` or `failed`, recording an error message on failure.\n- Idempotency: if the worker crashes and the job is retried, it must not create double inserts or double rejections. Either resume from the last committed batch or make the batches idempotent.\n\n**Acceptance criteria**\n- A 50k-row file with mixed valid, invalid and duplicate rows ends with `imported + rejected = total`.\n- Killing the worker partway and retrying gives the same final result.\n- Memory use stays roughly flat regardless of file size.\n\n---\n\n### IMP-5 — Isolation so imports don't block the API\n**Size:** M · **Depends on:** IMP-4\n\n- Run imports on their own queue and worker pool, separate from the request-serving processes.\n- Limit concurrency per account (e.g. one active import per account) and globally. **[Assumption]** A second upload while one is running is queued, not rejected.\n- Keep each database transaction to one batch so locks stay short. Use the DB connection pool assigned to workers.\n- Rate-limit the upload endpoint.\n\n**Acceptance criteria**\n- See IMP-9. API p95 latency for other users stays within an agreed limit while several 50k imports run.\n\n---\n\n### IMP-6 — Job status endpoint and completion notification\n**Size:** S · **Depends on:** IMP-1\n\n- `GET /contacts/imports/{id}` returns status, progress counts, and a link to the error report once the job is complete. Only the owning account can read it.\n- Notify the user when the job finishes. **[Assumption]** This is an in-app notification, and email is open question 5.\n\n**Acceptance criteria**\n- Another account's job id returns 404.\n- Progress numbers update while the job is processing.\n\n---\n\n### IMP-7 — Error report generation and download\n**Size:** M · **Depends on:** IMP-4\n\n- When the job finishes, generate a CSV report: the original row number, the original name/email/city values, the reason code, and a readable reason.\n- Store it and serve it from `GET /contacts/imports/{id}/errors` (or a short-lived signed URL). If nothing was rejected, return an empty report with headers only.\n- Neutralize CSV formula injection in the output: prefix or escape cells that start with `=`, `+`, `-` or `@`. The report contains user-supplied data and will be opened in Excel.\n\n**Acceptance criteria**\n- Every rejected row appears exactly once.\n- Row numbers match the user's original file.\n- A worst case of 50k rejections is generated without a memory spike.\n\n---\n\n### IMP-8 — Frontend: upload flow and results\n**Size:** M · **Depends on:** IMP-2, IMP-6, IMP-7\n\n- Upload screen showing the expected format and a downloadable template CSV.\n- Client-side check of file size and type before upload.\n- Progress view that polls status, then a summary (\"X imported, Y rejected\") with a download link for the error report.\n- The user can leave the page and come back to see the result.\n\n**Acceptance criteria**\n- Covers the happy path, the all-rejected case, a server 400, and a failed job.\n\n---\n\n### IMP-9 — Load and end-to-end tests\n**Size:** M · **Depends on:** IMP-4, IMP-5, IMP-7\n\n- Fixture files:\n  - 50k valid rows\n  - 50k mixed rows\n  - 50,001 rows\n  - malformed CSV\n  - duplicates within the file\n  - duplicates of existing contacts\n- Load test: run N concurrent 50k imports while sending normal API traffic, and record API latency and error rate.\n- Record how long a 50k import takes in practice.\n\n**Acceptance criteria**\n- The non-blocking requirement is checked against an agreed threshold (open question 7).\n\n---\n\n### Suggested order\nIMP-1 and IMP-3 in parallel → IMP-2 and IMP-6 → IMP-4 → IMP-5 and IMP-7 → IMP-8 (can start earlier against mocked endpoints) → IMP-9.\n\n### Open questions for product (answer before IMP-3 and IMP-4)\n1. **What counts as a duplicate?** Matching email only, compared case-insensitively? Or email plus name?\n2. **Duplicates within the file:** if the same email appears twice in the upload, keep the first and reject the rest?\n3. **Name and city:** are they required? Are there length limits?\n4. **Partial imports:** I assumed valid rows are imported even when other rows are rejected. Is that right, rather than all-or-nothing?\n5. **Report delivery:** download in the app, email, or both? How long is the report kept? It contains personal data.\n6. **Over-limit files:** reject the whole file, or import the first 50,000 rows?\n7. **\"Must not block the API\":** what's the measurable target, e.g. p95 latency increase under X ms during imports?"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0
+      }
+    },
+    {
+      "name": "plan-fires-on-break-down-ticket",
+      "dir": "evals/plugin/plan-fires-on-break-down-ticket",
+      "source": "prose",
+      "promptMarkdown": "Break down this ticket into an implementation plan: \"Add CSV export to the orders page — a button that downloads the current filtered list as CSV with the visible columns. Acceptance: export respects active filters, handles 10k rows, filename contains the date.\"",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "sized-tasks",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the reply is an implementation plan broken into small, individually executable tasks, each with some size or effort indication, covering the export respecting filters, the 10k-row handling and the dated filename.\n\nFAIL if the reply is one undifferentiated task list without sizing, starts writing the implementation code itself, or ignores any of the three acceptance criteria.",
+          "config": {
+            "criteria": "PASS if the reply is an implementation plan broken into small, individually executable tasks, each with some size or effort indication, covering the export respecting filters, the 10k-row handling and the dated filename.\n\nFAIL if the reply is one undifferentiated task list without sizing, starts writing the implementation code itself, or ignores any of the three acceptance criteria.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?write-plan\""
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.1589272,
+            "judgeCostUsd": 0.0005222,
+            "durationSeconds": 28,
+            "startedAt": "2026-10-15T18:34:38.015Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-TapUBk/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "sized-tasks",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I can't write a code-grounded plan yet because there's no code to look at. The working directory (`/tmp/claude-eval-TapUBk/home/cwd`) is empty, and the git repo above it only holds a `.gitconfig`. There's no orders page, framework, filter state or API for me to check.\n\nThe planning process requires every architecture-affecting branch to be either confirmed in code or decided by you. Right now these branches block the plan:\n\n| # | Question | Recommendation | Rationale | Scope impact if answered differently |\n|---|---|---|---|---|\n| 1 | **Where's the orders page code?** Which repo or path, and what stack (e.g. React/Next, Vue, Angular; Node, .NET, Rails, Django)? | Point me at the repo so I can find the answer myself | Every file path, test command and convention in the plan comes from this | Without it the plan is generic and can't be handed to an implementer |\n| 2 | **Does filtering happen in the browser or on the server?** Does the page load all orders and filter locally, or fetch paged and filtered results from an API? | Server-side export: a new endpoint that takes the same filter parameters as the list API | The page usually holds only one page of results. Exporting just that would silently break \"respects active filters\" for anything past page 1. | If all orders are already in the browser, it becomes frontend-only: build the CSV in the browser, no backend task, about half the scope |\n| 3 | **How should we handle 10k rows?** | Stream the CSV from the server in batches, with no async job or emailed file | 10k rows is roughly 1–3 MB, small enough for one streamed HTTP response. A background job with a \"we'll email you\" flow is overkill. | If the real limit is much higher (100k+), it needs an async export job, storage and a notification, which adds about 2 more tasks |\n| 4 | **What counts as a \"visible column\"?** Can users show and hide columns, and is that choice stored anywhere? | The client sends its current list of visible column keys with the export request, and the server only allows known keys | This keeps the CSV matching what the user sees without the server storing view state | If the columns are fixed, this branch disappears and the CSV uses a fixed column set |\n| 5 | **Export by page or everything?** Should export include all rows that match the filters, or only the current page? | All matching rows | That's what \"current filtered list\" usually means, and it's the reason the 10k-row requirement exists | Exporting one page drops the streaming work |\n\nThese are the defaults I'd assume unless you say otherwise, since they don't change the structure of the plan:\n- Filename `orders-YYYY-MM-DD.csv`, using the user's local date.\n- UTF-8 with a BOM so Excel opens it correctly, and standard RFC 4180 quoting.\n- Formula-injection protection: cells starting with `=`, `+`, `-` or `@` get a leading `'`.\n- The current sort order is kept.\n- The button is disabled while the export runs and shows an error toast if it fails.\n- The export uses the same authorization as the orders list.\n\nSend me the repo location, or just answer questions 2–5, and I'll write the full task breakdown to `docs/plans/2026-10-15-orders-csv-export.md`."
+              },
+              {
+                "name": "skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.083495,
+            "judgeCostUsd": 0.0005514000000000001,
+            "durationSeconds": 33,
+            "startedAt": "2026-10-15T18:35:06.093Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-KCEaEc/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "sized-tasks",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The working directory is empty, so I couldn't look at your orders page code. This plan assumes a typical setup: a frontend table that gets its data from an API, with server-side filtering and pagination. The open questions at the end are the places where your real code could change the plan.\n\n## Main decision: build the CSV on the server\n\nIf the table loads data page by page, the browser only holds the current page. Building the CSV in the browser would export ~50 rows, not the full filtered list. A server endpoint that **runs the same filter logic as the list endpoint** is what makes \"respects active filters\" true by design, not just by testing. It also handles 10k rows easily if you stream the output.\n\n(If the whole filtered dataset is already loaded in the browser, building the CSV there is a fine and simpler choice. Tasks 2–3 below would shrink to a small helper function.)\n\n## Tasks\n\n**1. Share the filter logic** (backend, ~0.5d)\n- Move the orders list's filter/sort query building into one shared function, if it isn't already.\n- The list endpoint and the export endpoint both call it. This prevents the two from drifting apart.\n\n**2. Export endpoint** (backend, ~1d)\n- `GET /orders/export?<same filter params>&columns=id,status,total,...`\n- Allow only column keys from a server-side list (column key → header label + formatter). Reject unknown keys.\n- Stream rows (DB cursor or batches of ~1000) straight into the response instead of building the whole file in memory.\n- Headers: `Content-Type: text/csv; charset=utf-8` and `Content-Disposition: attachment; filename=\"orders-2026-10-15.csv\"`.\n- Use the same auth/permission checks as the list endpoint.\n- Set a row cap (e.g., 50k) and return a clear error above it, so a large export can't overload the server.\n\n**3. CSV formatting** (backend, ~0.5d)\n- Use a proper CSV library for quoting, commas, quotes and newlines inside values.\n- Start the file with a UTF-8 BOM so Excel shows non-ASCII names correctly.\n- **Block formula injection:** prefix any cell starting with `=`, `+`, `-`, `@`, tab or CR with `'`. Customer-entered fields like names and notes are the risk here.\n- Use the same formats as the UI for dates (ISO or the UI's locale), money (raw number vs. formatted) and enums (label vs. code).\n\n**4. Frontend button** (~0.5d)\n- Add an \"Export CSV\" button to the orders toolbar.\n- Build the request from the **current filter state** (the same object the table query uses) plus the currently visible columns, in display order.\n- Download with a plain link/navigation to the endpoint, or with `fetch` → blob → object URL if auth uses a header token instead of cookies.\n- Show a loading state and disable the button while the export runs. Show an error toast on failure.\n- Disable the button, or say \"No results\", when the filtered list is empty.\n\n**5. Tests** (~1d)\n- Backend unit tests: escaping, formula-injection guard, column allow-list, filename date.\n- Backend integration test: with filters applied, the export rows exactly match the list endpoint's results (all pages combined). This covers the main acceptance criterion directly.\n- Load test: 10k rows, check response time (e.g., under 5s) and that memory stays flat.\n- Frontend test: the button sends the active filters and visible columns.\n- Manual test: open the file in Excel and Google Sheets.\n\n**Estimate:** ~3–4 dev days, plus review.\n\n## Acceptance criteria → where they're covered\n\n| Criterion | Covered by |\n|---|---|\n| Respects active filters | Shared filter logic (1) + export-vs-list integration test (5) |\n| Handles 10k rows | Streaming + batching (2) + load test (5) |\n| Filename contains the date | `Content-Disposition` (2) + unit test (5) |\n| Visible columns only | `columns` param + allow-list (2, 4) |\n\n## Questions for the ticket owner\n1. **Whose date and timezone?** The server's date, or the user's local date? I suggest the user's local date, sent by the client or applied on the client side.\n2. **Sort order:** should the export keep the table's current sort? I'd assume yes.\n3. **Selected rows:** if the table has row checkboxes, should the export use only the selected rows? I'd leave that out of scope.\n4. **Formatted or raw values:** for money and dates, does finance want raw numbers they can calculate with, or the formatted display strings?\n5. **Upper limit:** is 10k the realistic maximum? If exports could reach 100k+, plan for a background job that emails a download link instead.\n6. **Audit/PII:** do order exports need to be logged, or limited to certain roles?"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": -1
+      }
+    },
+    {
+      "name": "prepare-ticket-fires",
+      "dir": "evals/plugin/prepare-ticket-fires",
+      "source": "prose",
+      "promptMarkdown": "Is this ticket ready for a developer to pick up?\n\nTicket USER-91: \"Customers keep complaining about the slow list page. Make it faster. Also the layout jumps around while loading. Priority: high.\"",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?(prepare-ticket|validate-ticket)\""
+          }
+        },
+        {
+          "name": "verdict-not-implementation",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the reply treats the ticket as not ready, names what is missing (no measurable performance target, two unrelated problems in one ticket, no acceptance criteria), and ends with a clear readiness verdict and a concrete next action — without inventing acceptance criteria as if they came from the requester and without starting to implement anything.\n\nFAIL if the reply starts implementing or planning the fix, declares the ticket ready, or fabricates specific acceptance criteria and presents them as given.",
+          "config": {
+            "criteria": "PASS if the reply treats the ticket as not ready, names what is missing (no measurable performance target, two unrelated problems in one ticket, no acceptance criteria), and ends with a clear readiness verdict and a concrete next action — without inventing acceptance criteria as if they came from the requester and without starting to implement anything.\n\nFAIL if the reply starts implementing or planning the fix, declares the ticket ready, or fabricates specific acceptance criteria and presents them as given.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.29218419999999995,
+            "judgeCostUsd": 0.00038759999999999966,
+            "durationSeconds": 33,
+            "startedAt": "2026-10-15T18:35:38.615Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-BBxWLn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "verdict-not-implementation",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Not ready.** The ticket names two symptoms but not which page, how slow it is now, or how fast it needs to be. A developer can't start, and couldn't tell when they were done.\n\n### Blocking (3)\n\n**1. The ticket doesn't say which page \"the list page\" is.** I couldn't work it out from the code, because the working directory is empty.\n→ Name the page and the screen or route where customers see it. Also say whether every customer is affected or only some, for example accounts with a lot of data. *Ticket author.*\n\n**2. \"Make it faster\" has no starting measurement and no target.** Nothing says which part is slow (opening the page, scrolling, filtering, searching), how slow it is now, or what counts as fast enough. Without a number, the work can't be checked or finished.\n→ Add the current load time for a typical complaining customer and a target, for example \"the list is usable within 2 s for an account with 5,000 rows.\" I recommend taking the starting figure from real-user monitoring or from the support tickets behind the complaints. Without a target the work tends to drag on, and nobody can say whether it helped. *Ticket author, with support or product.*\n\n**3. This is two separate changes.** Load speed and the layout jumping while it loads are different problems with different fixes. The layout fix is usually small and can ship on its own. The speed fix may need back-end work.\n→ Split it:\n- \"Make the [X] list load in under [N] seconds\": speed only, waits on questions 1 and 2.\n- \"Stop the [X] list jumping around while it loads\": reserve space or show placeholders so content doesn't move as it arrives. Once the page is named, this one could be ready almost straight away.\n\nI recommend splitting, so the quick fix for the jumping isn't held up by the speed work.\n\n### Worth a look (1)\n\n**The reason is vague.** \"Customers keep complaining\" would carry more weight with a count or a few ticket links. That would also support the \"high\" priority.\n\n### What a rewrite would change\n\nThe title would change from \"Customers keep complaining about the slow list page…\" to \"Make the [X] list load in under [N] seconds\", plus the second ticket from the split. Each ticket would get a Why, a measurable Goal with a \"How to check\" step, acceptance criteria, and an Out of scope section. I can't write the code-level implementation notes until I'm looking at the right repository.\n\n**What I checked:** I traced no claims and closed no design branches. The working directory is an empty git repository with no commits, so none of the ticket's statements could be checked against code. I also worked only from the text you pasted and haven't fetched USER-91 from the tracker, so I haven't read any comments on it. Those may already answer some of the questions above.\n\n---\n**USER-91: not ready.** It doesn't name the page, gives no starting time or target for \"faster\", and combines two separate fixes.\n**Next:** the ticket author answers the three questions above. Then run this again from the repository that contains the list page. *Ticket author.*\n\n**Should I fetch USER-91 from the tracker to read its comments, then post these three questions on it?** yes / no"
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.06099510000000001,
+            "judgeCostUsd": 0.0013369000000000002,
+            "durationSeconds": 24,
+            "startedAt": "2026-10-15T18:36:11.624Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-OkOcXB/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "verdict-not-implementation",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Not yet.** It describes two real problems, but a developer can't tell where to start or when they're done.\n\n**What's missing**\n\n1. **Which page?** \"The list page\" could mean several screens. Name it with a route or URL, and say whether it affects every user or only some (large accounts, certain filters, mobile).\n2. **How slow is it now?** There's no baseline. Add current numbers, such as p50/p95 load time, API response time, or LCP, and where they came from (RUM, APM, a recorded repro).\n3. **What counts as fast enough?** Without a target, \"make it faster\" never ends. Example: \"p95 time to interactive under 2s for accounts with 10k rows.\"\n4. **Steps to reproduce:** an account, data size or filters that show the slowness, plus browser/device and network if they matter.\n5. **Evidence from customers:** links to support tickets or quotes. This shows how bad it is and who is hit, which also backs up the \"high\" priority.\n6. **Scope:** Can the API, pagination or UX change (virtualization, infinite scroll), or is this frontend-only?\n\n**Split it into two tickets.** Slowness and layout shift have different causes and different fixes, and you'd verify them differently:\n\n- **USER-91a: List page load performance.** Baseline, target, repro, scope as above.\n- **USER-91b: Layout shift during list page load.** Which elements jump (table, header, images, filters)? Include a screen recording. Acceptance criterion: \"CLS < 0.1, with skeleton or reserved space for X and Y.\"\n\nThe layout-shift fix is usually smaller and well-bounded. It could be picked up now, once someone notes which elements jump.\n\n**Suggested rewrite (performance half)**\n\n> **Page:** `/orders` list view\n> **Problem:** p95 load is ~6s for accounts with >5k orders (Datadog, last 30 days). 14 support tickets this month (links).\n> **Repro:** Log in as `demo-large@…`, open Orders, default filters.\n> **Acceptance criteria:** p95 load ≤ 2s for the same cohort, with no regression for small accounts. Measured via [dashboard].\n> **Out of scope:** Redesigning the filters UI.\n> **Priority:** High. Top support driver for enterprise accounts.\n\nIf you know which page it is, I can look through the codebase for likely culprits (unpaginated queries, N+1 calls, missing size reservations) and add technical pointers to the ticket."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 4,
+    "casesPassed": 2,
+    "overallScore": 0.5,
+    "overallPassRate": 0.5,
+    "meanDelta": 0
+  }
+}
