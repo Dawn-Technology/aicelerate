@@ -38,6 +38,22 @@
         "user-stories",
         "estimation"
       ]
+    },
+    {
+      "name": "aimate-ios",
+      "description": "Optional native iOS specialist skills and company policy for Swift projects.",
+      "version": "0.1.0",
+      "source": "./plugins/aimate-ios",
+      "repository": "https://github.com/Dawn-Technology/aicelerate",
+      "license": "MIT",
+      "keywords": [
+        "ios",
+        "swift",
+        "swiftui",
+        "xctest",
+        "xcuitest",
+        "swift-testing"
+      ]
     }
   ]
 }

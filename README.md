@@ -2,6 +2,8 @@
 
 An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process.
 
+The marketplace also contains the optional `aimate-ios` plugin for native iOS teams. It composes with `aimate` without adding Apple-specific behavior for teams that do not install it. See [`plugins/aimate-ios/README.md`](plugins/aimate-ios/README.md).
+
 ## Install
 
 ### Visual Studio Code
@@ -65,7 +67,7 @@ claude plugin install aimate@aicelerate
 ```
 
 > [!NOTE]
-> Compatibility is provided by symlinks (`.claude-plugin/marketplace.json` and `plugins/aimate/.claude-plugin/plugin.json`) that point at the Copilot-canonical manifests. Git stores these as symlinks on macOS and Linux. On Windows they only check out as symlinks when `git config core.symlinks` is `true`; otherwise they become plain text stubs and Claude Code discovery will fail.
+> Compatibility is provided by symlinks (`.claude-plugin/marketplace.json`, `plugins/aimate/.claude-plugin/plugin.json`, and `plugins/aimate-ios/.claude-plugin/plugin.json`) that point at the Copilot-canonical manifests. Git stores these as symlinks on macOS and Linux. On Windows they only check out as symlinks when `git config core.symlinks` is `true`; otherwise they become plain text stubs and Claude Code discovery will fail.
 
 ## Requirements
 
