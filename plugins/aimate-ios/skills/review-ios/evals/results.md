@@ -24,6 +24,12 @@ The baseline found stale-result ordering, task lifetime, and collapsed failure/c
 
 Baseline and skill runs found the missing load/render integration. Both retained UIKit, MVVM, and XCTest because migration was explicitly outside scope. The skill run captured the project baseline and unexecuted verification.
 
+## TCA Search
+
+Evaluated 2026-10-15 in Claude Code using general-purpose subagents; optional specialists, Xcode routes, and a local package checkout were unavailable.
+
+Baseline and skill runs both found the missing cancellation ID with stale-response overwrite, the directly used `SearchClient.live` instead of `@Dependency`, and the unhandled error thrown in `.run`. Both kept TCA. The baseline could not confirm that TCA 1.23.1 exists and added style and product suggestions (naming, loading state, formatting). The skill run recorded the 1.23.1 baseline, read the documentation and `Effect.swift` at the 1.23.1 tag on GitHub, quoted the version's actual unhandled-error message, answered the four asynchronous questions, reported every unavailable capability route, and limited findings to reachable defects.
+
 ## Outcome
 
 The pilot adds deterministic scope, policy precedence, migration restraint, capability reporting, and a composable result contract. It intentionally does not duplicate generic Swift defect knowledge already demonstrated by baseline reviewers.
