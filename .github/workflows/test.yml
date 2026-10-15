@@ -1,0 +1,37 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  structural:
+    name: Structural validation (Tier 1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node tests/structural/validate-plugin.mjs
+
+  smoke-claude-code:
+    name: Claude Code smoke tests
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Install aimate from this checkout
+        run: |
+          claude plugin marketplace add .
+          claude plugin install aimate@aicelerate
+      - name: Run smoke tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.EVAL_ANTHROPIC_API_KEY }}
+        run: |
+          claude --version
+          tests/claude-code/run-tests.sh --timeout 300
