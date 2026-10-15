@@ -115,7 +115,7 @@ export function buildReport(runs, meta = {}) {
   // routing
   lines.push("## Skill routing", "");
   const firedCases = cases.filter((c) => subjectRuns.some((r) => r.case === c && r.skillsFired?.length));
-  lines.push(`Skills fired in ${firedCases.length} of ${cases.length} cases. A run without a fired skill measures the base model, not ${subject} — which is also what a developer typing that prompt gets today.`, "");
+  lines.push(`Skills fired in ${firedCases.length} of ${cases.length} cases. This line is a validity note, not a verdict: where no skill fired, the scores describe base-model behavior — which is what a developer typing that prompt gets today. That is only a problem where the fired skill measurably beats the base model (compare the control column); where the base model already meets the bar, it is evidence the skill is not needed for that request.`, "");
   const hasExplicit = runs.some((r) => r.strategy?.startsWith("aimate-"));
   const hasRace = runs.some((r) => r.strategy);
   if (hasRace && firedCases.length === 0 && !hasExplicit) {
@@ -230,63 +230,6 @@ export function buildReport(runs, meta = {}) {
   return lines.join("\n") + "\n";
 }
 
-// --- HTML twin: same content as the markdown, readable in a browser ---
-// A small converter for the constructs this report actually emits (headings,
-// tables, bold, blockquotes, lists, inline code), wrapped in self-contained CSS.
-export function mdToHtml(md, title = "Eval report") {
-  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const inline = (s) => esc(s)
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
-  const lines = md.split("\n");
-  const out = [];
-  let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (/^### /.test(l)) { out.push(`<h3>${inline(l.slice(4))}</h3>`); i++; continue; }
-    if (/^## /.test(l)) { out.push(`<h2>${inline(l.slice(3))}</h2>`); i++; continue; }
-    if (/^# /.test(l)) { out.push(`<h1>${inline(l.slice(2))}</h1>`); i++; continue; }
-    if (/^\|/.test(l)) {
-      const rows = [];
-      while (i < lines.length && /^\|/.test(lines[i])) { rows.push(lines[i]); i++; }
-      const cells = (r) => r.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
-      out.push("<table><thead><tr>" + cells(rows[0]).map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead><tbody>");
-      for (const r of rows.slice(2)) out.push("<tr>" + cells(r).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>");
-      out.push("</tbody></table>");
-      continue;
-    }
-    if (/^> /.test(l)) {
-      const q = [];
-      while (i < lines.length && /^> /.test(lines[i])) { q.push(inline(lines[i].slice(2))); i++; }
-      out.push(`<blockquote>${q.join("<br>")}</blockquote>`);
-      continue;
-    }
-    if (/^- /.test(l)) {
-      out.push("<ul>");
-      while (i < lines.length && /^- /.test(lines[i])) { out.push(`<li>${inline(lines[i].slice(2))}</li>`); i++; }
-      out.push("</ul>");
-      continue;
-    }
-    if (l.trim() === "") { i++; continue; }
-    out.push(`<p>${inline(l)}</p>`);
-    i++;
-  }
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>
-:root{--bg:#fff;--fg:#1a1a1a;--muted:#667;--line:#dde;--accent:#2563eb;--quote:#f6f7f9}
-@media (prefers-color-scheme: dark){:root{--bg:#111418;--fg:#e8eaed;--muted:#99a;--line:#2a2f36;--accent:#60a5fa;--quote:#1a1f26}}
-body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,sans-serif;max-width:920px;margin:2rem auto;padding:0 16px}
-h1{font-size:1.6rem;border-bottom:2px solid var(--line);padding-bottom:.4rem}
-h2{font-size:1.25rem;margin-top:2.2rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
-h3{font-size:1.05rem;margin-top:1.6rem}
-table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.92em}
-th,td{border:1px solid var(--line);padding:.45rem .6rem;text-align:left;vertical-align:top}
-th{background:var(--quote)}
-blockquote{margin:.6rem 0;padding:.5rem .9rem;border-left:3px solid var(--accent);background:var(--quote);color:var(--muted);font-size:.93em}
-code{background:var(--quote);padding:.1em .35em;border-radius:4px;font-size:.9em}
-li{margin:.15rem 0}
-</style></head><body>${out.join("\n")}</body></html>`;
-}
-
 // --- CLI ---
 if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
   const argv = process.argv.slice(2);
@@ -312,10 +255,6 @@ if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
     console.log("baseline written: evals/baseline.json");
   }
   const text = buildReport(runs);
-  if (outFile) {
-    writeFileSync(outFile, text);
-    const htmlFile = outFile.replace(/\.md$/, "") + (outFile.endsWith(".md") ? ".html" : ".html");
-    writeFileSync(htmlFile, mdToHtml(text, "Eval report"));
-    console.log(`written: ${outFile} and ${htmlFile}`);
-  } else console.log(text);
+  if (outFile) { writeFileSync(outFile, text); console.log(`written: ${outFile}`); }
+  else console.log(text);
 }

@@ -29,6 +29,26 @@ Validates, with no dependencies and no network:
 
 Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. A failure here means the plugin is broken as shipped — fix the finding, don't loosen the check.
 
+## What you need for which layer
+
+| Layer | Needs | Claude Code only | Copilot CLI only |
+|---|---|---|---|
+| 1 — structural + routing checks | Node, nothing else | ✓ | ✓ |
+| 2 — host smoke + promise-and-fire | the host CLI, authenticated | `tests/claude-code/`, `claude plugin eval` | `tests/copilot-cli/` (smoke + routing) |
+| 3 — behavioral evals | Claude Code CLI + API access | ✓ | ✗ (the runner drives `claude`; a Copilot-driven runner is possible future work) |
+
+Each host suite skips cleanly when its CLI is missing, so running everything you have is always safe.
+
+## Before you open a PR (developer workflow)
+
+Enable the layer-1 hook once — it runs the free checks on every push, in seconds:
+
+```bash
+git config core.hooksPath tests/hooks
+```
+
+When your change touches a skill or its description, also run the paid checks it affects and paste the result in the PR: `claude plugin eval ./plugins/aimate --case <the relevant case>` for firing and promise, `tests/copilot-cli/test-routing.sh` when routing matters on Copilot, and the behavioral cases your change claims to improve (`node evals/runner/run-eval.mjs <case-id>`). CI re-runs what it can; the Copilot results only you can produce.
+
 ## When what runs (CI)
 
 `.github/workflows/test.yml` runs three jobs. On every pull request and merge to main, the free deterministic checks (structural + routing) run and block on failure. On merge to main and on manual dispatch, the Claude Code smoke tests run (they need the `EVAL_ANTHROPIC_API_KEY` repository secret). On manual dispatch only, the `evals` job runs the promise-and-fire plugin evals and, when the `behavioral_cases` input is set (a case id or `all`), the behavioral runner at 3 runs per case. Reports from the paid jobs upload as workflow artifacts (30-day retention) — markdown, HTML and the per-run JSONs — and are never committed: result folders are gitignored locally too. Eval scores are advisory against the pinned baseline, never a merge gate; the reasoning is in `evals/README.md`.

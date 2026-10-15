@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Layer 1 before every push: free, deterministic, seconds.
+# Enable once with:  git config core.hooksPath tests/hooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+node tests/structural/validate-plugin.mjs
+node tests/triggers/run-triggers.mjs --min-rank1 90
