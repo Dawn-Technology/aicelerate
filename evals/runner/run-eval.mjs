@@ -117,7 +117,11 @@ function setPipeline(name) {
   }
   for (const p of PIPELINE_PLUGINS[name].enable) {
     try { sh(`claude plugin enable ${p}`); }
-    catch (e) { console.error(`cannot enable ${p}: ${e.message}`); process.exit(2); }
+    catch (e) {
+      if (String(e.stderr ?? e.message).includes("already enabled")) continue;
+      console.error(`cannot enable ${p}: ${e.message}`);
+      process.exit(2);
+    }
   }
 }
 
