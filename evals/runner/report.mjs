@@ -81,6 +81,8 @@ export function buildReport(runs, meta = {}) {
     "",
     "## What this sweep says",
     "",
+    "Each verdict below covers one agreed requirement from evals/rubrics/requirements.md, graded across all runs: ✅ holding means every check passed, ❌ failing means every check failed, ⚠️ mixed means some of both. The quote under a verdict is real evidence from a run.",
+    "",
   ];
 
   // committed baseline, for the reviewer's "did my change regress anything"
@@ -135,8 +137,9 @@ export function buildReport(runs, meta = {}) {
   const raceRuns = runs.filter((r) => r.strategy);
   if (raceRuns.length) {
     lines.push("## Strategy race (per entry state)", "");
-    lines.push("Quality decides; cost only breaks ties at equal quality.");
-    lines.push("How to read a row: **acceptance** = did held-out tests (which the agent never saw) pass, per run. **review C/M/m** = average critical/major/minor findings a reviewer found in the produced diff — 0/0/0 is a clean diff, and a recurring major is a real quality gap. Cost and turns are what the strategy spent getting there.", "");
+    lines.push("A strategy is a route from work item to working code. The arms raced here: **direct** — just implement it; **validate-implement** — first challenge the ticket against the codebase, then implement; **spec-first** — write a spec and a plan, then implement; **spikeN** — N independent attempts, and the hidden tests pick the winner.");
+    lines.push("");
+    lines.push("How to read the table: **acceptance** is whether hidden tests passed — tests the agent never saw, so they cannot be gamed. **review C/M/m** is how many critical, major and minor problems a code reviewer found in the result, averaged per run; 0/0/0 means a clean result, and a recurring major means a real quality gap. A **turn** is one step the agent took (a message or a tool call), and **cost** is the API spend per run. Quality decides the winner; cost only breaks ties at equal quality.", "");
     const states = [...new Set(raceRuns.map((r) => r.entryState ?? "unknown"))].sort();
     for (const state of states) {
       const stateRuns = raceRuns.filter((r) => (r.entryState ?? "unknown") === state);
@@ -162,21 +165,28 @@ export function buildReport(runs, meta = {}) {
           const accIcon = !measured ? "" : accPass === rs.length ? "✅ " : accPass === 0 ? "❌ " : "⚠️ ";
           const accCell = measured ? `${accIcon}${accPass}/${rs.length}${spikes}` : "not measured (judge-only)";
           lines.push(`| ${c} | ${strat} | ${accCell} | ${revStr} | $${cost.toFixed(3)} | ${turns.toFixed(0)} |`);
-          if (measured) armStats.push({ strat, accRate: accPass / rs.length, cr, ma, mi, cost });
+          if (measured) {
+            const expChecks = rs.flatMap((r) => r.checks.filter((x) => !x.check.startsWith("held-out acceptance")));
+            const expRate = expChecks.length ? expChecks.filter((x) => x.pass).length / expChecks.length : 1;
+            armStats.push({ strat, accRate: accPass / rs.length, expRate, cr, ma, mi, cost });
+          }
         }
       }
       // name the leader: quality first (acceptance, then critical+major findings), cost as tiebreak
       if (armStats.length > 1) {
         const ranked = [...armStats].sort((a, b) =>
-          b.accRate - a.accRate || (a.cr + a.ma) - (b.cr + b.ma) || a.mi - b.mi || a.cost - b.cost);
+          b.accRate - a.accRate || b.expRate - a.expRate || (a.cr + a.ma) - (b.cr + b.ma) || a.mi - b.mi || a.cost - b.cost);
         const lead = ranked[0];
-        const cheapestPassing = [...armStats].filter((a) => a.accRate === 1).sort((a, b) => a.cost - b.cost)[0];
-        let verdictLine = `**Reads as:** leader on quality is **${lead.strat}** (acceptance ${Math.round(lead.accRate * 100)}%, ${lead.ma.toFixed(1)} major finding(s) per run, $${lead.cost.toFixed(2)})`;
+        const cheapestPassing = [...armStats].filter((a) => a.accRate === 1 && a.expRate >= lead.expRate).sort((a, b) => a.cost - b.cost)[0];
+        const majors = (n) => (n === 0 ? "no major problems" : n < 1 ? `a major problem in some runs (${n.toFixed(1)} per run on average)` : `about ${Math.round(n)} major problem(s) in every run`);
+        const stateRunCount = stateRuns.length;
+        let verdictText = `**In plain terms:** for ${state.replace(/-/g, " ")} work, **${lead.strat}** delivered the best quality here — ${Math.round(lead.accRate * 100)}% of its runs passed the hidden tests and reviewers found ${majors(lead.ma)}, at $${lead.cost.toFixed(2)} per run.`;
+        if (lead.expRate < 1) verdictText += ` It did miss some of the case's own expectations (${Math.round(lead.expRate * 100)}% met), so read its row before trusting it.`;
         if (cheapestPassing && cheapestPassing.strat !== lead.strat) {
-          verdictLine += `; cheapest arm that still passes everything is **${cheapestPassing.strat}** ($${cheapestPassing.cost.toFixed(2)}, ${cheapestPassing.ma.toFixed(1)} major(s) per run)`;
+          verdictText += ` If you care about cost first, **${cheapestPassing.strat}** was the cheapest route that still passed every hidden test ($${cheapestPassing.cost.toFixed(2)} per run), but reviewers found ${majors(cheapestPassing.ma)} in its results.`;
         }
-        verdictLine += ". Directional at this run count — see suite health.";
-        lines.push("", verdictLine);
+        verdictText += ` These are early signals from ${stateRunCount} runs, not final verdicts.`;
+        lines.push("", verdictText);
       }
       lines.push("");
     }
