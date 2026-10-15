@@ -12,7 +12,7 @@
     {
       "name": "aimate",
       "description": "AI Automation teammate — reusable SDLC skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
-      "version": "3.6.0",
+      "version": "3.4.0",
       "source": "./plugins/aimate",
       "repository": "https://github.com/Dawn-Technology/aimate",
       "license": "MIT",
@@ -30,13 +30,27 @@
         "commit-message",
         "implement-ticket",
         "implementation-plan",
-        "prepare-ticket",
         "validate-ticket",
         "fetch-ticket",
         "ticket-readiness",
         "product-requirements-document",
         "user-stories",
         "estimation"
+      ]
+    },
+    {
+      "name": "atomicgit",
+      "description": "Skills for working with atomic commits — rebuilding branch history into small, logical, reviewable commits, and more.",
+      "version": "1.0.0",
+      "source": "./plugins/atomicgit",
+      "repository": "https://github.com/Dawn-Technology/aicelerate/plugins/atomicgit",
+      "license": "MIT",
+      "keywords": [
+        "git",
+        "commits",
+        "atomic-commits",
+        "history-rewrite",
+        "code-review"
       ]
     }
   ]
