@@ -41,7 +41,7 @@ const opt = (name, dflt) => {
   const i = argv.indexOf(`--${name}`);
   return i === -1 ? dflt : argv[i + 1];
 };
-const FLAGS_WITH_VALUE = new Set(["--pipeline", "--runs", "--gen-model", "--judge-model", "--max-turns"]);
+const FLAGS_WITH_VALUE = new Set(["--pipeline", "--runs", "--gen-model", "--judge-model", "--max-turns", "--strategy", "--spikes"]);
 const valuePositions = new Set();
 argv.forEach((a, i) => { if (FLAGS_WITH_VALUE.has(a)) valuePositions.add(i + 1); });
 const target = argv.find((a, i) => !a.startsWith("--") && !valuePositions.has(i)) ?? "all";
@@ -53,17 +53,20 @@ const MAX_TURNS = Number(opt("max-turns", 40));
 const DRY = argv.includes("--dry-run");
 // Strategy arms for delivery cases: how the agent is steered from the work
 // item to a deliverable. Raced per entry state; quality decides, cost breaks ties.
-const STRATEGY = opt("strategy", "direct");
+const SPIKES = Number(opt("spikes", 3)); // attempts for the spike strategy; the count is a knob, not a doctrine
+const STRATEGY_INPUT = opt("strategy", "direct");
+const STRATEGY = STRATEGY_INPUT === "spike3" ? "spike" : STRATEGY_INPUT; // old name tolerated
 const STRATEGIES = {
   direct: (t) => `${t}\n\nImplement this in the current repository.`,
   "validate-implement": (t) => `Here is the ticket:\n\n${t}\n\nFirst validate this ticket against the codebase — challenge its claims and note gaps or wrong assumptions — then implement it.`,
   "spec-first": (t) => `Here is the ticket:\n\n${t}\n\nFirst write a specification and an implementation plan and save them under docs/specs/, then implement according to your plan.`,
-  spike3: (t) => `${t}\n\nImplement this in the current repository.`,
+  spike: (t) => `${t}\n\nImplement this in the current repository.`,
 };
 if (!(STRATEGY in STRATEGIES)) {
-  console.error(`unknown strategy "${STRATEGY}"; known: ${Object.keys(STRATEGIES).join(", ")}`);
+  console.error(`unknown strategy "${STRATEGY_INPUT}"; known: ${Object.keys(STRATEGIES).join(", ")} (spike takes --spikes N, default 3)`);
   process.exit(2);
 }
+const STRATEGY_LABEL = STRATEGY === "spike" ? `spike${SPIKES}` : STRATEGY;
 
 if (GEN_MODEL === JUDGE_MODEL) {
   console.error("generator and judge must be different models");
@@ -327,14 +330,14 @@ try {
   for (const c of selected) {
     const isDelivery = c.type === "delivery";
     for (let run = 1; run <= RUNS; run++) {
-      console.log(`▶ ${c.id} [${PIPELINE}${isDelivery ? `/${STRATEGY}` : ""}] run ${run}/${RUNS}`);
+      console.log(`▶ ${c.id} [${PIPELINE}${isDelivery ? `/${STRATEGY_LABEL}` : ""}] run ${run}/${RUNS}`);
       const ticket = `${c.prompt}\n\n${c.spec.join("\n")}`;
       let agent, workdir, baselineSha, checks = [], judged = {}, extras = {};
 
-      if (isDelivery && STRATEGY === "spike3") {
+      if (isDelivery && STRATEGY === "spike") {
         // Three independent attempts; the held-out tests pick the winner.
         const attempts = [];
-        for (let a = 1; a <= 3; a++) {
+        for (let a = 1; a <= SPIKES; a++) {
           const w = makeWorkdir(c, `${run}s${a}`);
           const res = runAgent(STRATEGIES.direct(ticket), w.workdir, GEN_MODEL, c.max_turns ?? MAX_TURNS, 20 * 60 * 1000);
           const acc = runAcceptance(c, w.workdir);
@@ -350,7 +353,7 @@ try {
           wallMs: attempts.reduce((s, a) => s + a.agent.wallMs, 0),
         };
         checks.push({ check: "held-out acceptance tests pass (winning spike)", by: "behavioral", pass: !!winner.acc?.pass, evidence: winner.acc?.evidence ?? "no acceptance script" });
-        extras.spikeAttemptsPassed = `${attempts.filter((a) => a.acc?.pass).length}/3`;
+        extras.spikeAttemptsPassed = `${attempts.filter((a) => a.acc?.pass).length}/${SPIKES}`;
       } else {
         ({ workdir, baselineSha } = makeWorkdir(c, run));
         const prompt = isDelivery ? STRATEGIES[STRATEGY](ticket) : ticket;
@@ -364,7 +367,7 @@ try {
       const artifact = collectArtifact(agent, workdir);
       if (isDelivery) {
         extras.review = reviewDiff(workdir, baselineSha);
-        extras.strategy = STRATEGY;
+        extras.strategy = STRATEGY_LABEL;
       }
       checks.push(...c.expect.filter((e) => e.by === "structural").map((e) => ({ check: e.check, ...structuralCheck(e, artifact), req: e.req })));
       judged = judge(c, artifact, agent.toolCalls);
@@ -384,7 +387,7 @@ try {
         notes: judged.notes ?? "", workdir,
       };
       rows.push(row);
-      const tag = isDelivery ? `${STRATEGY}-` : "";
+      const tag = isDelivery ? `${STRATEGY_LABEL}-` : "";
       writeFileSync(join(outDir, `${c.id}-${PIPELINE}-${tag}run${run}.json`), JSON.stringify({ ...row, artifact }, null, 2));
       const rev = extras.review ? ` review C${extras.review.critical}/M${extras.review.major}/m${extras.review.minor}` : "";
       console.log(`  ${row.pass}/${row.total} checks,${rev} ${row.turns} turns, $${row.costUsd?.toFixed(3) ?? "?"}, ${row.wallSec}s${row.timedOut ? " (TIMED OUT)" : ""}`);
