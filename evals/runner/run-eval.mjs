@@ -217,6 +217,25 @@ function structuralCheck(exp, artifact) {
   }
 }
 
+// Pull a JSON object out of model output that may wrap it in fences or prose:
+// try a fenced block first, then every '{' as a start with balanced-brace ends.
+function extractJson(text) {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidates = fenced ? [fenced[1]] : [];
+  for (let start = text.indexOf("{"); start !== -1; start = text.indexOf("{", start + 1)) {
+    let depth = 0;
+    for (let i = start; i < text.length; i++) {
+      if (text[i] === "{") depth++;
+      else if (text[i] === "}" && --depth === 0) { candidates.push(text.slice(start, i + 1)); break; }
+    }
+    if (candidates.length > 4) break;
+  }
+  for (const c of candidates) {
+    try { return JSON.parse(c); } catch { /* try next */ }
+  }
+  return null;
+}
+
 // --- judge ---
 function judge(c, artifact, toolCalls) {
   const judgeExpects = c.expect.filter((e) => e.by === "judge");
@@ -232,14 +251,9 @@ function judge(c, artifact, toolCalls) {
     "", 'Reply with ONLY a JSON object: {"checks":[{"n":1,"pass":true,"evidence":"..."}],"notes":"..."} — one entry per expectation, evidence quoting the artifact.',
   ].join("\n");
   const res = runAgent(prompt, tmpdir(), JUDGE_MODEL, 4, 10 * 60 * 1000);
-  const m = res.finalText.match(/\{[\s\S]*\}/);
-  if (!m) return { checks: judgeExpects.map((e, i) => ({ n: i + 1, pass: false, evidence: "judge returned no parseable JSON" })), notes: "judge output unparseable", judgeCost: res.costUsd };
-  try {
-    const parsed = JSON.parse(m[0]);
-    return { ...parsed, judgeCost: res.costUsd };
-  } catch {
-    return { checks: judgeExpects.map((e, i) => ({ n: i + 1, pass: false, evidence: "judge JSON invalid" })), notes: "judge output invalid JSON", judgeCost: res.costUsd };
-  }
+  const parsed = extractJson(res.finalText);
+  if (!parsed) return { checks: judgeExpects.map((_, i) => ({ n: i + 1, pass: false, evidence: "judge returned no parseable JSON" })), notes: `judge output unparseable: ${res.finalText.slice(0, 200)}`, judgeCost: res.costUsd };
+  return { ...parsed, judgeCost: res.costUsd };
 }
 
 // --- main loop ---
