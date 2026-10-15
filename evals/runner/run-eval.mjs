@@ -449,8 +449,10 @@ try {
 }
 
 // --- report: requirement-grouped verdicts, not a run log ---
-const { buildReport } = await import("./report.mjs");
+const { buildReport, mdToHtml } = await import("./report.mjs");
 const header = `pipeline ${PIPELINE}, generator ${GEN_MODEL}, judge ${JUDGE_MODEL}, ${RUNS} run(s) per case, ${cliVersion}, aimate ${aimateVersion}`;
-writeFileSync(join(outDir, "report.md"), buildReport(rows, { subject: PIPELINE === "vanilla" ? "vanilla" : PIPELINE, header }));
+const reportMd = buildReport(rows, { subject: PIPELINE === "vanilla" ? "vanilla" : PIPELINE, header });
+writeFileSync(join(outDir, "report.md"), reportMd);
+writeFileSync(join(outDir, "report.html"), mdToHtml(reportMd, "Eval report"));
 console.log(`\nreport: ${join(outDir, "report.md")}`);
 console.log("cross-pipeline report: node evals/runner/report.mjs <results dirs...>");

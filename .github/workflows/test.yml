@@ -36,3 +36,14 @@ jobs:
         run: |
           claude --version
           tests/claude-code/run-tests.sh --timeout 300
+      - name: Upload reports as workflow artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports
+          path: |
+            evals/results/**/report.md
+            evals/results/**/report.html
+            plugins/aimate/evals/plugin/results/**
+          if-no-files-found: ignore
+          retention-days: 30

@@ -40,3 +40,4 @@ Temporary Items
 .worktrees/
 evals/results/
 evals/runner/pipelines.local.json
+plugins/aimate/evals/plugin/results/
