@@ -1,0 +1,10 @@
+{
+  "name": "dawn/orders-app",
+  "description": "Order management backend",
+  "autoload": {
+    "psr-4": { "App\\": "src/" }
+  },
+  "scripts": {
+    "test": "php tests/run.php"
+  }
+}

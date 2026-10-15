@@ -1,0 +1,19 @@
+{
+  "id": "19-portal-scoping",
+  "stack": "general",
+  "size": "large",
+  "kind": "bad-input",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up.",
+  "spec": [
+    "We want V1 of the customer portal. It should have: login with SSO, a dashboard, invoice overview, invoice PDF download, open tickets, submitting a new ticket, live chat, a knowledge base, search, notifications, user management for customer admins, branding per customer, usage statistics, CSV exports, and a mobile-friendly layout.",
+    "Deadline is next quarter."
+  ],
+  "expect": [
+    { "check": "at most 10 ticket-shaped sections (no forty-ticket dump)", "by": "structural", "type": "ticket_count", "min": 0, "max": 10 },
+    { "check": "proposes scoping down or sequencing before full decomposition, instead of decomposing all fifteen features", "by": "judge", "req": "R5" },
+    { "check": "asks the requester which features define V1 rather than deciding silently", "by": "judge", "req": "R2" },
+    { "check": "anything it does decompose is a vertical, demonstrable slice", "by": "judge", "req": "R1" }
+  ],
+  "behavioral": false
+}
