@@ -41,7 +41,7 @@ Treat this as a **full design tree** exercise. Explicitly map each branch needed
 - **Decision** — explicitly chosen by the user.
 - **Assumption** — planner default with rationale because it is non-blocking.
 
-Planning may only begin when every branch that affects architecture, contracts, task boundaries, or scope has been closed.
+Planning may only begin when every branch that affects architecture, contracts, task boundaries, or scope has been closed. A branch that cannot be closed in this session — the code is not reachable, the decision-maker is not present, the answer does not exist yet — closes as an **Assumption** with your best default and its rationale. Missing answers change the plan's content, never whether a plan is delivered.
 
 Decision areas to consider:
 
@@ -79,7 +79,7 @@ Compile a single **Design Tree** summary that lists each branch, its status (**O
 
 Validate the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
 
-When nobody can answer — an unattended or headless run, or a session where the asker is not available — do not stop. Close each open branch as an **Assumption** with its rationale, list those assumptions prominently at the top of the plan, and deliver the plan. Never end without the plan that was asked for: a plan built on stated assumptions can be corrected; a session that only asks questions delivers nothing.
+Deliver the plan in this same response, always. Questions may accompany the plan — put them under **Open questions**, with the assumption you proceeded on next to each — but they never replace it. A response that only asks questions is a failed run: you cannot know whether anyone will answer, and a plan built on stated assumptions can be corrected, while no plan helps nobody. When the codebase itself is unreachable, say so once at the top, label every file path as a placeholder, and plan against your stated stack assumption.
 
 ### Phase 2: Planning
 
