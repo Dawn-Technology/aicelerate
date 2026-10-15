@@ -129,6 +129,39 @@ export function buildReport(runs, meta = {}) {
     lines.push(`- ✅ ${okCount} other case-specific check(s) passed`, "");
   }
 
+  // strategy race: delivery runs carry a strategy and an entry state. The
+  // reader's question is "which path should this kind of work take?" —
+  // quality first (held-out acceptance, then review findings), cost as tiebreak.
+  const raceRuns = runs.filter((r) => r.strategy);
+  if (raceRuns.length) {
+    lines.push("## Strategy race (per entry state)", "");
+    lines.push("Quality decides; cost only breaks ties at equal quality. Acceptance = held-out tests the agent never saw.", "");
+    const states = [...new Set(raceRuns.map((r) => r.entryState ?? "unknown"))].sort();
+    for (const state of states) {
+      const stateRuns = raceRuns.filter((r) => (r.entryState ?? "unknown") === state);
+      const raceCases = [...new Set(stateRuns.map((r) => r.case))].sort();
+      lines.push(`### Entry state: ${state}`, "");
+      lines.push("| case | strategy | acceptance | review C/M/m | avg cost | avg turns |");
+      lines.push("|------|----------|-----------|--------------|---------:|----------:|");
+      for (const c of raceCases) {
+        for (const strat of [...new Set(stateRuns.filter((r) => r.case === c).map((r) => r.strategy))].sort()) {
+          const rs = stateRuns.filter((r) => r.case === c && r.strategy === strat);
+          const accChecks = rs.map((r) => r.checks.find((x) => x.check.startsWith("held-out acceptance")));
+          const accPass = accChecks.filter((a) => a?.pass).length;
+          const rev = rs.map((r) => r.review).filter(Boolean);
+          const revStr = rev.length
+            ? `${(rev.reduce((s, x) => s + (x.critical ?? 0), 0) / rev.length).toFixed(1)}/${(rev.reduce((s, x) => s + (x.major ?? 0), 0) / rev.length).toFixed(1)}/${(rev.reduce((s, x) => s + (x.minor ?? 0), 0) / rev.length).toFixed(1)}`
+            : "—";
+          const cost = rs.reduce((s, r) => s + (r.costUsd ?? 0), 0) / rs.length;
+          const turns = rs.reduce((s, r) => s + (r.turns ?? 0), 0) / rs.length;
+          const spikes = rs[0]?.spikeAttemptsPassed ? ` (spikes passing: ${rs.map((r) => r.spikeAttemptsPassed).join(", ")})` : "";
+          lines.push(`| ${c} | ${strat} | ${accPass}/${rs.length}${spikes} | ${revStr} | $${cost.toFixed(3)} | ${turns.toFixed(0)} |`);
+        }
+      }
+      lines.push("");
+    }
+  }
+
   // scorecard appendix
   lines.push("## Scorecard (appendix)", "");
   lines.push(`| case | ${pipelines.map((p) => `${p} checks | ${p} cost | ${p} turns`).join(" | ")} |`);
