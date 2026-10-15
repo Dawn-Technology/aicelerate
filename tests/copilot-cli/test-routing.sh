@@ -21,14 +21,14 @@ if ! command -v copilot >/dev/null 2>&1; then
   exit 3
 fi
 
-# case-directory | skill name pattern | fire or quiet
+# case-directory ; skill name pattern (ERE, | allowed) ; fire or quiet
 CASES=(
-  "decompose-routes-to-a-skill|write-plan\|prepare-ticket\|write-prd|fire"
-  "commit-message-fires|write-commit-message|fire"
-  "commit-message-stays-quiet-on-review|write-commit-message|quiet"
-  "prepare-ticket-fires|prepare-ticket\|validate-ticket|fire"
-  "implement-stays-quiet-on-readiness|implement-ticket|quiet"
-  "plan-fires-on-break-down-ticket|write-plan|fire"
+  "decompose-routes-to-a-skill;write-plan|prepare-ticket|write-prd;fire"
+  "commit-message-fires;write-commit-message;fire"
+  "commit-message-stays-quiet-on-review;write-commit-message;quiet"
+  "prepare-ticket-fires;prepare-ticket|validate-ticket;fire"
+  "implement-stays-quiet-on-readiness;implement-ticket;quiet"
+  "plan-fires-on-break-down-ticket;write-plan;fire"
 )
 
 strip_frontmatter() { awk 'c==2 {print} /^---$/ {c++}' "$1"; }
@@ -37,7 +37,7 @@ new_uuid() { python3 -c "import uuid; print(uuid.uuid4())"; }
 
 PASS=0; FAIL=0
 for entry in "${CASES[@]}"; do
-  IFS='|' read -r dir pattern mode <<<"${entry}"
+  IFS=';' read -r dir pattern mode <<<"${entry}"
   prompt="$(strip_frontmatter "$CASES_DIR/$dir/prompt.md")"
   fires=0
   for ((i = 1; i <= RUNS; i++)); do
