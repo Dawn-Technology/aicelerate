@@ -1,0 +1,21 @@
+{
+  "name": "aimate-ios",
+  "description": "Optional native iOS specialist skills and company policy for Swift projects, designed to compose with the generic aimate plugin.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dawn Technology - Smart Devices",
+    "url": "https://github.com/Dawn-Technology"
+  },
+  "repository": "https://github.com/Dawn-Technology/aicelerate",
+  "license": "MIT",
+  "keywords": [
+    "ios",
+    "swift",
+    "swiftui",
+    "xctest",
+    "xcuitest",
+    "swift-testing",
+    "code-review"
+  ],
+  "skills": "./skills/"
+}
