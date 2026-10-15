@@ -101,12 +101,23 @@ mkdirSync(outDir, { recursive: true });
 function sh(cmd, cwd) { execSync(cmd, { cwd, stdio: "pipe" }); }
 
 // Exactly one pipeline's plugin may be enabled during a run, or routing
-// contaminates the comparison. "vanilla" disables both (control runs).
+// contaminates the comparison. "vanilla" is the control: no skill plugins.
+// Extra comparison pipelines (other skill plugins) can be declared in
+// evals/runner/pipelines.local.json as {"name": {"enable": [...], "disable": [...]}}
+// — kept out of the repo because the shipped suite measures aimate against
+// vanilla, not against whichever third-party plugin happens to be interesting.
 const PIPELINE_PLUGINS = {
-  aimate: { enable: ["aimate@aicelerate"], disable: ["agent-skills@addy-agent-skills"] },
-  addyosmani: { enable: ["agent-skills@addy-agent-skills"], disable: ["aimate@aicelerate"] },
-  vanilla: { enable: [], disable: ["aimate@aicelerate", "agent-skills@addy-agent-skills"] },
+  aimate: { enable: ["aimate@aicelerate"], disable: [] },
+  vanilla: { enable: [], disable: ["aimate@aicelerate"] },
 };
+const localPipelines = join(here, "pipelines.local.json");
+if (existsSync(localPipelines)) {
+  for (const [name, cfg] of Object.entries(JSON.parse(readFileSync(localPipelines, "utf8")))) {
+    PIPELINE_PLUGINS[name] = cfg;
+    PIPELINE_PLUGINS.aimate.disable.push(...(cfg.enable ?? []));
+    PIPELINE_PLUGINS.vanilla.disable.push(...(cfg.enable ?? []));
+  }
+}
 if (!(PIPELINE in PIPELINE_PLUGINS)) {
   console.error(`unknown pipeline "${PIPELINE}"; known: ${Object.keys(PIPELINE_PLUGINS).join(", ")}`);
   process.exit(2);
@@ -300,20 +311,9 @@ try {
   setPipeline("aimate");
 }
 
-// --- report ---
-const lines = [
-  `# Behavioral eval run — ${stamp}`, "",
-  `Pipeline: ${PIPELINE} | generator: ${GEN_MODEL} | judge: ${JUDGE_MODEL} | runs per case: ${RUNS}`,
-  `Claude Code: ${cliVersion} | aimate: ${aimateVersion}`, "",
-  "| case | run | checks passed | skills fired | turns | cost | wall |",
-  "|------|-----|---------------|--------------|------:|-----:|-----:|",
-  ...rows.map((r) => `| ${r.case} | ${r.run} | ${r.pass}/${r.total} | ${r.skillsFired.join(" ") || "—"} | ${r.turns ?? "?"} | $${r.costUsd?.toFixed(3) ?? "?"} | ${r.wallSec}s |`),
-  "",
-  "## Failed checks", "",
-];
-for (const r of rows) for (const ch of r.checks.filter((c) => !c.pass)) {
-  lines.push(`- **${r.case}** (run ${r.run}${ch.req ? `, ${ch.req}` : ""}): ${ch.check} — ${ch.evidence}`);
-  lines.push(`  reproduce: \`node evals/runner/run-eval.mjs ${r.case} --pipeline ${r.pipeline}\``);
-}
-writeFileSync(join(outDir, "report.md"), lines.join("\n") + "\n");
+// --- report: requirement-grouped verdicts, not a run log ---
+const { buildReport } = await import("./report.mjs");
+const header = `pipeline ${PIPELINE}, generator ${GEN_MODEL}, judge ${JUDGE_MODEL}, ${RUNS} run(s) per case, ${cliVersion}, aimate ${aimateVersion}`;
+writeFileSync(join(outDir, "report.md"), buildReport(rows, { subject: PIPELINE === "vanilla" ? "vanilla" : PIPELINE, header }));
 console.log(`\nreport: ${join(outDir, "report.md")}`);
+console.log("cross-pipeline report: node evals/runner/report.mjs <results dirs...>");
