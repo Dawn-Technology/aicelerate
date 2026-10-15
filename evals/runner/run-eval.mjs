@@ -51,6 +51,19 @@ const GEN_MODEL = opt("gen-model", "sonnet");
 const JUDGE_MODEL = opt("judge-model", "opus");
 const MAX_TURNS = Number(opt("max-turns", 40));
 const DRY = argv.includes("--dry-run");
+// Strategy arms for delivery cases: how the agent is steered from the work
+// item to a deliverable. Raced per entry state; quality decides, cost breaks ties.
+const STRATEGY = opt("strategy", "direct");
+const STRATEGIES = {
+  direct: (t) => `${t}\n\nImplement this in the current repository.`,
+  "validate-implement": (t) => `Here is the ticket:\n\n${t}\n\nFirst validate this ticket against the codebase — challenge its claims and note gaps or wrong assumptions — then implement it.`,
+  "spec-first": (t) => `Here is the ticket:\n\n${t}\n\nFirst write a specification and an implementation plan and save them under docs/specs/, then implement according to your plan.`,
+  spike3: (t) => `${t}\n\nImplement this in the current repository.`,
+};
+if (!(STRATEGY in STRATEGIES)) {
+  console.error(`unknown strategy "${STRATEGY}"; known: ${Object.keys(STRATEGIES).join(", ")}`);
+  process.exit(2);
+}
 
 if (GEN_MODEL === JUDGE_MODEL) {
   console.error("generator and judge must be different models");
@@ -267,44 +280,114 @@ function judge(c, artifact, toolCalls) {
   return { ...parsed, judgeCost: res.costUsd };
 }
 
+// --- delivery-case helpers ---
+
+// Held-out acceptance: a script the agent never sees, run against the workdir
+// afterwards. The only quality signal the generator cannot game.
+function runAcceptance(c, workdir) {
+  if (!c.acceptance) return null;
+  const script = join(repoRoot, "evals", "acceptance", c.acceptance, "run.sh");
+  if (!existsSync(script)) return { pass: false, evidence: `acceptance script missing: ${script}` };
+  const res = spawnSync("bash", [script], { cwd: workdir, encoding: "utf8", timeout: 5 * 60 * 1000 });
+  const out = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim().slice(-400);
+  return { pass: res.status === 0, evidence: out || `exit ${res.status}` };
+}
+
+// Review the produced diff with the judge model: finding counts by severity.
+function reviewDiff(workdir, baselineSha) {
+  let diff = "";
+  try {
+    sh("git add -A", workdir);
+    diff = execSync(`git diff ${baselineSha} --staged`, { cwd: workdir, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  } catch { return null; }
+  if (!diff.trim()) return { critical: 0, major: 0, minor: 0, note: "empty diff" };
+  const prompt = [
+    "You are reviewing a code diff for defects. Count findings by severity.",
+    "Critical: breaks correctness or loses data. Major: real defect or missing error handling. Minor: style, naming, small cleanups.",
+    "", "<diff>", diff.slice(0, 50_000), "</diff>",
+    "", 'Reply with ONLY JSON: {"critical":0,"major":0,"minor":0,"worst":"one line on the worst finding, or empty"}',
+  ].join("\n");
+  const res = runAgent(prompt, tmpdir(), JUDGE_MODEL, 3, 5 * 60 * 1000);
+  return extractJson(res.finalText);
+}
+
 // --- main loop ---
 setPipeline(PIPELINE);
 const rows = [];
 try {
+  const makeWorkdir = (c, tag) => {
+    const workdir = join(tmpdir(), `eval-${c.id}-${PIPELINE}-${tag}-${Date.now()}`);
+    mkdirSync(workdir, { recursive: true });
+    if (c.fixture) cpSync(join(fixturesRoot, c.fixture), workdir, { recursive: true });
+    else writeFileSync(join(workdir, "README.md"), "# project\n");
+    sh("git init -q && git add -A && git -c user.email=eval@eval -c user.name=eval commit -qm baseline", workdir);
+    return { workdir, baselineSha: execSync("git rev-parse HEAD", { cwd: workdir, encoding: "utf8" }).trim() };
+  };
+
   for (const c of selected) {
+    const isDelivery = c.type === "delivery";
     for (let run = 1; run <= RUNS; run++) {
-      const workdir = join(tmpdir(), `eval-${c.id}-${PIPELINE}-${run}-${Date.now()}`);
-      mkdirSync(workdir, { recursive: true });
-      if (c.fixture) cpSync(join(fixturesRoot, c.fixture), workdir, { recursive: true });
-      else writeFileSync(join(workdir, "README.md"), "# project\n");
-      sh("git init -q && git add -A && git -c user.email=eval@eval -c user.name=eval commit -qm baseline", workdir);
+      console.log(`▶ ${c.id} [${PIPELINE}${isDelivery ? `/${STRATEGY}` : ""}] run ${run}/${RUNS}`);
+      const ticket = `${c.prompt}\n\n${c.spec.join("\n")}`;
+      let agent, workdir, baselineSha, checks = [], judged = {}, extras = {};
 
-      const prompt = `${c.prompt}\n\n${c.spec.join("\n")}`;
-      console.log(`▶ ${c.id} [${PIPELINE}] run ${run}/${RUNS}`);
-      const agent = runAgent(prompt, workdir, GEN_MODEL, c.max_turns ?? MAX_TURNS, 20 * 60 * 1000);
+      if (isDelivery && STRATEGY === "spike3") {
+        // Three independent attempts; the held-out tests pick the winner.
+        const attempts = [];
+        for (let a = 1; a <= 3; a++) {
+          const w = makeWorkdir(c, `${run}s${a}`);
+          const res = runAgent(STRATEGIES.direct(ticket), w.workdir, GEN_MODEL, c.max_turns ?? MAX_TURNS, 20 * 60 * 1000);
+          const acc = runAcceptance(c, w.workdir);
+          attempts.push({ ...w, agent: res, acc });
+          console.log(`    spike ${a}: acceptance ${acc?.pass ? "pass" : "fail"}, $${res.costUsd?.toFixed(3) ?? "?"}`);
+        }
+        const winner = attempts.find((a) => a.acc?.pass) ?? attempts[0];
+        ({ workdir, baselineSha } = winner);
+        agent = {
+          ...winner.agent,
+          costUsd: attempts.reduce((s, a) => s + (a.agent.costUsd ?? 0), 0),
+          turns: attempts.reduce((s, a) => s + (a.agent.turns ?? 0), 0),
+          wallMs: attempts.reduce((s, a) => s + a.agent.wallMs, 0),
+        };
+        checks.push({ check: "held-out acceptance tests pass (winning spike)", by: "behavioral", pass: !!winner.acc?.pass, evidence: winner.acc?.evidence ?? "no acceptance script" });
+        extras.spikeAttemptsPassed = `${attempts.filter((a) => a.acc?.pass).length}/3`;
+      } else {
+        ({ workdir, baselineSha } = makeWorkdir(c, run));
+        const prompt = isDelivery ? STRATEGIES[STRATEGY](ticket) : ticket;
+        agent = runAgent(prompt, workdir, GEN_MODEL, c.max_turns ?? MAX_TURNS, 20 * 60 * 1000);
+        if (isDelivery) {
+          const acc = runAcceptance(c, workdir);
+          if (acc) checks.push({ check: "held-out acceptance tests pass", by: "behavioral", pass: acc.pass, evidence: acc.evidence });
+        }
+      }
+
       const artifact = collectArtifact(agent, workdir);
-
-      const structural = c.expect.filter((e) => e.by === "structural").map((e) => ({ check: e.check, ...structuralCheck(e, artifact), req: e.req }));
-      const judged = judge(c, artifact, agent.toolCalls);
-      const judgeChecks = c.expect.filter((e) => e.by === "judge").map((e, i) => {
+      if (isDelivery) {
+        extras.review = reviewDiff(workdir, baselineSha);
+        extras.strategy = STRATEGY;
+      }
+      checks.push(...c.expect.filter((e) => e.by === "structural").map((e) => ({ check: e.check, ...structuralCheck(e, artifact), req: e.req })));
+      judged = judge(c, artifact, agent.toolCalls);
+      checks.push(...c.expect.filter((e) => e.by === "judge").map((e, i) => {
         const v = judged.checks?.find((x) => x.n === i + 1);
         return { check: e.check, pass: v?.pass ?? false, evidence: v?.evidence ?? "no verdict", req: e.req };
-      });
+      }));
 
-      const allChecks = [...structural, ...judgeChecks];
       const row = {
-        case: c.id, pipeline: PIPELINE, run,
-        pass: allChecks.length ? allChecks.filter((x) => x.pass).length : 0,
-        total: allChecks.length,
-        checks: allChecks,
+        case: c.id, pipeline: PIPELINE, run, entryState: c.entry_state ?? null, ...extras,
+        pass: checks.filter((x) => x.pass).length,
+        total: checks.length,
+        checks,
         skillsFired: agent.toolCalls.filter((t) => t.startsWith("Skill:")),
         turns: agent.turns, costUsd: agent.costUsd, judgeCostUsd: judged.judgeCost ?? null,
         wallSec: Math.round(agent.wallMs / 1000), timedOut: agent.timedOut,
         notes: judged.notes ?? "", workdir,
       };
       rows.push(row);
-      writeFileSync(join(outDir, `${c.id}-${PIPELINE}-run${run}.json`), JSON.stringify({ ...row, artifact }, null, 2));
-      console.log(`  ${row.pass}/${row.total} checks, ${row.turns} turns, $${row.costUsd?.toFixed(3) ?? "?"}, ${row.wallSec}s${row.timedOut ? " (TIMED OUT)" : ""}`);
+      const tag = isDelivery ? `${STRATEGY}-` : "";
+      writeFileSync(join(outDir, `${c.id}-${PIPELINE}-${tag}run${run}.json`), JSON.stringify({ ...row, artifact }, null, 2));
+      const rev = extras.review ? ` review C${extras.review.critical}/M${extras.review.major}/m${extras.review.minor}` : "";
+      console.log(`  ${row.pass}/${row.total} checks,${rev} ${row.turns} turns, $${row.costUsd?.toFixed(3) ?? "?"}, ${row.wallSec}s${row.timedOut ? " (TIMED OUT)" : ""}`);
     }
   }
 } finally {
