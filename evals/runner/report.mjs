@@ -135,7 +135,8 @@ export function buildReport(runs, meta = {}) {
   const raceRuns = runs.filter((r) => r.strategy);
   if (raceRuns.length) {
     lines.push("## Strategy race (per entry state)", "");
-    lines.push("Quality decides; cost only breaks ties at equal quality. Acceptance = held-out tests the agent never saw.", "");
+    lines.push("Quality decides; cost only breaks ties at equal quality.");
+    lines.push("How to read a row: **acceptance** = did held-out tests (which the agent never saw) pass, per run. **review C/M/m** = average critical/major/minor findings a reviewer found in the produced diff — 0/0/0 is a clean diff, and a recurring major is a real quality gap. Cost and turns are what the strategy spent getting there.", "");
     const states = [...new Set(raceRuns.map((r) => r.entryState ?? "unknown"))].sort();
     for (const state of states) {
       const stateRuns = raceRuns.filter((r) => (r.entryState ?? "unknown") === state);
@@ -143,6 +144,7 @@ export function buildReport(runs, meta = {}) {
       lines.push(`### Entry state: ${state}`, "");
       lines.push("| case | strategy | acceptance | review C/M/m | avg cost | avg turns |");
       lines.push("|------|----------|-----------|--------------|---------:|----------:|");
+      const armStats = [];
       for (const c of raceCases) {
         for (const strat of [...new Set(stateRuns.filter((r) => r.case === c).map((r) => r.strategy))].sort()) {
           const rs = stateRuns.filter((r) => r.case === c && r.strategy === strat);
@@ -150,15 +152,31 @@ export function buildReport(runs, meta = {}) {
           const measured = accChecks.some(Boolean);
           const accPass = accChecks.filter((a) => a?.pass).length;
           const rev = rs.map((r) => r.review).filter(Boolean);
-          const revStr = rev.length
-            ? `${(rev.reduce((s, x) => s + (x.critical ?? 0), 0) / rev.length).toFixed(1)}/${(rev.reduce((s, x) => s + (x.major ?? 0), 0) / rev.length).toFixed(1)}/${(rev.reduce((s, x) => s + (x.minor ?? 0), 0) / rev.length).toFixed(1)}`
-            : "—";
+          const avg = (k) => (rev.length ? rev.reduce((s, x) => s + (x[k] ?? 0), 0) / rev.length : 0);
+          const [cr, ma, mi] = ["critical", "major", "minor"].map(avg);
+          const revIcon = !rev.length ? "" : cr > 0 ? " ❌" : ma >= 0.5 ? " ⚠️" : " ✅";
+          const revStr = rev.length ? `${cr.toFixed(1)}/${ma.toFixed(1)}/${mi.toFixed(1)}${revIcon}` : "—";
           const cost = rs.reduce((s, r) => s + (r.costUsd ?? 0), 0) / rs.length;
           const turns = rs.reduce((s, r) => s + (r.turns ?? 0), 0) / rs.length;
           const spikes = rs[0]?.spikeAttemptsPassed ? ` (spikes passing: ${rs.map((r) => r.spikeAttemptsPassed).join(", ")})` : "";
-          const accCell = measured ? `${accPass}/${rs.length}${spikes}` : "not measured (judge-only)";
+          const accIcon = !measured ? "" : accPass === rs.length ? "✅ " : accPass === 0 ? "❌ " : "⚠️ ";
+          const accCell = measured ? `${accIcon}${accPass}/${rs.length}${spikes}` : "not measured (judge-only)";
           lines.push(`| ${c} | ${strat} | ${accCell} | ${revStr} | $${cost.toFixed(3)} | ${turns.toFixed(0)} |`);
+          if (measured) armStats.push({ strat, accRate: accPass / rs.length, cr, ma, mi, cost });
         }
+      }
+      // name the leader: quality first (acceptance, then critical+major findings), cost as tiebreak
+      if (armStats.length > 1) {
+        const ranked = [...armStats].sort((a, b) =>
+          b.accRate - a.accRate || (a.cr + a.ma) - (b.cr + b.ma) || a.mi - b.mi || a.cost - b.cost);
+        const lead = ranked[0];
+        const cheapestPassing = [...armStats].filter((a) => a.accRate === 1).sort((a, b) => a.cost - b.cost)[0];
+        let verdictLine = `**Reads as:** leader on quality is **${lead.strat}** (acceptance ${Math.round(lead.accRate * 100)}%, ${lead.ma.toFixed(1)} major finding(s) per run, $${lead.cost.toFixed(2)})`;
+        if (cheapestPassing && cheapestPassing.strat !== lead.strat) {
+          verdictLine += `; cheapest arm that still passes everything is **${cheapestPassing.strat}** ($${cheapestPassing.cost.toFixed(2)}, ${cheapestPassing.ma.toFixed(1)} major(s) per run)`;
+        }
+        verdictLine += ". Directional at this run count — see suite health.";
+        lines.push("", verdictLine);
       }
       lines.push("");
     }
