@@ -71,7 +71,11 @@ const STRATEGIES = {
   // separate case to test on purpose, not by accident.
   "aimate-validate-implement": (t) => `Here is the ticket:\n\n${t}\n\nUse the prepare-ticket skill to prepare this ticket, then use the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
   "aimate-implement": (t) => `Here is the ticket:\n\n${t}\n\nUse the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
-  "aimate-full": (t) => `Here is the ticket:\n\n${t}\n\nWork it end to end with the aimate skills: use the prepare-ticket skill to prepare it, the write-plan skill to plan it, then the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
+  // The full documented SDLC (README stages 1-5, minus ADRs): prepare, grill,
+  // write the PRD, grill again, plan, implement — implement-ticket's own flow
+  // includes the code review. grilling is the external mattpocock skill and is
+  // interactive by design; how it behaves unattended is part of the measurement.
+  "aimate-full": (t) => `Here is the ticket:\n\n${t}\n\nWork it end to end following the full spec-driven workflow with the aimate skills: use the prepare-ticket skill to prepare it, use the grilling skill to stress-test the problem, use the write-prd skill to write the PRD, grill the PRD with the grilling skill, use the write-plan skill to plan it, then use the implement-ticket skill to implement it. This repository has no remote and no issue tracker: skip tracker lookups, and finish by committing to the current branch instead of opening a PR.`,
   spike: (t) => `${t}\n\nImplement this in the current repository.`,
 };
 if (!(STRATEGY in STRATEGIES)) {
