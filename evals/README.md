@@ -40,6 +40,21 @@ Every expectation names its verifier. `structural` checks run as deterministic r
 
 `evals/rubrics/requirements.md` holds the numbered requirements every judged check cites; changing a requirement is a normal reviewed pull request. `evals/fixtures/` holds the starter projects cases run against (each a small real app with passing tests). Rejected skill changes belong in `evals/REJECTED.md` so prior attempts stay visible.
 
+## Delivery cases and the strategy race
+
+Decomposition and pressure cases grade an artifact. Delivery cases (`"type": "delivery"`) grade the deliverable itself: the agent implements the work item against the fixture, and quality is measured by a held-out acceptance script the agent never sees (`evals/acceptance/<id>/run.sh`, run against the workdir afterwards; verify every new script fails on the untouched fixture and passes on a correct implementation) plus a judge review of the produced diff counting findings by severity. Cost and turns are recorded but only break ties at equal quality.
+
+Each delivery case names its `entry_state` — the state the work arrives in (tiny-change, refined-ticket, raw-ticket, greenfield, legacy-change) — and runs under a strategy arm:
+
+```bash
+node evals/runner/run-eval.mjs d01-tiny-change-date-bug --strategy direct
+node evals/runner/run-eval.mjs d01-tiny-change-date-bug --strategy validate-implement
+node evals/runner/run-eval.mjs d01-tiny-change-date-bug --strategy spec-first
+node evals/runner/run-eval.mjs d01-tiny-change-date-bug --strategy spike3   # 3 attempts, held-out tests pick the winner
+```
+
+The report's "Strategy race" section aggregates these into a per-entry-state table. The purpose is a routing answer — which path fits which starting state — measured on deliverable quality rather than argued from taste.
+
 ## Reading results
 
 Scores from agent runs are stochastic. Compare runs only at equal model and CLI versions, prefer three runs per case and read the spread before the mean, and treat a delta smaller than the observed spread as noise. A budget or efficiency result only counts when the same run's quality checks pass.
