@@ -17,6 +17,21 @@ The runner enables exactly one pipeline's plugin for the duration of a sweep (an
 
 Results land in `evals/results/<timestamp>/` (gitignored): one JSON per run with the full artifact, plus `report.md`. The report is written for a PR reviewer or a curious contributor, not as a run log: findings are grouped per requirement with a verdict (holding / failing / mixed), one or two curated evidence quotes, the vanilla control's pass rate, and, once `evals/baseline.json` is pinned via `report.mjs --write-baseline`, the delta against baseline with regressions marked. Per-run detail sits in a scorecard appendix and the JSONs; grader failures and timeouts are listed under suite health, apart from findings about aimate itself.
 
+## One behavioral run
+
+```mermaid
+flowchart LR
+    case["case JSON: prompt, spec, expectations"] --> work["fresh workdir: fixture + git baseline"]
+    work --> agent["agent run (aimate or vanilla control)"]
+    agent --> deliv["deliverable: reply + changed files"]
+    deliv --> struct[structural checks]
+    deliv --> judge["judge (different model), cites R1..R8"]
+    deliv --> hidden["hidden acceptance tests, agent never saw them"]
+    struct --> rep["verdicts: report.md per requirement + per-run JSONs"]
+    judge --> rep
+    hidden --> rep
+```
+
 ## Cases
 
 One JSON file per case under `evals/cases/<group>/`:

@@ -29,6 +29,21 @@ Validates, with no dependencies and no network:
 
 Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. A failure here means the plugin is broken as shipped. Fix the finding, don't loosen the check.
 
+## When which check runs
+
+```mermaid
+flowchart LR
+    push[dev machine: git push] -->|pre-push hook| L1["layer 1: structural + routing (free, seconds)"]
+    pr[every pull request] --> L1
+    merge[merge to main] --> L1
+    merge --> smoke["layer 2: Claude Code smoke"]
+    disp[manual dispatch] --> smoke
+    disp --> evals["layer 2+3: plugin evals, behavioral runner"]
+    local[dev machine: Copilot CLI] --> cop["layer 2: Copilot smoke + routing"]
+    smoke --> art[reports as workflow artifacts]
+    evals --> art
+```
+
 ## What you need for which layer
 
 | Layer | Needs | Claude Code only | Copilot CLI only |
