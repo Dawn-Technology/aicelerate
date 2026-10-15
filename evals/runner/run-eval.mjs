@@ -60,6 +60,10 @@ const STRATEGIES = {
   direct: (t) => `${t}\n\nImplement this in the current repository.`,
   "validate-implement": (t) => `Here is the ticket:\n\n${t}\n\nFirst validate this ticket against the codebase — challenge its claims and note gaps or wrong assumptions — then implement it.`,
   "spec-first": (t) => `Here is the ticket:\n\n${t}\n\nFirst write a specification and an implementation plan and save them under docs/specs/, then implement according to your plan.`,
+  // Explicit skill invocation: measures aimate's skill CONTENT with routing
+  // taken out of the equation. Compare against spec-first (the same workflow
+  // shape without the skill) to isolate what the skill's instructions add.
+  "aimate-plan": (t) => `Here is the ticket:\n\n${t}\n\nUse the write-plan skill to create an implementation plan for this ticket, then implement the plan.`,
   spike: (t) => `${t}\n\nImplement this in the current repository.`,
 };
 if (!(STRATEGY in STRATEGIES)) {
