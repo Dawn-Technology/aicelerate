@@ -63,6 +63,31 @@ for (const entry of pluginEntries) {
   }
 }
 
+// --- 1b. no tracked symlinks, and the .claude-plugin mirrors stay identical ---
+// A committed symlink materializes as a text file holding its target path on
+// checkouts with core.symlinks=false (typical for Windows clones), which breaks
+// plugin installation with a JSON parse error. Mirrors must be real, equal files.
+import { execSync } from "node:child_process";
+try {
+  const symlinks = execSync("git ls-files -s", { cwd: repoRoot, encoding: "utf8" })
+    .split("\n")
+    .filter((l) => l.startsWith("120000"))
+    .map((l) => l.split("\t")[1]);
+  for (const s of symlinks) fail(`${s}: tracked as a symlink — commit a real file instead (symlinks break core.symlinks=false checkouts)`);
+} catch {
+  /* not a git checkout (e.g. exported archive): the mirror checks below still apply */
+}
+for (const [mirror, source] of [
+  [".claude-plugin/marketplace.json", "marketplace.json"],
+  ["plugins/aimate/.claude-plugin/plugin.json", "plugins/aimate/plugin.json"],
+]) {
+  const abs = join(repoRoot, mirror);
+  if (!existsSync(abs)) fail(`${mirror}: file missing (the Claude Code CLI reads from here)`);
+  else if (readFileSync(abs, "utf8") !== readFileSync(join(repoRoot, source), "utf8")) {
+    fail(`${mirror}: differs from ${source} — keep both identical`);
+  }
+}
+
 // --- 2. plugin.json vs marketplace.json vs RELEASE_NOTES.md ---
 const pluginJson = readJson("plugins/aimate/plugin.json");
 if (pluginJson) {
