@@ -1,0 +1,31 @@
+{
+  "id": "20-android-vage-spec",
+  "stack": "android",
+  "size": "medium",
+  "kind": "bad-input",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "ANDR-77: \"De app moet beter werken als mensen onderweg zijn. Soms doet hij raar bij slecht bereik. Marketing wil dit graag voor de beurs. Prio hoog.\"",
+    "Meer informatie is er niet; de melder is op vakantie."
+  ],
+  "expect": [
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "open questions are named explicitly; no acceptance criteria are invented as if the requester wrote them",
+      "by": "judge",
+      "req": "R2"
+    },
+    {
+      "check": "no build tickets based on a guessed interpretation of 'doet raar'",
+      "by": "judge",
+      "req": "R2"
+    }
+  ],
+  "behavioral": false
+}

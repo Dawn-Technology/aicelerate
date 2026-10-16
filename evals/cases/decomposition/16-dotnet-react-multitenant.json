@@ -1,0 +1,37 @@
+{
+  "id": "16-dotnet-react-multitenant",
+  "stack": "dotnet-react",
+  "size": "large",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Make our single-customer application (.NET API plus React frontend) suitable for multiple customers: data isolation per tenant, tenant-specific branding, one deployment.",
+    "Current assumption everywhere in the code: exactly one customer."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket is a preparatory refactor introducing tenant context while behavior stays identical for the single existing tenant",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "dependencies between tickets are explicit references, not prose assumptions",
+      "by": "judge",
+      "req": "R4"
+    }
+  ],
+  "behavioral": false
+}

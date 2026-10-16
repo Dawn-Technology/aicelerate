@@ -1,0 +1,32 @@
+{
+  "id": "10-php-slow-list",
+  "stack": "php",
+  "size": "medium",
+  "kind": "performance",
+  "fixture": "php-app",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "The orders list page is too slow; customers complain. Nobody has measured anything yet.",
+    "Make it fast enough that support stops hearing about it."
+  ],
+  "expect": [
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "acceptance criteria contain a measurable bound (a number) that fails on the current code; the first ticket establishes the measurement",
+      "by": "judge",
+      "req": "R3"
+    },
+    {
+      "check": "no ticket promises to make it faster without a measurable criterion",
+      "by": "judge",
+      "req": "R3"
+    }
+  ],
+  "behavioral": false
+}
