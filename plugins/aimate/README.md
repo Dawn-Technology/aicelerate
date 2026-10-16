@@ -395,11 +395,11 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 ### Stage 4 — Plan
 
-Optionally turn the prepared ticket into sized tasks for planning and estimation. The plan is a reference; implement-ticket works from the prepared ticket, not from the plan. Sync the time estimate and status back to Jira when planning or sales needs it.
+Optionally turn the prepared ticket into sized tasks: something to discuss the approach with, take into refinement, or estimate from. The plan is a reference; implement-ticket works from the prepared ticket, not from the plan. Sync the time estimate and status back to Jira when planning or sales needs it.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
-| `write-plan` | aimate | Turn the prepared ticket into sized tasks for estimation |
+| `write-plan` | aimate | Turn the prepared ticket into sized tasks to discuss or estimate from |
 | `estimate-time` | aimate | Add an hour estimate to the plan when a time forecast is needed |
 | Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
 | Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Update Jira tickets with estimates and move issues into the sprint |

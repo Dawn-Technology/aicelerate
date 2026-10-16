@@ -2,7 +2,7 @@
 
 ## 3.9.0
 
-- `write-plan` repurposed to an estimation step over a prepared ticket: input is the brief that prepare-ticket produces (or an equivalent ticket with acceptance criteria), output is sized tasks for planning and estimation. The skill no longer does its own discovery or design-tree resolution, and is optional in the build loop. The plan eval case and grader changed with it in the same commits.
+- `write-plan` repurposed to an estimation step over a prepared ticket: input is the brief that prepare-ticket produces (or an equivalent ticket with acceptance criteria), output is sized tasks to discuss the approach, take into refinement, or estimate from. The skill no longer does its own discovery or design-tree resolution, and is optional in the build loop. The plan eval case and grader changed with it in the same commits.
 
 ## 3.8.0
 

@@ -1,6 +1,6 @@
 ---
 name: write-plan
-description: Turn a prepared ticket into a task breakdown with sizes, for planning and estimation. Use when the user asks for an implementation plan, to break a ticket down into an implementation plan or into tasks, or to size the work. Input is the brief that prepare-ticket produces, or an equivalent ticket with acceptance criteria; this skill does no discovery of its own, and implement-ticket works from the prepared ticket, not from this plan. Optional in the build loop.
+description: Turn a prepared ticket into a task breakdown with sizes: something to discuss the approach with, take into refinement, or estimate from. Use when the user asks for an implementation plan, to break a ticket down into an implementation plan or into tasks, or to size the work. Input is the brief that prepare-ticket produces, or an equivalent ticket with acceptance criteria; this skill does no discovery of its own, and implement-ticket works from the prepared ticket, not from this plan. Optional in the build loop.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 2.0.0
@@ -8,7 +8,7 @@ metadata:
 
 # Plan tasks
 
-Turn a prepared ticket into a task breakdown with sizes. The breakdown serves planning and estimation; estimate-time attaches hours to it. The build loop does not require a plan, and nobody types the code by hand anymore, so the plan is a reference, not a contract.
+Turn a prepared ticket into a task breakdown with sizes: something to discuss the approach with, take into refinement, or estimate from. estimate-time attaches hours to it. The build loop does not require a plan, and nobody types the code by hand anymore, so the plan is a reference, not a contract.
 
 ## Size gate, always first
 

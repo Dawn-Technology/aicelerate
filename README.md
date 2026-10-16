@@ -36,7 +36,7 @@ The loop itself is two steps: `prepare-ticket` makes the ticket buildable, `impl
 | `write-prd` | an idea becomes a PRD with user stories, epics/stories to Jira if you want |
 | `split-spec` | a spec or epic becomes vertical tickets with a demo line each; small work comes back as one ticket |
 | `prepare-ticket` | takes a tracker item by key or pasted text, traces every claim against the repository and rewrites it into an agent-ready brief: intent, goal, acceptance criteria, definition of done. Not ready? You get a verdict and the one question to resolve. |
-| `write-plan` | optional: turns the brief into tasks with sizing, for estimation |
+| `write-plan` | optional: turns the brief into sized tasks, to discuss the approach, take into refinement, or estimate from |
 | `implement-ticket` | builds the brief in an isolated worktree, runs the repo's own checks, reviews its own work and resolves those findings, then opens the PR or MR and reports every deviation from the ticket |
 
 ## On the PR
