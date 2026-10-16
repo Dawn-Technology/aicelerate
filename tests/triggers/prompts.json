@@ -17,7 +17,7 @@
       "positive": [
         "create an implementation plan for this ticket",
         "break down this ticket into tasks",
-        "scope the work for adding CSV export"
+        "break this prepared ticket into sized tasks"
       ],
       "negative": [
         "write a PRD for the new dashboard feature",
