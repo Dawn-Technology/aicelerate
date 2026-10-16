@@ -38,3 +38,6 @@ Temporary Items
 
 # --- Git worktrees created by aimate review skills ---
 .worktrees/
+evals/results/
+evals/runner/pipelines.local.json
+plugins/aimate/evals/plugin/results/

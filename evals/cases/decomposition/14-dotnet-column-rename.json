@@ -1,0 +1,37 @@
+{
+  "id": "14-dotnet-column-rename",
+  "stack": "dotnet",
+  "size": "large",
+  "kind": "wide-refactor",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Rename CustomerId to AccountId across our .NET solution: database column, entity, APIs, reports. Dozens of modules reference it.",
+    "External API consumers cannot all migrate at once."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "expand, migrate per module, contract: the new name is introduced alongside the old, modules migrate in batches, the old name is removed last",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "external consumers get a compatibility window: no ticket breaks the old API name before a deprecation step",
+      "by": "judge",
+      "req": "R3"
+    }
+  ],
+  "behavioral": false
+}

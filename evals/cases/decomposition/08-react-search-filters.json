@@ -1,0 +1,32 @@
+{
+  "id": "08-react-search-filters",
+  "stack": "react",
+  "size": "medium",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Our React customer portal needs a search page for orders: free-text search, plus filters for status, date range and amount.",
+    "Results paginated, shareable via the URL."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket delivers search without filters, end to end; filters arrive in later tickets, roughly one per filter group",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}

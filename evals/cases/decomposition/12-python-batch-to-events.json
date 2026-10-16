@@ -1,0 +1,33 @@
+{
+  "id": "12-python-batch-to-events",
+  "stack": "python",
+  "size": "medium",
+  "kind": "change",
+  "fixture": "python-fastapi",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Our nightly Python batch job recalculates customer scores. Replace it with per-event processing: a score updates when the underlying data changes.",
+    "The nightly job must keep working until the event path is proven."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "new path runs next to the old one first, then a deliberate switch, then removal of the batch job: three distinguishable stages in the tickets",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}

@@ -1,0 +1,23 @@
+{
+  "id": "18-python-layered-spec",
+  "stack": "python",
+  "size": "medium",
+  "kind": "bad-input",
+  "fixture": "python-fastapi",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase, then give me the tickets.",
+  "spec": [
+    "Feature: customer tags (labels a support agent can attach to a customer).",
+    "Phase 1 — database: add a tags table and a customer_tags join table, with migrations.",
+    "Phase 2 — backend: CRUD endpoints for tags and endpoints to attach/detach a tag to a customer.",
+    "Phase 3 — frontend: tag chips on the customer detail page with an autocomplete picker.",
+    "Please create one ticket per phase."
+  ],
+  "expect": [
+    { "check": "every ticket says what can be demonstrated when it is done", "by": "structural", "type": "demo_line_per_ticket", "req": "R1" },
+    { "check": "tickets are cut vertically despite the spec asking for one ticket per layer; the output does not simply mirror phase 1/2/3", "by": "judge", "req": "R1" },
+    { "check": "the deviation from the requested per-layer split is named and explained to the requester", "by": "judge", "req": "R1" },
+    { "check": "the first ticket delivers one demonstrable slice (for example: attach an existing tag and see it on the customer)", "by": "judge", "req": "R1" }
+  ],
+  "behavioral": false
+}

@@ -5,14 +5,14 @@
     "url": "https://github.com/Dawn-Technology"
   },
   "metadata": {
-    "description": "AI acceleration — plugin marketplace by Dawn Technology.",
+    "description": "AI acceleration \u2014 plugin marketplace by Dawn Technology.",
     "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "aimate",
-      "description": "AI Automation teammate — reusable SDLC skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
-      "version": "3.7.0",
+      "description": "AI Automation teammate \u2014 reusable SDLC skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
+      "version": "3.8.0",
       "source": "./plugins/aimate",
       "repository": "https://github.com/Dawn-Technology/aimate",
       "license": "MIT",

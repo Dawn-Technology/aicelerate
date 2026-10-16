@@ -1,1 +1,46 @@
-../plugin.json
+{
+  "name": "aimate",
+  "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
+  "version": "3.8.0",
+  "author": {
+    "name": "Dawn Technology",
+    "url": "https://github.com/Dawn-Technology"
+  },
+  "repository": "https://github.com/Dawn-Technology/aicelerate/plugins/aimate",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "owasp",
+    "asvs",
+    "gitlab",
+    "github",
+    "code-review",
+    "architecture-review",
+    "end-of-life",
+    "dependency-health",
+    "resolve-pr-feedback",
+    "review-and-resolve-pr",
+    "commit-message",
+    "write-commit-message",
+    "implement-ticket",
+    "write-plan",
+    "prepare-ticket",
+    "validate-ticket",
+    "fetch-ticket",
+    "ticket-readiness",
+    "estimate-time",
+    "planning",
+    "product-requirements-document",
+    "user-stories",
+    "estimation",
+    "write-readme",
+    "playwright",
+    "browser-testing",
+    "e2e",
+    "split-spec"
+  ],
+  "skills": "./skills/",
+  "experimental": {
+    "evals": "evals/plugin"
+  }
+}

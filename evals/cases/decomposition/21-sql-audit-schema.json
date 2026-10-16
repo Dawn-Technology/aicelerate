@@ -1,0 +1,42 @@
+{
+  "id": "21-sql-audit-schema",
+  "stack": "sql-backend",
+  "size": "large",
+  "kind": "database-design",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Every mutation on orders and customers must be auditable: who changed what, when, old and new value. Auditors want to query it; retention is seven years.",
+    "The current schema has no history at all. Writes go through one repository layer."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket logs one mutation stream end to end (one entity, written and queryable); more streams follow per ticket",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "no ticket only creates tables or only designs schema with nothing demonstrable",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "schema decisions (table-per-entity versus one generic log, retention approach) are stated as decisions with a rationale, not left implicit",
+      "by": "judge",
+      "req": "R2"
+    }
+  ],
+  "behavioral": false
+}

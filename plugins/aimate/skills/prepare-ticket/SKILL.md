@@ -1,6 +1,6 @@
 ---
 name: prepare-ticket
-description: Use when asked whether a ticket or issue is ready for development, or to prepare, validate, refine, challenge, or sanity-check a Jira work item, GitHub Issue, or GitLab Issue before building it. Traces every claim in the ticket against the repository, closes the design tree, rewrites the title and description as an agent-ready brief with intent, goal, acceptance criteria, and definition of done, and reports one verdict with the single next action it demands.
+description: Use when asked whether a ticket or issue is ready for development or to be picked up, or to prepare, validate, refine, challenge, or sanity-check a Jira work item, GitHub Issue, or GitLab Issue before building it — "is this ticket ready?", "can a developer pick this up?", "check this ticket before we build it". Apply it even when the ticket text is pasted inline in the chat and you could simply answer from reading it; the point of the skill is the tracing and the verdict, not a summary. Traces every claim in the ticket against the repository, closes the design tree, rewrites the title and description as an agent-ready brief with intent, goal, acceptance criteria, and definition of done, and reports one verdict with the single next action it demands.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 2.0.0
