@@ -64,6 +64,8 @@ wcag-audit (accessibility) is in development.
 - `write-readme` — the company-wide README layout
 - `configure-mcp` — one-time setup per project: tracker routing, integrations
 
+Internal, not for direct use: `fetch-ticket` (reads a tracker item and returns it provider-neutral) and `code-review` (the shared review core). The skills above invoke them where needed.
+
 ## Install
 
 ### Visual Studio Code
