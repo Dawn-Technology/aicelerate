@@ -178,7 +178,10 @@ function runAgent(prompt, cwd, model, maxTurns, timeoutMs) {
   const res = spawnSync(
     "claude",
     ["-p", prompt, "--output-format", "stream-json", "--verbose", "--model", model,
-     "--permission-mode", "acceptEdits", "--max-turns", String(maxTurns)],
+     "--permission-mode", "acceptEdits", "--max-turns", String(maxTurns),
+     // pre-approve the execution tools, or headless runs get silent Bash
+     // refusals and a workflow that stops before it starts
+     "--allowedTools", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill", "TodoWrite"],
     { cwd, encoding: "utf8", timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 }
   );
   const wallMs = Date.now() - t0;
@@ -413,6 +416,28 @@ try {
           const acc = runAcceptance(c, workdir);
           if (acc) checks.push({ check: "held-out acceptance tests pass", by: "behavioral", pass: acc.pass, evidence: acc.evidence });
         }
+      }
+
+      // An infrastructure failure must never be scored as the agent failing
+      // the case: usage limits, auth errors, and dead sessions produce a
+      // one-turn zero-cost run or a limit message instead of work.
+      const infra =
+        agent.timedOut ||
+        ((agent.turns ?? 0) <= 1 && !(agent.costUsd > 0)) ||
+        /hit your session limit|usage limit reached|resets \d{1,2}:\d{2}|not logged in/i.test(agent.finalText ?? "");
+      if (infra) {
+        const row = {
+          case: c.id, pipeline: PIPELINE, run, entryState: c.entry_state ?? null, ...extras,
+          invalidRun: true, pass: 0, total: 0, checks: [],
+          skillsFired: [], turns: agent.turns, costUsd: agent.costUsd,
+          wallSec: Math.round(agent.wallMs / 1000), timedOut: agent.timedOut,
+          notes: `INVALID RUN (infrastructure): ${(agent.finalText ?? "").slice(0, 160)}`,
+          workdir,
+        };
+        rows.push(row);
+        writeFileSync(join(outDir, `${c.id}-${PIPELINE}-${isDelivery ? `${STRATEGY_LABEL}-` : ""}run${run}-INVALID.json`), JSON.stringify(row, null, 2));
+        console.log(`  ✗ INVALID RUN (infrastructure, not scored): ${(agent.finalText ?? "").slice(0, 80)}`);
+        continue;
       }
 
       const artifact = collectArtifact(agent, workdir);

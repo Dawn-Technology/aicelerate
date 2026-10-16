@@ -61,6 +61,10 @@ export function buildReport(runs, meta = {}) {
   const titles = loadRequirementTitles();
   const subject = meta.subject ?? "aimate";
   const control = "vanilla";
+  // Infrastructure failures (usage limits, dead sessions) are excluded from
+  // every statistic and reported under suite health instead.
+  const invalidRuns = runs.filter((r) => r.invalidRun);
+  runs = runs.filter((r) => !r.invalidRun);
   const subjectRuns = runs.filter((r) => r.pipeline === subject);
   const controlRuns = runs.filter((r) => r.pipeline === control);
   const pipelines = [...new Set(runs.map((r) => r.pipeline))].sort();
@@ -220,6 +224,11 @@ export function buildReport(runs, meta = {}) {
     (r.notes ?? "").match(/unparseable|invalid/i) ? [`${r.case} [${r.pipeline}] run ${r.run}: ${r.notes.slice(0, 120)}`] : []);
   const timeouts = runs.filter((r) => r.timedOut).map((r) => `${r.case} [${r.pipeline}] run ${r.run}`);
   lines.push("## Suite health", "");
+  if (invalidRuns.length) {
+    lines.push(`${invalidRuns.length} run(s) were invalid for infrastructure reasons (usage limit, dead session, timeout) and are excluded from every number above — re-run them:`);
+    for (const r of invalidRuns) lines.push(`- ${r.case} [${r.pipeline}${r.strategy ? `/${r.strategy}` : ""}] run ${r.run}: ${(r.notes ?? "").slice(0, 110)}`);
+    lines.push("");
+  }
   lines.push(graderFailures.length ? `Grader failures (these are eval problems, not ${subject} findings):` : "No grader failures.");
   for (const g of graderFailures) lines.push(`- ${g}`);
   if (timeouts.length) { lines.push("Timed-out runs:"); for (const t of timeouts) lines.push(`- ${t}`); }
