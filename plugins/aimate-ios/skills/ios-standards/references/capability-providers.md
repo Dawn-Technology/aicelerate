@@ -1,10 +1,10 @@
 # Optional Capability Providers
 
-These providers are optional. Detect them through the active host's skill and tool inventory. If several overlap, use the project-selected provider from `AGENTS.md`; otherwise prefer the first accepted provider relevant to the task and report the route used. Native Xcode tools come first; see `tooling.md`.
+These providers are optional. Detect them through the active host's skill and tool inventory. If several overlap, use the provider selected in the project instructions; otherwise prefer the first accepted provider relevant to the task and report the route used. Native Xcode tools come first; see `tooling.md`.
 
 | Capability | Exact skill/tool identifier | Source | Selection |
 | --- | --- | --- | --- |
-| Build/test without Xcode open; simulator control | `MobileBuildMCP` | `getsentry/MobileBuildMCP` | Second build/test route after Xcode MCP; disable telemetry for client work with `MOBILEBUILDMCP_SENTRY_DISABLED=true` |
+| Build/test without Xcode open; simulator control, UI automation, and LLDB debugging | `MobileBuildMCP` | `getsentry/MobileBuildMCP` | Second build/test route after Xcode MCP; the UI automation route for `drive-ios`; disable telemetry for client work with `MOBILEBUILDMCP_SENTRY_DISABLED=true` |
 | SwiftUI review | `swiftui-pro` | `twostraws/SwiftUI-Agent-Skill` | Optional depth for the SwiftUI module |
 | Swift Testing | `swift-testing-pro` | `twostraws/Swift-Testing-Agent-Skill` | Framework detail; company naming in `testing.md` wins |
 | Accessibility | `ios-accessibility` | `dadederk/iOS-Accessibility-Agent-Skill` | Advisory depth; manual assistive-technology checks remain necessary |
