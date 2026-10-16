@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`, `security-audit-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -74,6 +74,12 @@ Read-only security audit of a whole iOS project, for example when taking over a 
 
 Ask for it by name, for example "run security-audit-ios on this project".
 
+### `localization-audit-ios`
+
+Read-only localization audit of a whole iOS project. It determines the languages the app actually supports, counts missing and unreviewed translations per catalog, matches every key used in code against the catalog of the bundle it is looked up in, and checks text that bypasses localization, values in the wrong language, concatenated sentences and plurals, locale-aware formatting, permission texts, and extensions. It reports with the same severity labels and output shape as `review-ios`. It does not judge on-screen layout; for localization review of a single change, `review-ios` includes a Localization module.
+
+Ask for it by name, for example "run localization-audit-ios on this project".
+
 ### `ios-standards`
 
 Internal company-policy foundation used by the user-facing iOS skills. It is not a replacement for official Apple or maintained community guidance.
@@ -89,6 +95,30 @@ claude mcp add xcode -- xcrun mcpbridge
 Xcode may ask you to allow the agent's connection. Read-only skills such as `review-ios` never use Xcode's file-editing tools.
 
 ## Optional Capability Providers
+
+By default the `MobileBuildMCP` server only exposes its build and simulator tools. `drive-ios` also needs UI automation and debugging, so enable those workflows when adding the server:
+
+```bash
+claude mcp add -s user mobilebuildmcp \
+  -e MOBILEBUILDMCP_SENTRY_DISABLED=true \
+  -e MOBILEBUILDMCP_ENABLED_WORKFLOWS=simulator,ui-automation,debugging \
+  -- mobilebuildmcp mcp
+```
+
+For OpenCode, add the same under `mcp` in `opencode.json`:
+
+```json
+"mobilebuildmcp": {
+  "type": "local",
+  "command": ["mobilebuildmcp", "mcp"],
+  "environment": {
+    "MOBILEBUILDMCP_SENTRY_DISABLED": "true",
+    "MOBILEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging"
+  }
+}
+```
+
+Without UI automation, `drive-ios` stops and says so instead of taking another route through the app.
 
 See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review. When using `MobileBuildMCP` on client work, set `MOBILEBUILDMCP_SENTRY_DISABLED=true` to turn off its error telemetry.
 
