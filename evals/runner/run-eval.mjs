@@ -233,10 +233,33 @@ function collectArtifact(run, workdir) {
 }
 
 // --- structural checks over the artifact ---
-// Tickets are top-level numbered sections or headings that look like a ticket/task.
+// Tickets appear as headings ("### Ticket 3", "## 2. …") or as top-level
+// numbered items with a bold title ("1. **Pin down …**"), split-spec's format.
+// An approval list and the full tickets may both be numbered, so segments are
+// deduplicated by title, keeping the longest (the full ticket, not the list row).
 function splitTickets(artifact) {
-  const parts = artifact.split(/\n(?=#{1,3}\s+(?:Ticket|Task|Story|\d+[.):])\s*)/i);
-  return parts.length > 1 ? parts.slice(1) : [];
+  const segs = [];
+  // explicit ticket headings, anywhere in the artifact
+  for (const s of artifact.split(/\n(?=#{1,3}\s+(?:Ticket|Task|Story|\d+[.):]))/i)) {
+    if (/^#{1,3}\s+(?:Ticket|Task|Story|\d+[.):])/i.test(s)) segs.push(s);
+  }
+  // numbered bold items, but only inside a section whose heading mentions
+  // tickets — otherwise numbered question lists and criteria count as tickets
+  for (const section of artifact.split(/\n(?=#{1,3}\s)/)) {
+    if (!/^#{1,3}[^\n]*ticket/i.test(section)) continue;
+    for (const s of section.split(/\n(?=\d{1,2}[.)]\s+\*\*)/)) {
+      if (/^\d{1,2}[.)]\s+\*\*/.test(s)) segs.push(s);
+    }
+  }
+  // an approval list and the full tickets may both appear: dedupe by title,
+  // keeping the longest segment (the full ticket, not the list row)
+  const byTitle = new Map();
+  for (const s of segs) {
+    const title = s.split("\n")[0].replace(/[#*]/g, "").replace(/^\s*(?:Ticket|Task|Story)?\s*\d*[.):]*\s*/i, "").trim().toLowerCase().slice(0, 60);
+    const prev = byTitle.get(title);
+    if (!prev || s.length > prev.length) byTitle.set(title, s);
+  }
+  return [...byTitle.values()];
 }
 function structuralCheck(exp, artifact) {
   const tickets = splitTickets(artifact);

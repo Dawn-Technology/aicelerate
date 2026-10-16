@@ -22,6 +22,10 @@ Read the spec, then ground it: explore the parts of the codebase the work touche
 - **Preparatory refactor first** when existing behavior must keep working through the change: ticket 1 reshapes without behavior change, and says so.
 - **Wide refactors** (the same change in many places) split as expand, migrate in batches, contract — never one ticket per place.
 
+## Output format
+
+The approval list is a plain numbered list of titles with demo lines. Every full ticket after approval starts with its own heading, exactly `### Ticket <n>: <title>` — one heading per ticket, nothing else at that heading level between tickets. Tools and reviewers count tickets by these headings, so a ticket without one does not exist.
+
 ## Each ticket must carry
 
 1. **Title** — imperative, concrete.
