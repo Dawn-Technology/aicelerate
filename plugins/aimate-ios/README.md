@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`. Implementation, simulator/device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots `review-ios`, `security-audit-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -56,6 +56,24 @@ Generic `aimate` review skills never call `review-ios`, so teams that do not bui
 <!-- aimate-ios:end -->
 ```
 
+### `test-ios`
+
+Builds and runs tests on a simulator and reports what ran: the tests affected by a change, a named test, class, target, or test plan, or the full suite. It uses the project's own build and test commands first, then Xcode MCP, `MobileBuildMCP`, or `xcodebuild`. When no test covers a change, it says so and builds the affected scheme instead. It never edits source or test files and never fixes failing tests.
+
+Ask for it by name, for example "run test-ios for the tests affected by my last commit".
+
+### `drive-ios`
+
+Operates the app on a simulator towards a goal and reports the steps with evidence: `reproduce` a QA ticket or crash, `validate` that a flow works, or `capture` screenshots of screens. It builds the app, reaches screens through deep links or `MobileBuildMCP` UI automation, collects screenshots, crash reports, and logs, and restores the simulator afterwards. It never edits source. Physical devices and live client demos are not supported yet.
+
+Ask for it by name and paste the ticket, for example "use drive-ios to reproduce this QA ticket: …".
+
+### `security-audit-ios`
+
+Read-only security audit of a whole iOS project, for example when taking over a legacy project or before a release. It checks every area in the company security reference (secrets, Keychain, client-only checks, transport, deep links and web content, analytics, debug features, privacy manifests, dependencies, and CI) per target, traces each hit to who can reach it, and reports with the same severity labels and output shape as `review-ios`. It never edits, builds, or runs anything and redacts secret values. For security review of a single change, `review-ios` already includes a Security module.
+
+Ask for it by name, for example "run security-audit-ios on this project".
+
 ### `ios-standards`
 
 Internal company-policy foundation used by the user-facing iOS skills. It is not a replacement for official Apple or maintained community guidance.
@@ -73,6 +91,17 @@ Xcode may ask you to allow the agent's connection. Read-only skills such as `rev
 ## Optional Capability Providers
 
 See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review. When using `MobileBuildMCP` on client work, set `MOBILEBUILDMCP_SENTRY_DISABLED=true` to turn off its error telemetry.
+
+`MobileBuildMCP` keeps a separate build cache and test products per project under `~/Library/Developer/MobileBuildMCP/workspaces/`. The first review of a project is a full build, and one project can take tens of gigabytes (about 18 GB for a mid-sized TCA app). Check and clean it from the project directory:
+
+```bash
+mobilebuildmcp purge --scope workspace --report
+mobilebuildmcp purge --scope workspace --workspace-key <key> --classes derivedData,logs,resultBundles,testProducts,stateTransients --delete --confirm delete-mobilebuildmcp-storage
+```
+
+Because `MobileBuildMCP` resolves packages in that separate workspace, projects with private packages fetched over SSH may fail to resolve there ("Repository not found"). The skills then fall back to `xcodebuild`.
+
+The `<key>` is the folder name shown by `--report`. `--classes all` keeps the build cache; list `derivedData` explicitly to remove it as well.
 
 Projects should record approved providers and project-specific architecture or toolchain rules in `AGENTS.md`. Explicit project policy and actual Xcode settings outrank company defaults.
 

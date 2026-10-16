@@ -1,0 +1,23 @@
+{
+  "skill_name": "security-audit-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a security audit of the iOS app in ~/Documents/git/knmi-app-ios (current checkout).",
+      "expected_output": "Public weather app without user accounts: the audit should say which areas do not apply instead of padding findings. Reads project instructions first. Covers every area in security.md and lists each area as checked with findings, checked without findings, or not applicable, with the search used as evidence. Traces each hit to whether it is reachable before classifying it with the company labels (security-violation, request-for-change, optional); does not report default-redacted Logger interpolation, test-only code, or third-party package internals as app findings. Redacts secret values. Edits nothing and does not build.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Run a security audit of the iOS app in ~/Documents/git/npo-start-ios (current checkout).",
+      "expected_output": "Streaming app with login and tokens: the audit should cover token storage, logout cleanup, transport configuration, and the app extensions (including RichPush) as separate targets. Reads project instructions first. Covers every area in security.md and lists each area as checked with findings, checked without findings, or not applicable, with the search used as evidence. Traces each hit to whether it is reachable before classifying it with the company labels (security-violation, request-for-change, optional); does not report default-redacted Logger interpolation, test-only code, or third-party package internals as app findings. Redacts secret values. Edits nothing and does not build.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run a security audit of the iOS app in ~/Documents/git/thuisarts-ios (current checkout).",
+      "expected_output": "Health-information app using TCA: the audit should check web content, deep links, and the privacy manifest, and treat health-related search terms as personal data. Reads project instructions first. Covers every area in security.md and lists each area as checked with findings, checked without findings, or not applicable, with the search used as evidence. Traces each hit to whether it is reachable before classifying it with the company labels (security-violation, request-for-change, optional); does not report default-redacted Logger interpolation, test-only code, or third-party package internals as app findings. Redacts secret values. Edits nothing and does not build.",
+      "files": []
+    }
+  ]
+}

@@ -6,11 +6,11 @@ Follow the project's architecture. Never choose or switch one as a side effect o
 
 | Situation | Architecture |
 | --- | --- |
-| New project | The company template's choice: TCA by default, or MVVM + Coordinators. `AGENTS.md` states it, or it is clear from the code. |
+| New project | The company template's choice: TCA by default, or MVVM + Coordinators. Project instructions state it, or it is clear from the code. |
 | Existing project | The architecture the project already uses, including legacy patterns. |
-| Recorded deviation | What `AGENTS.md` or an accepted ADR records; report it as described in `precedence.md`. |
+| Recorded deviation | What project instructions or an accepted ADR record; report it as described in `precedence.md`. |
 
-When `AGENTS.md` does not name the architecture, identify it from evidence:
+When project instructions do not name the architecture, identify it from evidence:
 
 | Pattern | Typical evidence |
 | --- | --- |
