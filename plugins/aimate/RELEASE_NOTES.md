@@ -1,5 +1,9 @@
 # Release notes
 
+## 3.9.0
+
+- `write-plan` repurposed to an estimation step over a prepared ticket: input is the brief that prepare-ticket produces (or an equivalent ticket with acceptance criteria), output is sized tasks for planning and estimation. The skill no longer does its own discovery or design-tree resolution, and is optional in the build loop. The plan eval case and grader changed with it in the same commits.
+
 ## 3.8.0
 
 - Test and eval suite for the plugin itself, in `tests/` and `evals/`: structural and routing checks that block every PR in CI, headless smoke tests for Claude Code and the Copilot CLI, promise-and-fire evals on both hosts' real routers, and behavioral evals that grade real agent runs against the numbered requirements in `evals/rubrics/requirements.md` with hidden acceptance tests and a no-plugin control. Reports land as CI artifacts; result folders are gitignored. See `tests/README.md` and `evals/README.md`.
