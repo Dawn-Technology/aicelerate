@@ -263,11 +263,15 @@ if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
   const argv = process.argv.slice(2);
   const outIdx = argv.indexOf("--out");
   const outFile = outIdx === -1 ? null : argv[outIdx + 1];
-  const dirs = argv.filter((a, i) => !a.startsWith("--") && i !== outIdx + 1);
+  const dirs = argv.filter((a, i) => !a.startsWith("--") && i !== outIdx + 1 && argv[i - 1] !== "--last");
   const allVersions = argv.includes("--all-versions");
-  const roots = dirs.length
+  // --latest: only the newest results directory (one invocation); --last N: the newest N.
+  const lastIdx = argv.indexOf("--last");
+  const lastN = argv.includes("--latest") ? 1 : lastIdx !== -1 ? Number(argv[lastIdx + 1]) : 0;
+  let roots = dirs.length
     ? dirs
-    : readdirSync(join(repoRoot, "evals", "results")).map((d) => join(repoRoot, "evals", "results", d));
+    : readdirSync(join(repoRoot, "evals", "results")).sort().map((d) => join(repoRoot, "evals", "results", d));
+  if (lastN > 0 && !dirs.length) roots = roots.slice(-lastN);
   const runs = loadRuns(roots);
   if (!runs.length) { console.error("no run JSONs found"); process.exit(1); }
   if (argv.includes("--write-baseline")) {
