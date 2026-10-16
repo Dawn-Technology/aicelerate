@@ -10,11 +10,13 @@ Read the `swift-composable-architecture` pin from `Package.resolved` in the work
 
 Use the first source that works:
 
-1. Local package checkout, which matches the resolved version and works offline: `~/Library/Developer/Xcode/DerivedData/<Project>-<hash>/SourcePackages/checkouts/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/`, or `.build/checkouts/` for a Swift package.
+1. Local package checkout, which matches the resolved version and works offline: `~/Library/Developer/Xcode/DerivedData/<Project>-<hash>/SourcePackages/checkouts/swift-composable-architecture/Sources/ComposableArchitecture/Documentation.docc/`, or `.build/checkouts/` for a Swift package. When several DerivedData folders contain a checkout, use the one where `git -C <checkout> describe --tags` matches the resolved version; if none matches, use the next source.
 2. GitHub at the resolved tag: `https://raw.githubusercontent.com/pointfreeco/swift-composable-architecture/<version>/Sources/ComposableArchitecture/Documentation.docc/Articles/<Article>.md`.
 3. Sosumi: `https://sosumi.ai/external/https://swiftpackageindex.com/pointfreeco/swift-composable-architecture/<version>/documentation/composablearchitecture/<page>`.
 
 Relevant articles: `GettingStarted`, `DependencyManagement`, `SwiftConcurrency`, `TestingTCA`, `WhatIsNavigation`, `TreeBasedNavigation`, `StackBasedNavigation`, `SharingState`, `Bindings`, `Performance`, `FAQ`, and `MigrationGuides` for version-to-version changes.
+
+When the articles do not cover an API, doc comments in `Sources/ComposableArchitecture/` from the same source and version are valid evidence.
 
 When the project uses an older documented style than its pinned version supports, follow the project. Point to the migration guide separately only when the older style blocks the change.
 
