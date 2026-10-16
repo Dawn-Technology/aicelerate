@@ -1,6 +1,6 @@
 # Aimate iOS V1 — Session Handoff
 
-Date: 2026-10-15 (updated after the provider review session) · Branch: `feature/ai-mate-ios-v0` · Repo: `Dawn-Technology/aicelerate`
+Date: 2026-10-15, last updated 2026-10-16 after real-project testing (KNMI, NPO Start, Thuisarts) · Branch: `feature/ai-mate-ios-v0` · Repo: `Dawn-Technology/aicelerate`
 
 Handoff purpose: a fresh agent session (Claude Code, Codex, Copilot, OpenCode) can continue the `aimate-ios` work from this file plus the linked repo docs without re-interviewing the user.
 
@@ -59,16 +59,23 @@ Key repo conventions:
 | `…/ios-standards/references/architecture.md` | Template rule, pattern identification table, checks for every pattern, MVVM + Coordinators checks |
 | `…/ios-standards/references/tca.md` | Resolve TCA version from `Package.resolved`; docs from local checkout → GitHub tag → Sosumi; TCA review checks |
 | `…/ios-standards/references/apple-docs.md` | SDK/compiler → Xcode `DocumentationSearch` → Apple documentation JSON → Sosumi |
-| `…/ios-standards/references/tooling.md` | Native-first order; build/test order; read-only Xcode MCP tool limits |
+| `…/ios-standards/references/tooling.md` | Native-first order; build/test order (Xcode MCP → MobileBuildMCP → `xcodebuild`/`simctl` → static); `XcodeListWindows` project check; MobileBuildMCP usage (`session_set_defaults` + `test_sim` with `-only-testing`) and storage note; DerivedData reuse; exact capability states |
 | `…/ios-standards/references/{precedence,legacy-projects,testing,capability-providers}.md` | Precedence, legacy rules, testing policy, optional providers |
-| `plugins/aimate-ios/skills/review-ios/SKILL.md` | Read-only iOS specialist review; reads `tca.md` and `apple-docs.md` when relevant |
+| `plugins/aimate-ios/skills/review-ios/SKILL.md` | iOS specialist review (no source edits); runs only manually or via project instructions |
 | `plugins/aimate-ios/skills/review-ios/evals/evals.json` | 4 eval prompts (SwiftUI MVVM, search concurrency, legacy UIKit MVVM, TCA search) |
-| `plugins/aimate-ios/skills/review-ios/evals/results.md` | Results for evals 1–3; eval 4 not run yet |
+| `plugins/aimate-ios/skills/review-ios/evals/results.md` | Results for evals 1–4 |
 
 ### `review-ios` design
 
 - Adds deterministic iOS coverage without replacing generic review.
-- Five steps: baseline from project evidence → trace changed behavior → apply engaged modules → classify (`security-violation` / `request-for-change` / `optional`) → return output.
+- Always reads `precedence.md`, `architecture.md`, `tooling.md`; other references only when relevant. A failed read is retried, then named in `residual_gaps`.
+- **Project instructions** = `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` (rank 2 in `precedence.md`, equal weight; contradictions reported, more specific wins). Baseline checks all locations with a file listing, reads what exists, and reports disagreements with project files and the machine (paths, Xcode versions, simulators). "No project instructions; baseline inferred from project evidence" only when none exist.
+- Project skills: `.agents/skills/`, `.claude/skills/`, `skills-lock.json` checked with a file listing; each reported as used or not, and why.
+- `chat` output opens with `Baseline` and `Verification` sections, then findings with exact severity labels.
+- Six steps: baseline → trace changed behavior → apply engaged modules → **verify** (build + affected tests by default, unless "static only"; names scheme, test plan, destination) → classify → return output.
+- `residual_gaps` starts with the baseline and every build/test route with its exact state, for every output target including `chat`. A route not attempted is "not run", never `unavailable`.
+- Framework-behavior claims cite docs or source at the resolved version, or are marked unverified.
+- Problems outside the diff that the change does not introduce or make reachable are at most `optional`, with a follow-up ticket.
 - **Async four-question contract**: who owns the task, what cancels it, what prevents an older result replacing a newer one, how cancellation is distinguished from failure/empty success.
 - **Output contract**: strict subset of the generic `aimate` `code-review` shape (`plugins/aimate/skills/code-review/SKILL.md`).
 
@@ -78,6 +85,41 @@ Key repo conventions:
 - `https://developer.apple.com/tutorials/data/documentation/<framework>/<symbol>.json` returns `metadata.platforms` with `introducedAt`, `deprecatedAt`, `message` (checked on `NavigationStack` and `NavigationView`).
 - TCA DocC articles exist as Markdown under `Sources/ComposableArchitecture/Documentation.docc/Articles/` (MIT); Swift Package Index serves per-version DocC JSON; Sosumi `external/` proxies it as Markdown with links intact.
 
+### Real-project testing (KNMI, commit `8569aaeb`, no `AGENTS.md`, TCA 1.23.2, iOS 15)
+
+Run headless with `claude -p … --plugin-dir plugins/aimate-ios --plugin-dir plugins/aimate`, read-only tool allowlists.
+
+- Plain "Review commit …" does **not** load `review-ios` (as intended).
+- `review-ios` states the missing `AGENTS.md`, infers the baseline (incl. mixed XCTest/Swift Testing), picks the TCA checkout via `git describe --tags`, and cited `PresentationReducer.swift` at 1.23.2 (depth varies per run; one run marked it unverified instead).
+- **Xcode MCP route**: picked the KNMI window among two open projects; build succeeded; `RunSomeTests` returned "No result" (Xcode run destination left on default, not a simulator) → fell back to `xcodebuild`, tests passed.
+- **MobileBuildMCP route** (2.7.1, telemetry off): `session_set_defaults` with app scheme `KNMI (iOS)` + simulator, `test_sim` with `-only-testing` → 6 passed. First run is a full build (~13 min); its own cache reached ~18 GB (purged).
+- Xcode asks the user to allow each new agent connection; a session started before "Allow" sees 0 Xcode tools.
+- MobileBuildMCP purge: `--delete` needs `--workspace-key` and `--confirm delete-mobilebuildmcp-storage`; `--classes all` keeps DerivedData.
+
+### Real-project testing (NPO Start, commit `08fb03293c`, `AGENTS.md` present, MVVM-C, iOS 16.6)
+
+- Follows the `AGENTS.md` `xcodebuild` route (scheme `NPO Start`, test plan `NPOStart-iOS-UnitTests-Snapshots`) before Xcode MCP / MobileBuildMCP; 8 tests passed.
+- Reports `AGENTS.md` mismatches: missing "NPO Start iPhone 17 Pro" simulator, `Xcode_26.2.app` path, deployment targets 16.6 vs 16.4/15.0, a target group on Swift 5.0.
+- Found a real `request-for-change` (Downloads ↔ Plus navigation loop), noticed a later `develop` commit fixes another finding, flagged an `opacity(0)` button still tappable/VoiceOver-reachable as `optional`.
+- MobileBuildMCP fails on private SSH packages ("Repository not found") in its own workspace → falls back.
+- Pre-existing test failure outside the diff (`didSelect_shouldInvokeChoice`, flaky in full suite) correctly kept out of findings.
+- Side finding for the NPO team: `.agents/skills/*` are broken symlinks (`submodules/…` relative to `.agents/skills/`, submodules not checked out), so those skills load nowhere.
+
+### Real-project testing (Thuisarts, branch `bugfix/TAA-0002-broken-searchbar`, only `.github/copilot-instructions.md`, TCA, no tests)
+
+- First run ignored `copilot-instructions.md` → fixed by the "project instructions" definition.
+- Rerun read it, used its `xcodebuild -scheme "Thuisarts - Debug"` command first (BUILD SUCCEEDED, 2.3 min), reported "no test targets" from the instructions, applied its "verify on iPhone and iPad" rule, and found a stale `SharedLibrary/Package.resolved` (TCA 1.25.5 vs documented pin `1.26.0..<1.26.2`).
+- Earlier run (Xcode open on Thuisarts): Xcode MCP `XcodeListWindows` picked the right window among three projects, `BuildProject` succeeded in 49 s.
+
+### Coverage so far
+
+| Situation / route | Status |
+| --- | --- |
+| No project instructions (KNMI) / `AGENTS.md` (NPO) / only Copilot instructions (Thuisarts) | works |
+| Project-selected route, `xcodebuild` fallback, MobileBuildMCP, Xcode MCP build | works |
+| Xcode MCP **tests** (`RunSomeTests`) | not yet confirmed: needs a simulator selected as run destination in Xcode |
+| TCA (KNMI, Thuisarts), MVVM-C (NPO) | works |
+
 ## 5. Open Items
 
 1. ~~How `review-ios` gets invoked~~ — decided: only manually or through an `aimate-ios` block in the project's `AGENTS.md` (snippet in the plugin README; ideally in the company template). Generic `aimate` must never call it (tech lead: keep `aimate` generic; a Delphi developer does not need iOS behavior). Standalone runs on large changes review file by file.
@@ -86,10 +128,17 @@ Key repo conventions:
 4. **`swift-style.md`**: blocked on the user recovering their modified Ray Wenderlich/Kodeco Swift-style rules. Do not write it from memory.
 5. Evals were run manually; raw outputs not persisted.
 6. Template repository: its `AGENTS.md` should state the architecture (change in the template, not this plugin).
+7. Confirm Xcode MCP tests: select a simulator destination in Xcode for the project, then rerun a review.
+8. Untested: the README's MobileBuildMCP delete command with `derivedData` in `--classes`.
+9. **Security (2026-10-16)**: added company `ios-standards/references/security.md` (own text, Apple sources), a Security module in `review-ios`, and evals 5–6 (RED-GREEN recorded in `results.md`). `dpearson2699/swift-ios-skills` `swift-security` was **rejected** by the user (PolyForm Perimeter 1.0.0, non-OSI, although its frontmatter says MIT); recorded under Rejected in `capability-matrix.md`. Do not copy its content.
+10. **`test-ios` (2026-10-16)**: added (simulator only, never edits source). RED-GREEN on KNMI, NPO Start, and Thuisarts recorded in `test-ios/evals/results.md`; `tooling.md` gained DerivedData, package-flag, result-bundle, and `-collect-test-diagnostics never` rules (shared with `review-ios`). Not yet covered: Xcode MCP/MobileBuildMCP routes, `-only-testing` on covered changes, a confirmed failure. Side finding for NPO: `.github/copilot-instructions.md` is a broken symlink.
+11. **`security-audit-ios` (2026-10-16)**: added (user chose the name). Read-only whole-project audit over every `security.md` area, `review-ios` YAML output. RED-GREEN on the three projects recorded in `security-audit-ios/evals/results.md`; `security.md` gained seven areas from the baselines (client-only enforcement, app lock, server-supplied content, analytics, debug features, per-target privacy manifests, dependencies and CI). The YAML-shape fix was verified only on NPO. Real findings per project are in the eval runs, not shared with the teams yet.
+12. **`drive-ios` (2026-10-16)**: added (user chose the name). Operates the app on a simulator for goals `reproduce`, `validate`, `capture`; never edits source. Uses `MobileBuildMCP` UI automation through deep links first. RED-GREEN on Thuisarts, KNMI, NPO recorded in `drive-ios/evals/results.md`; post-eval rules (temporary simulator for fresh state, ask before keychain reset or erase) not re-evaluated. Later: live client demos (visible simulator, pacing, video), physical devices, turning a reproduced flow into an XCUITest (first write-enabled skill).
 
 ## 6. Next Steps
 
 1. User reviews the uncommitted changes; commit only when asked.
+2. Optionally record the real-project results in `review-ios/evals/results.md` (currently only evals 1–4).
 3. Later capabilities (plan Task 6), each with its own RED-GREEN evaluation before authoring: `implement-ios`, `test-ios` (Xcode MCP / MobileBuildMCP), `build-swiftui` (re-evaluate `AvdLee/SwiftUI-Agent-Skill` vs `swiftui-pro`). Physical-device automation only after simulator behavior is reliable.
 
 ## 7. Working Preferences

@@ -1,0 +1,26 @@
+{
+  "skill_name": "drive-ios",
+  "evals": [
+    {
+      "id": 1,
+      "goal": "reproduce",
+      "prompt": "QA ticket for ~/Documents/git/thuisarts-ios (current branch): \"When another app or website opens thuisarts://zoeken?s=test, the term 'test' appears under Recent searches although the user never searched for it.\" Reproduce this on the iPhone 16 Pro simulator AA3377AC-ABA4-42E4-BDDD-70B0A1C6D46B.",
+      "expected_output": "Reads project instructions, builds and installs the app with the existing DerivedData, records the starting state (fresh install or not, recent searches before), opens the link with simctl openurl, navigates to Recent searches, and reports reproduced or not reproduced with numbered steps, a screenshot of the evidence, app version, simulator, and build. Does not edit source, does not change git state, and leaves the simulator as found or reports what it changed.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "goal": "validate",
+      "prompt": "In ~/Documents/git/knmi-app-ios (develop), validate on the iPhone 16 simulator 520AE666-05BE-421F-AD16-8E3A9F66C40B that a user can add the location Utrecht through location search, that it then appears in their saved locations, and that removing it works.",
+      "expected_output": "Turns the request into explicit checks with expected results, handles first-launch screens and permission prompts deliberately (and reports them), and reports pass, fail, or blocked per check with a screenshot per check. Avoids actions with side effects beyond the request, and names the backend environment the build talks to. Does not edit source or change git state.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "goal": "capture",
+      "prompt": "For ~/Documents/git/npo-start-ios (develop), take screenshots of the onboarding screens and the home screen without logging in, in light and dark mode, on the iPhone 16 Plus simulator 5FC26766-0F63-4C3F-ADEC-E0B4385C1684.",
+      "expected_output": "Builds with the AGENTS.md route and existing DerivedData, captures each requested screen in both appearances with a clean status bar, names the files by screen and appearance in one output folder, lists them with what each shows, and reports screens it could not reach. Does not log in, edit source, or change git state, and restores the simulator appearance afterwards.",
+      "files": []
+    }
+  ]
+}

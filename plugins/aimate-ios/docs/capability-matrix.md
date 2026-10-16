@@ -12,7 +12,9 @@ External providers are optional. Selection prefers native Apple tooling, then co
 | SwiftUI review | [`twostraws/SwiftUI-Agent-Skill`](https://github.com/twostraws/SwiftUI-Agent-Skill) | Compose as optional depth; text-only | MIT | `review-ios` SwiftUI module |
 | Swift Testing | [`twostraws/Swift-Testing-Agent-Skill`](https://github.com/twostraws/Swift-Testing-Agent-Skill) | Compose as optional depth; company naming wins over its raw-identifier style | MIT | Company testing reference plus compiler/project evidence |
 | Accessibility | [`dadederk/iOS-Accessibility-Agent-Skill`](https://github.com/dadederk/iOS-Accessibility-Agent-Skill) | Compose as optional depth; covers SwiftUI and UIKit; manual assistive-technology checks remain necessary | MIT | `review-ios` accessibility module |
-| UI automation | XCUITest through Xcode MCP or `MobileBuildMCP` | Company standard | Apple | Static inspection |
+| Security review | Company [`security.md`](../skills/ios-standards/references/security.md) | Own the checks and severities | Company, with Apple documentation as sources | `review-ios` Security module |
+| UI automation (tests) | XCUITest through Xcode MCP or `MobileBuildMCP` | Company standard | Apple | Static inspection |
+| Driving the app on a simulator (`drive-ios`) | `MobileBuildMCP` UI automation (`snapshot-ui`, `tap`, `type-text`, `wait-for-ui`) and debugging, plus `xcrun simctl` | Adopt; it is already the second build route and needs no other install. Apple tools cannot tap through an app outside XCUITest | MIT | Deep links, launch arguments, and `simctl`; steps that need UI navigation are reported as blocked |
 | Physical-device interaction | None in V1 | Deferred until simulator automation is reliable | — | `device-not-run` with reason |
 | GitHub operations | Generic `aimate` through `gh` | Reuse; do not duplicate in this plugin | Existing aimate behavior | Report manual remote action when no route works |
 
@@ -27,6 +29,7 @@ External providers are optional. Selection prefers native Apple tooling, then co
 | [`mobile-next/mobile-mcp`](https://github.com/mobile-next/mobile-mcp) | Third-party install; overlaps `MobileBuildMCP` on simulators; device automation is deferred |
 | [`AvdLee/SwiftUI-Agent-Skill`](https://github.com/AvdLee/SwiftUI-Agent-Skill) | Implementation-focused; reconsider at the `build-swiftui` evaluation |
 | [`kimsungwhee/apple-docs-mcp`](https://github.com/kimsungwhee/apple-docs-mcp) | Third-party install; replaced by Xcode `DocumentationSearch`, Apple documentation JSON, and Sosumi |
+| [`dpearson2699/swift-ios-skills`](https://github.com/dpearson2699/swift-ios-skills) (`swift-security`) | PolyForm Perimeter 1.0.0 (non-OSI, noncompete clause), although its `SKILL.md` frontmatter says MIT; replaced by `security.md`. Do not copy its content |
 | `xclaude-plugin` | Abandoned; its maintainer points to newer alternatives |
 | Appium | Not a default unless a project already standardizes on it |
 
