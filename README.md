@@ -2,6 +2,24 @@
 
 An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process.
 
+## Where do I start
+
+Pick the row that matches what you have. Every skill fires on natural phrasing in Claude Code, and can always be invoked by name — on Copilot, invoking by name is currently the reliable way.
+
+| You have | Use | What happens |
+|---|---|---|
+| A refined ticket, ready to build | `prepare-ticket`, then `implement-ticket` | the ticket is checked against the repo, then built in a worktree, verified, reviewed and delivered as a PR. The route that measured zero major review findings. |
+| A ticket, not sure it's ready | `prepare-ticket` | every claim traced against the repository, one readiness verdict, one next action |
+| A spec, feature or epic | `split-spec` | vertical tickets with a demo line each; small work comes back as one ticket |
+| One ticket that needs a detailed plan | `write-plan` | an execution-ready plan with small, sized tasks |
+| An idea, nothing written yet | `write-prd` | interview-driven PRD with user stories |
+| A tiny change | `implement-ticket` | small work stays whole; no plan documents for a one-liner |
+| A vague request without criteria | `prepare-ticket` or `split-spec` | open questions get named; acceptance criteria are never invented for you |
+| A PR or MR to review | `review-pr`, or `review-and-resolve-pr` to also fix the findings | findings as inline comments, with or without the resolution pass |
+| Local changes before committing | `review-local`, then `write-commit-message` | findings first, then a commit message following the Dawn rules |
+
+The full workflow behind these rows is described under [Spec-Driven Development Workflow](#spec-driven-development-workflow); you rarely need the whole chain. The measurements behind the claims live in `evals/`.
+
 ## Install
 
 ### Visual Studio Code
