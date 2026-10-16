@@ -15,7 +15,7 @@ node evals/runner/report.mjs <results dirs...>           # cross-pipeline report
 
 The runner enables exactly one pipeline's plugin for the duration of a sweep (and re-enables aimate afterwards), so results are never contaminated by another plugin's routing. The two shipped pipelines are `aimate` and `vanilla`, because every finding needs the does-aimate-beat-no-plugin control. To compare against another skill plugin, declare it in `evals/runner/pipelines.local.json` (untracked); the shipped suite measures aimate against vanilla, not against third-party plugins. Generator and judge are different models by construction (defaults: sonnet generates, opus judges) and the report header records both plus the Claude Code version, because results shift across model and CLI versions.
 
-Results land in `evals/results/<timestamp>/` (gitignored): one JSON per run with the full artifact, plus `report.md`. The report is written for a PR reviewer or a curious contributor, not as a run log: findings are grouped per requirement with a verdict (holding / failing / mixed), one or two curated evidence quotes, the vanilla control's pass rate, and, once `evals/baseline.json` is pinned via `report.mjs --write-baseline`, the delta against baseline with regressions marked. Per-run detail sits in a scorecard appendix and the JSONs; grader failures and timeouts are listed under suite health, apart from findings about aimate itself.
+Every invocation writes its own `evals/results/<timestamp>/` folder (gitignored): one JSON per run with the full artifact, checks, cost and fired skills, plus a `report.md` for that invocation. A report across invocations (for example a whole race) is `node evals/runner/report.mjs <results dirs...> --out file.md`; in CI the same files upload as workflow artifacts. The report is written for a PR reviewer or a curious contributor, not as a run log: findings are grouped per requirement with a verdict (holding / failing / mixed), one or two curated evidence quotes, the vanilla control's pass rate, and, once `evals/baseline.json` is pinned via `report.mjs --write-baseline`, the delta against baseline with regressions marked. Per-run detail sits in a scorecard appendix and the JSONs; grader failures and timeouts are listed under suite health, apart from findings about aimate itself.
 
 ## One behavioral run
 
@@ -59,7 +59,21 @@ Every expectation names its verifier. `structural` checks run as deterministic r
 
 Decomposition and pressure cases grade an artifact. Delivery cases (`"type": "delivery"`) grade the deliverable itself: the agent implements the work item against the fixture, and quality is measured by a held-out acceptance script the agent never sees (`evals/acceptance/<id>/run.sh`, run against the workdir afterwards; verify every new script fails on the untouched fixture and passes on a correct implementation) plus a judge review of the produced diff counting findings by severity. Cost and turns are recorded but only break ties at equal quality.
 
-Each delivery case names its `entry_state`, the state the work arrives in (tiny-change, refined-ticket, raw-ticket, greenfield, legacy-change), and runs under a strategy arm. There are two arm families: prompt scaffolds, which steer the base model without naming skills (`direct`, `validate-implement`, `spec-first`, `spike` with `--spikes N`, `spike-informed` where a final build learns from N throwaway attempts), and explicit aimate arms that invoke skills by name so skill content is measured with routing out of the picture (`aimate-implement`, `aimate-validate-implement`, `aimate-plan`, `aimate-full`):
+Each delivery case names its `entry_state`, the state the work arrives in (tiny-change, refined-ticket, raw-ticket, greenfield, legacy-change), and runs under a strategy arm. Reports print the arm names, so here is what each one does:
+
+| Arm | What the agent is told | Family |
+|---|---|---|
+| `direct` | implement it, nothing more | scaffold (no skills named) |
+| `validate-implement` | first challenge the ticket against the codebase, then implement | scaffold |
+| `spec-first` | write a spec and a plan first, then implement per plan | scaffold |
+| `spikeN` | N independent throwaway attempts; the hidden tests pick the winner | scaffold, reliability only |
+| `spike-informedN` | N reduced-budget throwaway attempts, then one fresh build that studies their diffs and reports | scaffold |
+| `aimate-implement` | use the implement-ticket skill | explicit skill |
+| `aimate-validate-implement` | prepare-ticket skill, then implement-ticket skill | explicit skill |
+| `aimate-plan` | write-plan skill, then implement the plan | explicit skill |
+| `aimate-full` | the documented SDLC: prepare-ticket, grilling, write-prd, grilling, write-plan, implement-ticket | explicit skill |
+
+The scaffold arms measure workflow shapes on the base model; each explicit arm against its scaffold twin (aimate-plan versus spec-first, for example) isolates what the skill's instructions add, with routing taken out of the picture. Pick an arm like this:
 
 ```bash
 node evals/runner/run-eval.mjs d01-tiny-change-date-bug --strategy direct
