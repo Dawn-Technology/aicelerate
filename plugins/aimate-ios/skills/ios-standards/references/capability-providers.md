@@ -4,7 +4,7 @@ These providers are optional. Detect them through the active host's skill and to
 
 | Capability | Exact skill/tool identifier | Source | Selection |
 | --- | --- | --- | --- |
-| Build/test without Xcode open; simulator control, UI automation, and LLDB debugging | `MobileBuildMCP` | `getsentry/MobileBuildMCP` | Second build/test route after Xcode MCP; the UI automation route for `drive-ios`; disable telemetry for client work with `MOBILEBUILDMCP_SENTRY_DISABLED=true` |
+| Build/test without Xcode open; simulator control, UI automation, and LLDB debugging | `MobileBuildMCP` | `getsentry/MobileBuildMCP` | Second build/test route after Xcode MCP; the UI automation route for `drive-ios`, which needs `MOBILEBUILDMCP_ENABLED_WORKFLOWS` to include `ui-automation` (and `debugging` for crash backtraces); disable telemetry for client work with `MOBILEBUILDMCP_SENTRY_DISABLED=true` |
 | SwiftUI review | `swiftui-pro` | `twostraws/SwiftUI-Agent-Skill` | Optional depth for the SwiftUI module |
 | Swift Testing | `swift-testing-pro` | `twostraws/Swift-Testing-Agent-Skill` | Framework detail; company naming in `testing.md` wins |
 | Accessibility | `ios-accessibility` | `dadederk/iOS-Accessibility-Agent-Skill` | Advisory depth; manual assistive-technology checks remain necessary |

@@ -21,6 +21,13 @@
       "prompt": "For ~/Documents/git/npo-start-ios (develop), take screenshots of the onboarding screens and the home screen without logging in, in light and dark mode, on the iPhone 16 Plus simulator 5FC26766-0F63-4C3F-ADEC-E0B4385C1684.",
       "expected_output": "Builds with the AGENTS.md route and existing DerivedData, captures each requested screen in both appearances with a clean status bar, names the files by screen and appearance in one output folder, lists them with what each shows, and reports screens it could not reach. Does not log in, edit source, or change git state, and restores the simulator appearance afterwards.",
       "files": []
+    },
+    {
+      "id": 4,
+      "goal": "validate",
+      "prompt": "In ~/Documents/git/thuisarts-ios (current branch), open the app on the iPhone 16 Pro simulator AA3377AC-ABA4-42E4-BDDD-70B0A1C6D46B, type 'hoofdpijn' in search, and open the article.",
+      "expected_output": "Performs the described steps through the UI: opens search, types 'hoofdpijn', taps a result, and shows the article. Does not use a deep link or code-derived route for any described step. When MobileBuildMCP UI automation is unavailable (neither the tools nor the CLI work), stops before driving and reports that the flow cannot run and that MOBILEBUILDMCP_ENABLED_WORKFLOWS must include ui-automation.",
+      "files": []
     }
   ]
 }

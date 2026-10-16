@@ -1,6 +1,6 @@
 # Aimate iOS V1 — Session Handoff
 
-Date: 2026-10-15, last updated 2026-10-16 after real-project testing (KNMI, NPO Start, Thuisarts) · Branch: `feature/ai-mate-ios-v0` · Repo: `Dawn-Technology/aicelerate`
+Date: 2026-10-15, last updated 2026-10-16 (end of day: five skills, all RED-GREEN evaluated on KNMI, NPO Start, Thuisarts) · Branch: `feature/ai-mate-ios-v0` · Repo: `Dawn-Technology/aicelerate`
 
 Handoff purpose: a fresh agent session (Claude Code, Codex, Copilot, OpenCode) can continue the `aimate-ios` work from this file plus the linked repo docs without re-interviewing the user.
 
@@ -23,16 +23,19 @@ Key repo conventions:
 4. **Architecture**: the skills never choose an architecture. New projects use the company template's choice (TCA by default, or MVVM + Coordinators), stated in `AGENTS.md` or clear from the code. Existing and legacy projects follow whatever they use (legacy can be any pattern). Migrations never incidental. *(Supersedes the spec's "no TCA/MVVM default"; the spec was intentionally not edited.)*
 5. **Testing standard**: Swift Testing for new unit tests; existing XCTest suites continue; XCUITest for UI; naming `test_<subject>_<condition>_<expected behavior>()` or a `@Test("…")` display name with a lower-camel-case function; no raw-identifier names unless the project already uses them; AAA structure; minimal `async`/`throws`.
 6. **Host support**: OpenCode, Claude Code, Codex, GitHub Copilot. GitHub/`gh` operations stay in generic `aimate`.
-7. **V1 exclusions**: signing, provisioning, certificates, archives, TestFlight, App Store Connect, release automation, incidental migrations, mandatory snapshot tests, physical-device automation.
-8. **Pilot-first**: `review-ios` (read-only) before any write-enabled skill.
+7. **V1 exclusions**: signing, provisioning, certificates, archives, TestFlight, App Store Connect, release automation, incidental migrations, mandatory snapshot tests, physical-device automation (reconfirmed 2026-10-16: no XCUITest/device step yet).
+8. **Pilot-first**: all five skills are read-only on source; no write-enabled skill yet.
 9. **Do not commit** unless the user asks. The user cannot open a PR yet (missing repository rights).
+10. **Every skill is RED-GREEN evaluated** on the three real projects before it is considered done: baseline without the skill, write the skill from the observed gaps, rerun with it, record both in `evals/results.md`.
+11. **Company references over third-party skills**: security and localization rules are company-owned text in `ios-standards/references/`, shared by the matching audit skill and the `review-ios` module.
 
 ### Provider decisions (2026-10-15 review)
 
 | Provider | Decision |
 | --- | --- |
 | Xcode MCP (`xcrun mcpbridge`) | **First route** for build, test, diagnostics, previews, `DocumentationSearch`. Read-only skills never use its write tools. |
-| `getsentry/MobileBuildMCP` | Kept, optional, second route (no Xcode open, simulator control). Disable telemetry with `MOBILEBUILDMCP_SENTRY_DISABLED=true` for client work. |
+| `getsentry/MobileBuildMCP` | Kept, optional, second build/test route and the UI automation route for `drive-ios`. Disable telemetry with `MOBILEBUILDMCP_SENTRY_DISABLED=true`; the MCP server needs `MOBILEBUILDMCP_ENABLED_WORKFLOWS=simulator,ui-automation,debugging` (default registers only 24 tools without UI automation). |
+| `dpearson2699/swift-ios-skills` (`swift-security`) | Rejected 2026-10-16: PolyForm Perimeter 1.0.0 (non-OSI, noncompete) although its frontmatter says MIT; replaced by company `security.md`. Do not copy its content. |
 | `twostraws` `swiftui-pro` | Kept, optional (SwiftUI review). |
 | `twostraws` `swift-testing-pro` | Kept, optional; company naming wins. |
 | `dadederk` `ios-accessibility` | Kept, optional. |
@@ -45,8 +48,23 @@ Key repo conventions:
 
 ## 3. Current State
 
-- Commit `09da24c ai-mate-ios: WIP` contains the original plugin, spec, plan, README and marketplace changes.
-- Uncommitted on top of it: the provider review changes below, plus this handoff (untracked).
+- Commits: `09da24c ai-mate-ios: WIP` (original plugin, spec, plan, README, marketplace) and `74d9574 ai-mate-ios: Added and update skills and references` (provider review and this handoff).
+- **Everything from 2026-10-16 is uncommitted**: the real-project fixes to `review-ios` and the references, `security.md`, `localization.md`, the four new skills with their evals, README, capability docs, and this handoff. `claude plugin validate plugins/aimate-ios` passes.
+
+### Skills
+
+| Skill | What it does | Writes source | Evals |
+| --- | --- | --- | --- |
+| `review-ios` | Specialist review of a change; modules include Security and Localization; verifies with build and affected tests | no | evals 1–6 (5–6 security) |
+| `test-ios` | Runs affected, named, plan, or full-suite tests on a simulator; builds instead when no test covers the change; reruns failures once to detect flaky tests | no | 3 real projects |
+| `security-audit-ios` | Whole-project static security audit over every `security.md` area, per target, CI separate | no | 3 real projects |
+| `drive-ios` | Operates the app on a simulator: `reproduce`, `validate`, `capture`; described steps always through the UI; stops when UI automation is unavailable | no | 3 real projects + eval 4 (not yet run) |
+| `localization-audit-ios` | Whole-project static localization audit: supported languages, scripted inventory, exact key-to-bundle matching | no | 3 real projects |
+| `ios-standards` | Internal references: precedence, architecture, tca, apple-docs, tooling, testing, legacy-projects, capability-providers, security, localization | — | — |
+
+All audit and review skills return the `review-ios` YAML shape (section "6. Return Compatible Output").
+
+### Files
 
 | File | Purpose |
 | --- | --- |
@@ -62,8 +80,10 @@ Key repo conventions:
 | `…/ios-standards/references/tooling.md` | Native-first order; build/test order (Xcode MCP → MobileBuildMCP → `xcodebuild`/`simctl` → static); `XcodeListWindows` project check; MobileBuildMCP usage (`session_set_defaults` + `test_sim` with `-only-testing`) and storage note; DerivedData reuse; exact capability states |
 | `…/ios-standards/references/{precedence,legacy-projects,testing,capability-providers}.md` | Precedence, legacy rules, testing policy, optional providers |
 | `plugins/aimate-ios/skills/review-ios/SKILL.md` | iOS specialist review (no source edits); runs only manually or via project instructions |
-| `plugins/aimate-ios/skills/review-ios/evals/evals.json` | 4 eval prompts (SwiftUI MVVM, search concurrency, legacy UIKit MVVM, TCA search) |
-| `plugins/aimate-ios/skills/review-ios/evals/results.md` | Results for evals 1–4 |
+| `…/ios-standards/references/security.md` | Company security checks and severities (secrets, Keychain, biometrics, client-only enforcement, app lock, logging, transport, crypto, deep links, web content, server-supplied content, analytics, debug features, data at rest, privacy manifests, dependencies and CI) |
+| `…/ios-standards/references/localization.md` | Supported-language rules, severities, and checks (completeness, key-to-bundle matching, text outside localization, wrong-language values, plurals, formatting, Info.plist, extensions, hygiene) |
+| `plugins/aimate-ios/skills/review-ios/evals/` | 6 eval prompts and results |
+| `plugins/aimate-ios/skills/{test-ios,security-audit-ios,drive-ios,localization-audit-ios}/` | `SKILL.md` plus `evals/evals.json` and `evals/results.md` each |
 
 ### `review-ios` design
 
@@ -119,6 +139,15 @@ Run headless with `claude -p … --plugin-dir plugins/aimate-ios --plugin-dir pl
 | Project-selected route, `xcodebuild` fallback, MobileBuildMCP, Xcode MCP build | works |
 | Xcode MCP **tests** (`RunSomeTests`) | not yet confirmed: needs a simulator selected as run destination in Xcode |
 | TCA (KNMI, Thuisarts), MVVM-C (NPO) | works |
+| `drive-ios` through the `mobilebuildmcp` CLI | works (all eval runs); through MCP tools with UI automation enabled: not yet tested |
+
+### Lessons from 2026-10-16 evaluations
+
+- Baselines without skills find real issues; the skills mainly add discipline: project instructions first, fixed area coverage, reachability before severity, company labels, shared output shape, and clean-up.
+- Fresh DerivedData per run is slow, leaves many GB, and fails on private SSH packages; `tooling.md` now requires reusing the existing DerivedData, `-skipPackageUpdates -disableAutomaticPackageResolution` when packages are untouched, unique `mktemp -d` folders, deleting only own folders, and `-collect-test-diagnostics never`.
+- A subagent instruction "read nothing else in aicelerate" blocked reading `review-ios` for the output shape; skills now link the section and require reading it.
+- `drive-ios` must never take irreversible simulator actions (keychain reset, erase) on a simulator it did not create without asking; prefer a temporary simulator.
+- Real findings for the client projects (security, localization, flaky tests, broken symlinks) exist only in the session's eval outputs; they were not saved or shared.
 
 ## 5. Open Items
 
@@ -133,13 +162,20 @@ Run headless with `claude -p … --plugin-dir plugins/aimate-ios --plugin-dir pl
 9. **Security (2026-10-16)**: added company `ios-standards/references/security.md` (own text, Apple sources), a Security module in `review-ios`, and evals 5–6 (RED-GREEN recorded in `results.md`). `dpearson2699/swift-ios-skills` `swift-security` was **rejected** by the user (PolyForm Perimeter 1.0.0, non-OSI, although its frontmatter says MIT); recorded under Rejected in `capability-matrix.md`. Do not copy its content.
 10. **`test-ios` (2026-10-16)**: added (simulator only, never edits source). RED-GREEN on KNMI, NPO Start, and Thuisarts recorded in `test-ios/evals/results.md`; `tooling.md` gained DerivedData, package-flag, result-bundle, and `-collect-test-diagnostics never` rules (shared with `review-ios`). Not yet covered: Xcode MCP/MobileBuildMCP routes, `-only-testing` on covered changes, a confirmed failure. Side finding for NPO: `.github/copilot-instructions.md` is a broken symlink.
 11. **`security-audit-ios` (2026-10-16)**: added (user chose the name). Read-only whole-project audit over every `security.md` area, `review-ios` YAML output. RED-GREEN on the three projects recorded in `security-audit-ios/evals/results.md`; `security.md` gained seven areas from the baselines (client-only enforcement, app lock, server-supplied content, analytics, debug features, per-target privacy manifests, dependencies and CI). The YAML-shape fix was verified only on NPO. Real findings per project are in the eval runs, not shared with the teams yet.
-12. **`drive-ios` (2026-10-16)**: added (user chose the name). Operates the app on a simulator for goals `reproduce`, `validate`, `capture`; never edits source. Uses `MobileBuildMCP` UI automation through deep links first. RED-GREEN on Thuisarts, KNMI, NPO recorded in `drive-ios/evals/results.md`; post-eval rules (temporary simulator for fresh state, ask before keychain reset or erase) not re-evaluated. Later: live client demos (visible simulator, pacing, video), physical devices, turning a reproduced flow into an XCUITest (first write-enabled skill).
+12. **`drive-ios` (2026-10-16)**: added (user chose the name over `reproduce-ios`/`explore-ios`, so it can later also serve demos). Goals `reproduce`, `validate`, `capture`; never edits source. RED-GREEN on Thuisarts, KNMI, NPO in `drive-ios/evals/results.md`. Post-eval rules not re-evaluated: temporary simulator for fresh state, ask before keychain reset or erase, let carousels settle. Manual user test in OpenCode: the MCP server lacked UI tools and the agent used a deep link instead of the described steps → skill now performs described steps through the UI only and stops with what to enable; README documents `MOBILEBUILDMCP_ENABLED_WORKFLOWS`. Eval 4 covers this; not yet run.
+13. **`localization-audit-ios` (2026-10-16)**: added (user chose static-only scope and the name). Company reference `localization.md` also feeds a Localization module in `review-ios`. RED-GREEN on the three projects in `localization-audit-ios/evals/results.md`; no changes needed after evaluation.
+14. **Deferred by the user**: XCUITest generation and physical-device runs (MobileBuildMCP 2.7.1 supports devices only for build, install, launch, stop, and tests; UI automation, screenshots, and LLDB attach are simulator-only), live client demos with `drive-ios`, and a visual localization pass (per language, pseudo-languages, truncation).
+15. **Local setup on the user's machine**: OpenCode global config `~/.config/opencode/opencode.json` has Xcode MCP; its `skills.paths` points to a clone at `~/.config/opencode/plugins/aicelerate` on `main`, which lacks `aimate-ios`. To test uncommitted work, add `/Users/alex-egeniq/Documents/git/aicelerate/plugins/aimate-ios/skills` and a `mobilebuildmcp` MCP entry with the workflows variable (snippets in the plugin README). Not changed by the agent; the user decides. Claude Code: `claude --plugin-dir ~/Documents/git/aicelerate/plugins/aimate-ios` in the project directory; no Xcode or MobileBuildMCP MCP configured yet.
+16. **Disk**: MobileBuildMCP's KNMI workspace (`~/Library/Developer/MobileBuildMCP/workspaces/knmi-app-ios-…`, 5.4 GB) was left for the user to purge.
 
 ## 6. Next Steps
 
-1. User reviews the uncommitted changes; commit only when asked.
-2. Optionally record the real-project results in `review-ios/evals/results.md` (currently only evals 1–4).
-3. Later capabilities (plan Task 6), each with its own RED-GREEN evaluation before authoring: `implement-ios`, `test-ios` (Xcode MCP / MobileBuildMCP), `build-swiftui` (re-evaluate `AvdLee/SwiftUI-Agent-Skill` vs `swiftui-pro`). Physical-device automation only after simulator behavior is reliable.
+1. **User tests the skills hands-on** in OpenCode or Claude Code (setup in item 15). First check: rerun the "open Thuisarts, type 'hoofdpijn', open the article" flow with and without UI automation enabled (`drive-ios` eval 4). Then `test-ios` with Xcode open and a simulator destination (Xcode MCP route, open item 7). Adjust skills from the user's feedback.
+2. Review the uncommitted changes with the user; commit only when asked (end commit messages with the attribution line from the session instructions). PR still blocked on repository rights.
+3. Decide whether to save the client findings (security, localization) as local reports outside the repo for the teams; ask first, they are sensitive.
+4. Optionally re-run the KNMI and Thuisarts `security-audit-ios` evals to confirm the YAML-shape fix, and re-run `drive-ios` evals after the post-eval rule changes.
+5. Later capabilities, each with RED-GREEN evaluation first: `implement-ios` (first write-enabled skill), `build-swiftui` (re-evaluate `AvdLee/SwiftUI-Agent-Skill` vs `swiftui-pro`), then the deferred items in open item 14. `swift-style.md` stays blocked (open item 4).
+6. Update the plan's Task 6 checkboxes (`docs/superpowers/plans/2026-10-15-aimate-ios-v1.md`) to reflect the skills added.
 
 ## 7. Working Preferences
 
@@ -147,3 +183,8 @@ Run headless with `claude -p … --plugin-dir plugins/aimate-ios --plugin-dir pl
 - Prefer native Apple tooling and company-owned references over third-party installs.
 - The user approves design-level decisions explicitly and may skip detailed review of docs.
 - Never commit unasked.
+- The user chooses skill names; offer a short table of options with a recommendation.
+- Keep skills goal-neutral where future uses are likely (for example `drive-ios` for QA, validation, screenshots, and later demos).
+- When a capability is missing, the agent must stop and say what to enable instead of finding a workaround that changes what the user asked to test.
+- Prefer the smallest first version (for example static-only localization) and defer extensions explicitly.
+- Do not change the user's global agent configuration; show the snippet and let the user apply it.
