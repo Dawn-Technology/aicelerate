@@ -477,6 +477,7 @@ try {
 
       const row = {
         case: c.id, pipeline: PIPELINE, run, entryState: c.entry_state ?? null, ...extras,
+        aimateVersion, cliVersion, genModel: GEN_MODEL,
         pass: checks.filter((x) => x.pass).length,
         total: checks.length,
         checks,

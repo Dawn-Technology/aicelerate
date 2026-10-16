@@ -65,6 +65,24 @@ export function buildReport(runs, meta = {}) {
   // every statistic and reported under suite health instead.
   const invalidRuns = runs.filter((r) => r.invalidRun);
   runs = runs.filter((r) => !r.invalidRun);
+  // Totals across plugin versions are not comparable: pre-fix and post-fix
+  // runs would pool into one misleading number. Default to the newest stamped
+  // version; meta.allVersions = true pools everything anyway (and says so).
+  let versionNote = "";
+  if (!meta.allVersions) {
+    const vers = [...new Set(runs.map((r) => r.aimateVersion ?? "unstamped"))];
+    if (vers.length > 1) {
+      const semver = (v) => (v === "unstamped" ? [-1] : v.split(".").map(Number));
+      const newest = vers.sort((a, b) => {
+        const [x, y] = [semver(a), semver(b)];
+        for (let i = 0; i < 3; i++) { if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0); }
+        return 0;
+      }).at(-1);
+      const excluded = runs.filter((r) => (r.aimateVersion ?? "unstamped") !== newest);
+      runs = runs.filter((r) => (r.aimateVersion ?? "unstamped") === newest);
+      versionNote = `Showing aimate ${newest} only (${runs.length} runs). Excluded as not comparable: ${excluded.length} runs from ${vers.filter((v) => v !== newest).join(", ")} — pass --all-versions to pool them anyway.`;
+    }
+  }
   const subjectRuns = runs.filter((r) => r.pipeline === subject);
   const controlRuns = runs.filter((r) => r.pipeline === control);
   const pipelines = [...new Set(runs.map((r) => r.pipeline))].sort();
@@ -82,6 +100,7 @@ export function buildReport(runs, meta = {}) {
     `${subjectRuns.length} ${subject} run(s) over ${cases.length} case(s)` +
       (controlRuns.length ? `, with ${controlRuns.length} ${control} control run(s)` : ", no control runs") +
       (meta.header ? ` — ${meta.header}` : ""),
+    ...(versionNote ? ["", versionNote] : []),
     "",
     "## What this sweep says",
     "",
@@ -245,6 +264,7 @@ if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
   const outIdx = argv.indexOf("--out");
   const outFile = outIdx === -1 ? null : argv[outIdx + 1];
   const dirs = argv.filter((a, i) => !a.startsWith("--") && i !== outIdx + 1);
+  const allVersions = argv.includes("--all-versions");
   const roots = dirs.length
     ? dirs
     : readdirSync(join(repoRoot, "evals", "results")).map((d) => join(repoRoot, "evals", "results", d));
@@ -263,7 +283,7 @@ if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
     writeFileSync(join(repoRoot, "evals", "baseline.json"), JSON.stringify(baseline, null, 2) + "\n");
     console.log("baseline written: evals/baseline.json");
   }
-  const text = buildReport(runs);
+  const text = buildReport(runs, { allVersions });
   if (outFile) { writeFileSync(outFile, text); console.log(`written: ${outFile}`); }
   else console.log(text);
 }
