@@ -2,6 +2,8 @@
 
 ## 3.8.0
 
+- Test and eval suite for the plugin itself, in `tests/` and `evals/`: structural and routing checks that block every PR in CI, headless smoke tests for Claude Code and the Copilot CLI, promise-and-fire evals on both hosts' real routers, and behavioral evals that grade real agent runs against the numbered requirements in `evals/rubrics/requirements.md` with hidden acceptance tests and a no-plugin control. Reports land as CI artifacts; result folders are gitignored. See `tests/README.md` and `evals/README.md`.
+
 - New skill `split-spec`: split a spec, feature or epic into vertical, independently deliverable tickets — size gate first (small work stays one ticket), a demo line per ticket, acceptance criteria that fail on the current code, blockers as tracker links, a numbered list for approval before full tickets, and explicit handling for layered, oversized and vague input. Fills the measured gap where "break this work down into tickets" fired no skill at all.
 - `write-plan`: a size gate returns a single task instead of a plan document for small work, and unattended runs close open design branches as stated assumptions and always deliver the plan instead of halting on questions. Both behaviors were measured failures in the eval suite.
 - `prepare-ticket`: description now names natural readiness phrasings and applies when the ticket is pasted inline, aimed at hosts whose routers did not fire it.

@@ -13,7 +13,7 @@ Turn a spec, feature description or epic into tickets that each deliver demonstr
 
 Read the spec, then ground it: explore the parts of the codebase the work touches. A split made without reading the code produces tickets that fight the architecture.
 
-**Size gate — always first.** If the whole change fits one ticket (one focused session: roughly one concern, a handful of files), produce exactly one ticket and say the work needs no split. Splitting small work is a failure, not thoroughness.
+**Size gate — always first.** If the whole change fits one ticket (one focused session: roughly one concern, a handful of files), produce exactly one ticket and say the work needs no split. Touching several layers does not make work big: a config setting, a single field from database to screen, a one-screen change are all one ticket. Splitting small work is a failure, not thoroughness. And past the gate, cut the fewest tickets that keep every slice demonstrable: two slices that would always ship together are one ticket.
 
 ## Cutting rules
 
@@ -32,7 +32,7 @@ The approval list is a plain numbered list of titles with demo lines. Every full
 2. **Demo line** — one sentence: "Demo: …what can be shown when this is done."
 3. **Description** — all context the ticket needs, inline. Never a pointer like "see chapter 4 of the spec"; a fresh session gets only this text and the repo.
 4. **Acceptance criteria that fail today** — checkable statements that are false on the current code and become true when the ticket is done. Prefer criteria a command can verify.
-5. **Blockers as links** — a dependency on another ticket is an explicit reference ("Blocked by: #2"), created as a real tracker link when tracker routing is configured. Never prose like "after the previous work is done".
+5. **Blockers as links** — every ticket that depends on another carries an explicit "Blocked by: Ticket <n>" line, created as a real tracker link when tracker routing is configured. Numbering order alone is not a dependency, and prose like "after the previous work is done" does not count.
 
 ## Workflow
 
@@ -45,3 +45,7 @@ The approval list is a plain numbered list of titles with demo lines. Every full
 - **Spec already cut per layer** ("phase 1 database, phase 2 backend, phase 3 frontend"): cut vertically anyway and name the deviation from what was asked, with the reason.
 - **Too big to split honestly** (a dozen-plus features, "V1 of the portal"): do not produce forty tickets. Propose scoping: ask which features define the first demonstrable version, and split only that.
 - **Too vague to split** (no criteria, contradictions): list the open questions. Never invent acceptance criteria as if the requester wrote them.
+
+## When nobody can answer
+
+In an unattended run, the line between asking and deciding matters. Missing requirements stay questions: an unchosen payment provider, compliance that has not started, a spec whose intent is unclear. Those are the requester's calls, and guessing them puts words in their mouth. Design decisions within clear requirements get made: schema shape, retention mechanism, library choice, batch size. State each one as a decision with its rationale inside the ticket, so a reviewer can overturn it. A split that leaves design decisions as open questions delivers homework, not tickets.
