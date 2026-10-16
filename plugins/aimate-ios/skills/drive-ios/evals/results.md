@@ -28,3 +28,7 @@ With the skill, the run followed the `AGENTS.md` route with existing DerivedData
 ## Changes After Evaluation
 
 `SKILL.md` now prefers a temporary simulator created and deleted by the run for fresh states, requires asking before resetting the keychain or erasing a simulator the run did not create, and asks to let carousels settle before capturing variants. These changes were not re-evaluated.
+
+## Manual Test Feedback (2026-10-16)
+
+In a manual OpenCode run, the user asked to open Thuisarts, type "hoofdpijn" in search, and open the article. The `MobileBuildMCP` server ran with its default workflows only (`session-management`, `simulator`), so tap and type tools were missing; the agent opened the article through a deep link it found in the code instead. The user wants described steps performed through the UI exactly, and a clear stop with what is missing when UI control is unavailable. `SKILL.md` now requires that, and the README documents `MOBILEBUILDMCP_ENABLED_WORKFLOWS=simulator,ui-automation,debugging`, which registers 44 tools instead of 24. Not yet re-evaluated: a described flow with UI automation disabled must stop; the same flow with it enabled must run through the UI.

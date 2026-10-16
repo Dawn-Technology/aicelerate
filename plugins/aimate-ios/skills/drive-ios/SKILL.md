@@ -47,7 +47,9 @@ Before touching the simulator, write the plan:
 - `validate`: numbered checks, each with its expected result.
 - `capture`: every screen times every variant (appearance, device, locale) requested.
 
-Choose the shortest reliable route to each screen: a deep link or universal link (`xcrun simctl openurl`), a launch argument or environment value the project supports, then UI navigation.
+When the user describes the steps (for example "open search, type 'hoofdpijn', open the article"), those steps are the flow under test: perform each one through the UI exactly as described. Never replace a described step with a deep link, launch argument, or a route found in the code, even when it reaches the same screen.
+
+Only when the user names a goal or screen without the way to get there, choose the shortest reliable route: a deep link or universal link (`xcrun simctl openurl`), a launch argument or environment value the project supports, then UI navigation. State the chosen route in the plan.
 
 Avoid side effects beyond the request: no purchases, account creation, messages, feedback submissions, or changes to real user data on a production backend. Ask before any such action. Decide how to answer permission prompts from the request (deny unless the flow needs the permission) and report each answer.
 
@@ -61,7 +63,9 @@ For `capture`, wait for animations and rotating content (carousels) to settle an
 
 Navigate with `MobileBuildMCP` UI automation: `snapshot-ui`, then `tap`, `type-text`, `swipe`, or `wait-for-ui` by element reference. Take a fresh snapshot after every navigation, scroll, or sheet change. Identify elements by accessibility label or identifier, not coordinates. Take a screenshot at every step that matters (`xcrun simctl io <id> screenshot <file>`). System alerts and prompts do not appear in screenshots; use the UI snapshot text as evidence for them.
 
-Without `MobileBuildMCP`, use deep links, launch arguments, and `simctl` only. When a step needs UI navigation that these cannot reach, mark it blocked with the manual step instead of writing UI test code.
+Before driving, confirm that UI control works: the `MobileBuildMCP` `snapshot-ui`, `tap`, and `type-text` tools are available, or the `mobilebuildmcp` command-line tool runs `ui-automation snapshot-ui` for this simulator. The command-line tool performs the same steps and counts as the same route; report which one was used.
+
+When neither works and the plan contains UI steps, stop before driving. Report that the flow cannot be performed, why (for example "MobileBuildMCP UI automation tools are not enabled in this session"), and what enables it (see the plugin README: `MOBILEBUILDMCP_ENABLED_WORKFLOWS`). Do not look for an alternative route in the code, and do not write UI test code. Without UI control, only plans that need no UI steps (deep links, launch arguments, `simctl`) can run.
 
 For `reproduce`, also check whether the result persists after relaunching the app when that matters, and repeat the reproduction once to report a count such as "reproduced 2 of 2".
 
@@ -96,7 +100,8 @@ Open with these sections:
 Before returning, confirm:
 
 - project instructions were checked with a file listing, and the build used the `tooling.md` route;
-- the plan was written before driving, and every check or screen has a result;
+- the plan was written before driving, every step the user described was performed through the UI as described, and every check or screen has a result;
+- when UI control was unavailable, the run stopped and said what enables it instead of taking another route;
 - the version, build, backend environment, and simulator are named;
 - every claim has a screenshot, UI snapshot, crash report, or log as evidence;
 - no source or git state changed, the simulator was restored, and only this run's temporary folders were deleted.
