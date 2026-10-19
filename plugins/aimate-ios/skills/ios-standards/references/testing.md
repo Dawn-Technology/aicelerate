@@ -12,7 +12,24 @@
 
 ## Naming
 
-Describe the subject, condition, and observable expectation.
+Describe the subject, condition, and observable expectation. XCTest and Swift Testing use the same function names.
+
+### Test Naming Convention
+
+```swift
+func test_<Function_or_subject>_with<Condition>_should<Expectation>() async throws {
+    // Arrange
+    // Setup test data and mocks
+    
+    // Act
+    // Execute the code under test
+    
+    // Assert
+    // Verify expectations
+}
+```
+
+For example:
 
 ```swift
 func test_loadProfile_withValidResponse_shouldReturnProfile() async throws
@@ -20,10 +37,10 @@ func test_loadProfile_withValidResponse_shouldReturnProfile() async throws
 func test_login_withValidCredentials_shouldShowHomeScreen() throws
 
 @Test("loadProfile with a valid response returns the profile")
-func loadProfileWithValidResponseReturnsProfile() async throws
+func test_loadProfile_withValidResponse_shouldReturnProfile() async throws
 ```
 
-For Swift Testing, put the readable behavior in the `@Test` display name and use normal lower-camel-case for the function. Use parameterized tests when they remove repetitive cases.
+For Swift Testing, use the same `test_<subject>_with<Condition>_should<Expectation>` function name and put the readable behavior in the `@Test` display name. Use parameterized tests when they remove repetitive cases.
 
 Company naming wins over provider suggestions: do not use raw-identifier test names such as ``func `load profile with a valid response`()`` unless the project already does.
 
