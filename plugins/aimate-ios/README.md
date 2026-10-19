@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, `summarize-project-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -80,6 +80,12 @@ Read-only localization audit of a whole iOS project. It determines the languages
 
 Ask for it by name, for example "run localization-audit-ios on this project".
 
+### `summarize-project-ios`
+
+Read-only overview of an iOS project for a developer joining and a tech lead assessing it. The onboarding part covers what the app is, its structure, numbered steps from a fresh clone to a running app, and the gotchas: instruction files that disagree with the project, broken links, private package access, files that come from CI or the team, required tools, which backend each configuration uses, scheme surprises, and lockfile drift. The assessment part covers strengths, hotspots from git history, the main risks and debt, and which specialist skills to run next. It labels every claim that is inferred rather than read from a file.
+
+Ask for it by name, for example "run summarize-project-ios on this project".
+
 ### `ios-standards`
 
 Internal company-policy foundation used by the user-facing iOS skills. It is not a replacement for official Apple or maintained community guidance.
@@ -122,7 +128,7 @@ Without UI automation, `drive-ios` stops and says so instead of taking another r
 
 See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review. When using `MobileBuildMCP` on client work, set `MOBILEBUILDMCP_SENTRY_DISABLED=true` to turn off its error telemetry.
 
-`MobileBuildMCP` keeps a separate build cache and test products per project under `~/Library/Developer/MobileBuildMCP/workspaces/`. The first review of a project is a full build, and one project can take tens of gigabytes (about 18 GB for a mid-sized TCA app). Check and clean it from the project directory:
+`MobileBuildMCP` keeps a separate build cache and test products per project under `~/Library/Developer/MobileBuildMCP/workspaces/`. The first review of a project is a full build, and one project can take tens of gigabytes (about 18 GB for a mid-sized TCA app). The skills report this cache's size after every run that used `MobileBuildMCP` and remind you to clean it when it is larger than 10 GB. Check and clean it from the project directory:
 
 ```bash
 mobilebuildmcp purge --scope workspace --report
