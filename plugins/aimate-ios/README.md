@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, `summarize-project-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, `summarize-project-ios`, `review-architecture-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -79,6 +79,12 @@ Ask for it by name, for example "run security-audit-ios on this project".
 Read-only localization audit of a whole iOS project. It determines the languages the app actually supports, counts missing and unreviewed translations per catalog, matches every key used in code against the catalog of the bundle it is looked up in, and checks text that bypasses localization, values in the wrong language, concatenated sentences and plurals, locale-aware formatting, permission texts, and extensions. It reports with the same severity labels and output shape as `review-ios`. It does not judge on-screen layout; for localization review of a single change, `review-ios` includes a Localization module.
 
 Ask for it by name, for example "run localization-audit-ios on this project".
+
+### `review-architecture-ios`
+
+iOS companion of `aimate`'s `review-architecture`: the same churn-first method, severities, roadmap, and report in `docs/`, with what the generic version cannot do for iOS. Two bundled scripts read the Swift module graph (package targets, declared dependencies, actual imports, app target links) and iOS platform health (deployment targets, Swift language settings, branch-pinned packages, `Package.resolved` drift, availability code) without writing to the repo. iOS rules cover TCA and MVVM + Coordinators layer mapping and signals such as hand-written `Equatable` that hides state from `TestStore`, side effects outside dependencies, and feature flags read in views. Uses `aimate`'s scripts and report template when `aimate` is installed and a condensed method otherwise. All scripts run with `xcrun python3`, the Python 3.9 that Xcode ships, so nothing extra needs installing. Writes one untracked report file; never edits source.
+
+Ask for it by name, for example "run review-architecture-ios on this project".
 
 ### `summarize-project-ios`
 
