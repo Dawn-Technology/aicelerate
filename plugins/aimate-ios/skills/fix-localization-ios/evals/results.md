@@ -34,3 +34,14 @@ With the skill, the run read the Copilot instructions and applied their per-modu
 ## Outcome
 
 The skill adds project instructions, supported-language determination, a scripted inventory and exact key matching on every run, reachability-based company severities, and the shared output shape. No changes were needed after evaluation.
+
+## Renamed and Extended (2026-10-20)
+
+The user renamed the skill from `localization-audit-ios` to `fix-localization-ios` and added a fix phase: scan, a fix plan per category with before and after text, developer approval, then fixes on a new branch without committing. Agent-written translations are marked `needs_review`. String Catalogs are edited only through `scripts/xcstrings.py`, which writes Xcode's exact format; verified to round-trip all 52 catalogs in the three projects byte for byte, and `set` and `rename-key` produce minimal diffs. The results above cover the scan phase (then the whole skill); the plan and fix phases are not yet evaluated.
+
+Plan phase evaluated on Thuisarts (Sonnet, 2026-10-20): scan and plan left the clone untouched, matched all lookups exactly, found the Dutch-only disagreement, and asked four team questions. The plan was complete but long, so the user asked for a short summary on top; `SKILL.md` now requires one (at most about ten lines) before the details.
+
+## Fix Phase on Thuisarts (Sonnet, 2026-10-20)
+
+The developer (user) answered: Dutch-only; add `InfoPlist.xcstrings`; rename the misnamed "Privacy Policy" key to "Terms of use"; formal "u" to "je"; categories 1, 2, 3, 5.2, 6.1, 7; branch `chore/fix-localization` from `origin/develop`; no commits. The run fixed 9 missing-bundle lookups, the wrong values, 12 `nl` entries (two real translations, the rest existing Dutch text), two concatenations into format strings, file sizes through `ByteCountFormatter`, deleted stale and unused keys, and added `InfoPlist.xcstrings` registered in the project (both `.lproj` outputs present in the built app). All 21 catalogs still round-trip; every agent-written value is `needs_review` and listed for review. Swift compiled with zero errors; the build stopped only at the Crashlytics upload script, an artefact of the clone's package path. No tests exist. Gap found: `xcstrings.py` had no delete command, so the agent scripted deletes with its `load`/`save` functions; `delete` was added afterwards.
+
