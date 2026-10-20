@@ -1,5 +1,27 @@
 # Release notes
 
+## 4.0.0
+
+Reviews now focus on whether a change delivers the requested behavior safely and keeps the next change manageable. Findings need evidence, a concrete consequence, and the smallest safe direction; unclear code should be improved rather than explained through more comments. Incomplete reviews can no longer look clean merely because their finding totals are zero.
+
+- **`code-review` (2.0.0)** replaces the education goal with actionable feedback, applies one evidence and severity standard across review areas, and checks intended behavior and existing regression coverage. Necessary contract documentation and concise external rationale remain valid; style preferences, speculative abstractions, and missing new test files are not findings by themselves.
+- **`code-review` (2.0.0)** also owns a shared chunked review protocol. Chunks pass along contract facts and unresolved cross-file concerns, then a final integration step verifies coverage, checks affected producers and consumers, reconciles conflicting claims, merges duplicate causes, and rebuilds totals and rendered output. The 1,500-line chunking and 5,000-line size-confirmation thresholds are unchanged.
+- **`review-pr` (5.4.0)**, **`review-local` (1.2.0)**, **`resolve-pr-feedback` (1.2.0)**, and **`review-and-resolve-pr` (1.2.0)** use that protocol instead of concatenating chunk reports. Incomplete reviews cannot authorize publication or pass the pre-push self-review gate. Existing provider permissions and the autonomous loop's standing authorization remain unchanged.
+- Added [11 fixed review scenarios](skills/code-review/evals/scenarios.json) for comparing skill revisions, including convention departures, necessary rationale, existing test coverage, duplicate cross-chunk findings, and incomplete review states. Comparisons are a skill-maintenance activity, not an additional step in every review.
+
+### Breaking changes
+
+- `inline-comments` now returns the complete structured review result, not a result containing only `comment_bodies`.
+- `summary.review_complete` is required. It is false for preflight, per-chunk results, and incomplete coverage; only a completed normal review or an integrated agreed scope returns true.
+- Chunked callers must pass `review_context.chunk_context` and run final integration before consuming the result as a completed review. Per-chunk results include `summary.cross_file_context` for the handoff.
+
+### Migration from 3.x
+
+1. Update the plugin as a whole so the core and its callers use the same contract. The bundled workflows reference sibling skills inside the plugin; copying one skill alone does not install its dependencies.
+2. In custom inline callers, read comment text from the returned result's `comment_bodies` map and retain the rest of the result.
+3. Replace custom chunk concatenation with the [shared chunked review protocol](skills/code-review/SKILL.md#chunked-review-protocol). Use the integrated findings, totals, report, and comment bodies rather than raw chunk output.
+4. Require `summary.review_complete: true` before publication, approval, request-changes actions, or a successful self-review gate. Missing or false completion state is not a clean review.
+
 ## 3.7.0
 
 Added `test-pr-e2e` (1.0.0), which tests a PR or MR like a human QA engineer using Microsoft's official `@playwright/mcp` server. Phase 1 delegates to `test-pr-guide` to turn the diff into an editable scenario list; Phase 2 runs each scenario live in a Playwright-controlled browser with inline step logging, failure screenshots, and a structured report. It supports a single PR/branch or a multi-service feature split across several repos, with a pre-flight reachability check per service.

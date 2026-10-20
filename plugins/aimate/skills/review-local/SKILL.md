@@ -3,7 +3,7 @@ name: review-local
 description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request or merge request.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 1.1.0
+  version: 1.2.0
   dependencies:
     - code-review
 ---
@@ -110,13 +110,11 @@ The `code-review` dependency MUST review every file or snippet in the requested 
 
 Store the returned output as `code_review_result`. `code_review_result` is the only valid source for findings shown in Step 3.
 
-If `code_review_result.chunking_required` is `true`, the change is too large for one pass. Do not continue to the normal Step 3 report; run the chunks instead:
-
-1. If `code_review_result.confirm_scope` is `true`, present the warning from `code_review_result.report` and the `chunk_plan`, ask the user once whether to narrow the scope or review every chunk, and end the response without further tool calls. Otherwise do not ask; start the first chunk in the same turn.
-2. Invoke `code-review` for each chunk in `chunk_plan` order, passing only that chunk's files and diff, and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, local diff context, repository context, and existing feedback. Do not stop between chunks.
-3. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 3.
+If `code_review_result.chunking_required` is `true`, execute the core's [chunked review protocol](../code-review/SKILL.md#chunked-review-protocol), including context handoff and the final integration invocation. Store the integrated result as `code_review_result`, then continue to Step 3. Do not aggregate or reclassify findings in this wrapper.
 
 If the user narrows the scope, run the chunks for the files they kept and list the files left out as unreviewed in Step 3. If they stop, state that the review is incomplete and list the unreviewed chunks.
+
+Only treat the review as completed when `code_review_result.summary.review_complete` is true. Otherwise report the actual reviewed scope and remaining gaps without claiming a clean review.
 
 Before moving to Step 3, perform this invariant check:
 

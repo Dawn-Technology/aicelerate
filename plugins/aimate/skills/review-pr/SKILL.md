@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.3.0
+  version: 5.4.0
   dependencies:
     - code-review
 ---
@@ -182,14 +182,11 @@ Store the returned output as `code_review_result`. `code_review_result` is the o
 - Comment bodies posted in Step 7-A.
 - Request-changes summaries in Step 7-C.
 
-If `code_review_result.chunking_required` is `true`, the change is too large for one pass. Do not continue to the normal Step 6 report; run the chunks instead:
-
-1. If `code_review_result.confirm_scope` is `true`, present the warning from `code_review_result.report` and the `chunk_plan`, ask the user once whether to narrow the scope or review every chunk, and end the response without further tool calls. Otherwise do not ask; start the first chunk in the same turn.
-2. Invoke `code-review` for each chunk in `chunk_plan` order, passing only that chunk's files and diff, and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, diff coordinates, repository context, and existing feedback. Do not stop between chunks.
-3. Do not post comments, approve, or request changes until every chunk has been reviewed and its results retained.
-4. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings and `comment_bodies`, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 6.
+If `code_review_result.chunking_required` is `true`, execute the core's [chunked review protocol](../code-review/SKILL.md#chunked-review-protocol), preserving provider diff coordinates and invoking the core for final integration before any publication or review-state action. Store the integrated result as `code_review_result`, then continue to Step 6. Do not aggregate or reclassify findings in this wrapper.
 
 If the user narrows the scope, run the chunks for the files they kept and list the files left out as unreviewed in Step 6. If they stop, proceed to Step 8 only after they explicitly choose report-only/stop; report that the review is incomplete and list the unreviewed chunks.
+
+Require `code_review_result.summary.review_complete: true` before offering publication, approval, or request-changes actions. Otherwise report the partial reviewed scope and gaps; do not treat empty totals as a clean review.
 
 Before moving to Step 6, perform this invariant check:
 
