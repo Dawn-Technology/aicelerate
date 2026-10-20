@@ -52,7 +52,7 @@ Use git history, not file size alone: files changed most in the last six months 
 
 ### 5. Assess
 
-Pick the most important risks and debt for a tech lead, at most ten, each with impact (High, Medium, Low), evidence, and whether it is verified in files or inferred. Do not audit security or localization in depth: when signs point there, add one line that recommends `security-audit-ios` or `localization-audit-ios`, and recommend `test-ios` when the test setup is unclear. A behavior bug read in code but not reproduced is labeled as inferred. Report knowledge concentration (for example most recent commits by one author) as counts and shares, without naming individuals.
+Pick the most important risks and debt for a tech lead, at most ten, each with impact (High, Medium, Low), evidence, and whether it is verified in files or inferred. Do not audit security or localization in depth: when signs point there, add one line that recommends `security-audit-ios` or `fix-localization-ios`, and recommend `test-ios` when the test setup is unclear. A behavior bug read in code but not reproduced is labeled as inferred. Report knowledge concentration (for example most recent commits by one author) as counts and shares, without naming individuals.
 
 ### 6. Report
 
