@@ -1,5 +1,11 @@
 # Release notes
 
+## 4.1.0 (2026-10-20)
+
+`prepare-ticket` (3.0.0) now aims to turn a ticket into an intent-driven specification: why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer.
+
+Improved design-tree handling follows answers into dependent decisions instead of stopping after one round of questions. Agreed decisions improve the specification, unresolved choices stay visible, and a final handoff challenge checks for materially different interpretations before declaring it ready.
+
 ## 4.0.0
 
 Reviews now focus on whether a change delivers the requested behavior safely and keeps the next change manageable. Findings need evidence, a concrete consequence, and the smallest safe direction; unclear code should be improved rather than explained through more comments. Incomplete reviews can no longer look clean merely because their finding totals are zero.

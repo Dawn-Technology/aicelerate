@@ -97,14 +97,6 @@ Helps agents write Architectural Decision Records (ADRs) as executable specifica
 npx skills add https://github.com/vercel/ai --skill adr-skill
 ```
 
-### Caveman ([JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman))
-
-Ultra-compressed communication mode that cuts token usage ~75% by dropping filler, articles, and pleasantries while keeping full technical accuracy. Use when you want terse, token-efficient responses.
-
-```bash
-npx skills add https://github.com/JuliusBrussee/caveman --skill caveman
-```
-
 ## Recommended MCP servers
 
 The following MCP servers are not part of this repository but are recommended for use alongside `aimate`.
@@ -252,11 +244,13 @@ This is where teams add project-specific skills — e.g. a deployment agent, a m
 
 ## Spec-Driven Development Workflow
 
-`aimate` and its recommended external skills are designed to support a **spec-driven development** workflow: start with a well-defined specification, align on architecture, plan the work, then hand it off to a coding agent of your choosing. Throughout this section, "spec" refers loosely to the planning artifacts a change produces — chiefly the PRD (the what and why) and the implementation plan (the how). They share the same home and lifecycle in the repo, but they are distinct documents.
+The main workflow is **`write-prd` → `prepare-ticket` → `implement-ticket` → `review-pr`**. Use `write-prd` to kickstart larger features or applications in greenfield projects with epics and user stories. If you already have a ticket or user story, start directly with `prepare-ticket`.
+
+Planning and estimation are optional between preparation and implementation: use **`write-plan` → `estimate-time`** for an hour estimate, or **`write-plan` → `estimate-size`** to size the ticket in points using the plan.
 
 The plugin intentionally does **not** include a pre-configured coding agent. Projects vary significantly in language, tooling, and conventions. It is expected that each team brings their own coding agent and project-specific skills on top of this shared foundation.
 
-The stages below describe the recommended workflow and which skills and MCP servers to use at each step. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
+The sections below describe the main workflow and optional supporting steps. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
 
 `aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance. `gh`, `glab`, and `acli` are not installed automatically; see the CLI catalog's [Install](plugins/aimate/skills/configure-mcp/references/mcp-catalog.md#github-cli) entries for each tool's official installation options.
 
@@ -266,25 +260,9 @@ The stages below describe the recommended workflow and which skills and MCP serv
 
 ---
 
-### Stage 1 — Explore & Challenge
+### Stage 1 — Kickstart with a PRD (larger greenfield work)
 
-Before writing a line of spec, stress-test the problem statement and approach. Pull in existing Jira context documentation to ground the conversation.
-
-When the work arrives as a ticket rather than as a conversation, start with `prepare-ticket`: it traces the ticket's claims against the repository, closes the design tree, and decides whether the ticket is ready for development. It then acts on that verdict — writing the improved description back to the tracker, splitting a ticket that turned out to be two, or putting an open decision back in front of a human. The ready ticket is what Stage 4 plans against and what a coding agent in Stage 5 reads first.
-
-| Tool | Source | Purpose |
-| --- | --- | --- |
-| `prepare-ticket` | aimate | Prepare a Jira, GitHub, or GitLab ticket against the repository, close the design tree, and rewrite the description into an agent-ready brief |
-| `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
-| `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
-| Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
-| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
-
----
-
-### Stage 2 — Specify
-
-Translate the problem into a structured Product Requirements Document with user stories. Commit the PRD to the repo under `docs/specs/` and link the Jira ticket to that file — do not paste the PRD into the ticket. Reference designs from Figma and link back to the originating Jira issues. Optionally create a Jira ticket based on the PRD.
+Use `write-prd` to turn a larger feature or application idea into a Product Requirements Document with epics and user stories. Commit the PRD to the repo under `docs/specs/` and link the Jira ticket to that file — do not paste the PRD into the ticket. Reference designs from Figma and link back to the originating Jira issues. Take each resulting ticket or user story through `prepare-ticket`.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
@@ -294,7 +272,20 @@ Translate the problem into a structured Product Requirements Document with user 
 
 ---
 
-### Stage 3 — Decide Architecture
+### Stage 2 — Prepare the Ticket
+
+Start here when you already have a ticket or user story. `prepare-ticket` checks the claims against the repository, resolves material outcome decisions, and rewrites the description as an **intent-driven specification**. It states why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer. It assesses readiness and saves only approved changes; the ready specification feeds optional planning or goes directly to `implement-ticket`.
+
+| Tool | Source | Purpose |
+| --- | --- | --- |
+| `prepare-ticket` | aimate | Turn a Jira, GitHub, or GitLab ticket into an intent-driven specification and assess its readiness |
+| `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
+| Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
+| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
+
+---
+
+### Optional — Decide Architecture
 
 Document key architectural decisions as ADRs — structured enough for a coding agent to implement without follow-up questions. Store ADRs in the repo alongside the spec; unlike PRDs and plans, ADRs are durable architectural records and are not retired.
 
@@ -306,22 +297,23 @@ Document key architectural decisions as ADRs — structured enough for a coding 
 
 ---
 
-### Stage 4 — Plan
+### Optional — Plan & Estimate
 
-Break down the spec into an atomic, dependency-mapped implementation plan with effort estimates. Commit the plan alongside the PRD in the repo, and sync the time estimate and status back to Jira. Use the estimate for planning and sales.
+When a ticket needs planning and an estimate, use `write-plan` to break its specification into an atomic, dependency-mapped implementation plan. Then use `estimate-time` for hours, or `estimate-size` for the whole ticket's relative size in points using the plan as context. Commit the plan to the repo alongside any PRD, and sync the estimate back to the ticket.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `write-plan` | aimate | Generate an execution-ready implementation plan with sized tasks |
 | `estimate-time` | aimate | Add an hour estimate to the plan when a time forecast is needed |
+| `estimate-size` | aimate | Size the whole ticket in points using the plan as context |
 | Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
 | Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Update Jira tickets with estimates and move issues into the sprint |
 
 ---
 
-### Stage 5 — Implement
+### Stage 3 — Implement
 
-Hand off the result of write-plan (and estimate-time, if a time forecast is needed) or the spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
+Hand the prepared ticket, plus any optional plan and estimate, to `implement-ticket` or your team's coding agent. Choose the coding agent, model, and project-specific skills that fit your stack.
 
 For work tracked as a ticket — Jira, GitHub, or GitLab — `implement-ticket` covers this stage end to end: it critiques the ticket against the code, builds it in an isolated worktree, runs the project's own checks, and opens the PR/MR.
 
@@ -334,7 +326,7 @@ For work tracked as a ticket — Jira, GitHub, or GitLab — `implement-ticket` 
 
 ---
 
-### Stage 6 — Review
+### Stage 4 — Review
 
 Review the resulting code changes for correctness, quality, and security, then work the feedback back into the branch. `review-pr` and `resolve-pr-feedback` are the two halves of the same loop, and both use `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub. Run them separately when a human should read the findings before they are posted, or `review-and-resolve-pr` to close the whole loop in one autonomous pass.
 
@@ -348,7 +340,7 @@ Review the resulting code changes for correctness, quality, and security, then w
 
 ---
 
-### Stage 7 — Test & Ship
+### Supporting Tools — Test & Ship
 
 Produce a manual test guide and open the merge request. Local Git handles branch creation and push; the official `glab` CLI opens the MR.
 
