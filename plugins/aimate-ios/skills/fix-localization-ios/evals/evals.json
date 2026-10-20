@@ -1,0 +1,23 @@
+{
+  "skill_name": "fix-localization-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a localization audit of the iOS app in ~/Documents/git/knmi-app-ios (current checkout).",
+      "expected_output": "Dutch and English app with one String Catalog per Swift package: checks every catalog and that each package passes its own bundle. Determines the supported languages from the project (knownRegions, String Catalog source and target languages, Info.plist) and reports disagreements. Reports completeness per supported language with counts per String Catalog state, user-facing text that bypasses localization (separating it from logs, identifiers, debug, previews, and tests), strings in packages looked up in the wrong bundle, placeholder and plural mismatches, concatenated sentences, fixed date and number formats, and untranslated permission texts. Lists every area as findings, checked without findings, or not applicable, uses the company severity labels and the review-ios output shape, and edits or builds nothing. Then presents the findings as a fix plan with numbered categories and per-item before and after text, and stops for approval. After approval: new branch, catalogs edited only through xcstrings.py with agent translations marked needs_review, build run, nothing committed.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Run a localization audit of the iOS app in ~/Documents/git/npo-start-ios (current checkout).",
+      "expected_output": "Dutch-only app with .strings files: does not treat the many .lproj folders of bundled SDKs as app languages, and reports which languages the app itself supports. Determines the supported languages from the project (knownRegions, String Catalog source and target languages, Info.plist) and reports disagreements. Reports completeness per supported language with counts per String Catalog state, user-facing text that bypasses localization (separating it from logs, identifiers, debug, previews, and tests), strings in packages looked up in the wrong bundle, placeholder and plural mismatches, concatenated sentences, fixed date and number formats, and untranslated permission texts. Lists every area as findings, checked without findings, or not applicable, uses the company severity labels and the review-ios output shape, and edits or builds nothing. Then presents the findings as a fix plan with numbered categories and per-item before and after text, and stops for approval. After approval: new branch, catalogs edited only through xcstrings.py with agent translations marked needs_review, build run, nothing committed.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run a localization audit of the iOS app in ~/Documents/git/thuisarts-ios (current checkout).",
+      "expected_output": "English and Dutch app with String Catalogs in a TCA package structure; reads .github/copilot-instructions.md first. Determines the supported languages from the project (knownRegions, String Catalog source and target languages, Info.plist) and reports disagreements. Reports completeness per supported language with counts per String Catalog state, user-facing text that bypasses localization (separating it from logs, identifiers, debug, previews, and tests), strings in packages looked up in the wrong bundle, placeholder and plural mismatches, concatenated sentences, fixed date and number formats, and untranslated permission texts. Lists every area as findings, checked without findings, or not applicable, uses the company severity labels and the review-ios output shape, and edits or builds nothing. Then presents the findings as a fix plan with numbered categories and per-item before and after text, and stops for approval. After approval: new branch, catalogs edited only through xcstrings.py with agent translations marked needs_review, build run, nothing committed.",
+      "files": []
+    }
+  ]
+}

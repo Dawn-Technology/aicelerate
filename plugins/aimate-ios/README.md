@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`, `security-audit-ios`, `localization-audit-ios`, `summarize-project-ios`, `review-architecture-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots `review-ios`, `security-audit-ios`, `fix-localization-ios`, `summarize-project-ios`, `review-architecture-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -74,11 +74,11 @@ Read-only security audit of a whole iOS project, for example when taking over a 
 
 Ask for it by name, for example "run security-audit-ios on this project".
 
-### `localization-audit-ios`
+### `fix-localization-ios`
 
-Read-only localization audit of a whole iOS project. It determines the languages the app actually supports, counts missing and unreviewed translations per catalog, matches every key used in code against the catalog of the bundle it is looked up in, and checks text that bypasses localization, values in the wrong language, concatenated sentences and plurals, locale-aware formatting, permission texts, and extensions. It reports with the same severity labels and output shape as `review-ios`. It does not judge on-screen layout; for localization review of a single change, `review-ios` includes a Localization module.
+Finds and fixes localization problems across a whole iOS project in three phases. First it scans read-only: the languages the app actually supports, missing and unreviewed translations per catalog, every key used in code matched against the catalog of the bundle it is looked up in, text that bypasses localization, values in the wrong language, plurals and concatenated sentences, locale-aware formatting, permission texts, and extensions. Then it presents a fix plan per category with each item's text before and after, and stops. After the developer approves, it fixes the approved items on a new branch, edits String Catalogs through a bundled script that keeps Xcode's exact file format, marks every translation it wrote as `needs_review` for a translator, and builds. It never commits. Stopping after the plan gives a localization audit in the same shape as `review-ios`; for localization review of a single change, `review-ios` includes a Localization module.
 
-Ask for it by name, for example "run localization-audit-ios on this project".
+Ask for it by name, for example "run fix-localization-ios on this project".
 
 ### `review-architecture-ios`
 
