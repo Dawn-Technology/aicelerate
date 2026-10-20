@@ -1,0 +1,23 @@
+{
+  "skill_name": "review-architecture-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run an architecture review of the iOS app in ~/Documents/git/knmi-app-ios (current checkout).",
+      "expected_output": "Known architecture facts to find: TCA in one local package with about 50-60 modules; MainFeature.swift (about 1,170 lines) and AppRemoteConfigClient.swift as top hot spots; iOS 15 minimum driving Backport, Perception, NavigationStackBackport, and LegacyIntents; branch-pinned forks; unbuildable macOS, tvOS, and watchOS targets; GridDefinition logic duplicated in Swift and the Kotlin Multiplatform framework. Follows the review-architecture method (churn first, evidence per finding, High/Medium/Low, roadmap) and adds iOS depth: reads project instructions; names the architecture from code per the company architecture reference (TCA or MVVM + Coordinators) and judges against it instead of a generic Domain/Application/Infrastructure layering; analyzes the Swift module graph mechanically (Package.swift targets, app target links, import statements) for cycles, wrong-direction and undeclared imports; checks iOS platform health (deployment targets, Swift language mode and strict concurrency, backport code, branch-pinned packages, lockfile drift) without inventing support dates; excludes generated code, .build, and DerivedData; writes one untracked report to docs/ and summarizes in chat; edits no source and changes no git state.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Run an architecture review of the iOS app in ~/Documents/git/npo-start-ios (current checkout).",
+      "expected_output": "Known architecture facts to find: MVVM + Coordinators over four local packages (Presentation, Domain, Data, Networking); generated OpenAPI schema types used as domain models and referenced directly from Presentation, against the documented layering; Data and Networking depending on Domain while AGENTS.md documents another direction; iOS and tvOS presentation duplicated per feature; Factory DI that fails at runtime; Spotlight header and Home as hot spots. Follows the review-architecture method (churn first, evidence per finding, High/Medium/Low, roadmap) and adds iOS depth: reads project instructions; names the architecture from code per the company architecture reference (TCA or MVVM + Coordinators) and judges against it instead of a generic Domain/Application/Infrastructure layering; analyzes the Swift module graph mechanically (Package.swift targets, app target links, import statements) for cycles, wrong-direction and undeclared imports; checks iOS platform health (deployment targets, Swift language mode and strict concurrency, backport code, branch-pinned packages, lockfile drift) without inventing support dates; excludes generated code, .build, and DerivedData; writes one untracked report to docs/ and summarizes in chat; edits no source and changes no git state.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run an architecture review of the iOS app in ~/Documents/git/thuisarts-ios (current checkout).",
+      "expected_output": "Known architecture facts to find: TCA with Feature/View module pairs in one local package; UIComponents depending on AppCore (composition root) as a layering inversion; no test targets at all; PageFeature and SearchFeature as hot spots; two Package.resolved files that disagree; branch-pinned packages. Follows the review-architecture method (churn first, evidence per finding, High/Medium/Low, roadmap) and adds iOS depth: reads project instructions; names the architecture from code per the company architecture reference (TCA or MVVM + Coordinators) and judges against it instead of a generic Domain/Application/Infrastructure layering; analyzes the Swift module graph mechanically (Package.swift targets, app target links, import statements) for cycles, wrong-direction and undeclared imports; checks iOS platform health (deployment targets, Swift language mode and strict concurrency, backport code, branch-pinned packages, lockfile drift) without inventing support dates; excludes generated code, .build, and DerivedData; writes one untracked report to docs/ and summarizes in chat; edits no source and changes no git state.",
+      "files": []
+    }
+  ]
+}
