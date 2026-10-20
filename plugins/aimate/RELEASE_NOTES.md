@@ -1,5 +1,20 @@
 # Release notes
 
+## 4.2.0 (2026-10-20)
+
+Code reviews are easier for an agent to follow, report every supported finding, and keep unverified concerns visible without turning them into findings. The review rules themselves are unchanged; each one is now stated once, in one place.
+
+- **`code-review` (2.1.0)** is restructured so a normal review no longer reads past the large-review rules. The finding standard, severities, and residual gaps are each defined once, and chunk and integration passes are described as changes to the normal steps. The `report` field always uses the chat format, chunk groups have a defined order, and the eval guide moved to [evals/README.md](skills/code-review/evals/README.md).
+- **`code-review` (2.1.0)** reports every distinct finding with no cap per category, and lets maintainability, style, and documentation findings require changes when their consequences justify it. An unverified security concern is a residual gap, never an `optional` finding, and residual gaps always appear in the report. Comment bodies carry no separate severity label.
+- **`code-review` (2.1.0)** returns a new `clarification_question` when a review cannot start without more input. **`review-pr` (5.5.0)** and **`review-local` (1.3.0)** ask the user that question and run the review again; **`resolve-pr-feedback` (1.3.0)** fills the gap from the worktree or keeps the push blocked.
+- A failed chunk no longer lets the successful chunks be integrated or published. **`review-pr` (5.5.0)** requires a complete review before any publication, approval, or request-changes action, and posts residual gaps in a labelled review summary rather than as inline findings.
+- The [review scenarios](skills/code-review/evals/scenarios.json) grew to 14, adding uncapped maintainability findings, security uncertainty alongside a real defect, a failed chunk, and the clarification response.
+
+### Migration from 4.1
+
+- `confirm_scope` is now true whenever a change exceeds 5,000 counted lines. Custom callers decide whether full scope is already authorized before asking, as the [chunked review protocol](skills/code-review/SKILL.md#chunked-review-protocol) describes.
+- Custom callers should handle `clarification_question`: ask the user, then invoke the review again with the answer.
+
 ## 4.1.0 (2026-10-20)
 
 `prepare-ticket` (3.0.0) now aims to turn a ticket into an intent-driven specification: why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer.

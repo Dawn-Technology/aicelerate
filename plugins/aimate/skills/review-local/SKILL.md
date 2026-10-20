@@ -3,7 +3,7 @@ name: review-local
 description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request or merge request.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 1.2.0
+  version: 1.3.0
   dependencies:
     - code-review
 ---
@@ -109,6 +109,8 @@ review_context:
 The `code-review` dependency MUST review every file or snippet in the requested scope, trace adjacent code when needed, classify findings, and return structured output to this skill.
 
 Store the returned output as `code_review_result`. `code_review_result` is the only valid source for findings shown in Step 3.
+
+If `code_review_result.clarification_question` is present, ask the user that question, end the response, and invoke `code-review` again with the answer.
 
 If `code_review_result.chunking_required` is `true`, execute the core's [chunked review protocol](../code-review/SKILL.md#chunked-review-protocol), including context handoff and the final integration invocation. Store the integrated result as `code_review_result`, then continue to Step 3. Do not aggregate or reclassify findings in this wrapper.
 

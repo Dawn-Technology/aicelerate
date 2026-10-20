@@ -342,6 +342,12 @@
       },
       "expected": {
         "must_clarify": "Ask for the helper's code or its file scope and repository context.",
+        "required_output_fields": ["clarification_question", "summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "clarification_question asks for the missing code or scope",
+          "summary.review_complete is false",
+          "Totals are zero, findings are empty, and comment_bodies is an empty map"
+        ],
         "must_not_report": [
           "Invented findings or a clean completed review without code",
           "Refusal to clarify because the review is below 5000 lines"
@@ -395,6 +401,185 @@
           "Reviewed scope contains only src/invoice.mjs",
           "Missing src/client.mjs coverage is explicitly reported",
           "Empty totals are not presented as a clean completed review"
+        ]
+      }
+    },
+    {
+      "id": "uncapped-maintainability-by-consequence",
+      "input": {
+        "submission": {
+          "title": "Add parallel interfaces for four business policies",
+          "description": "Each pair below implements one policy shared by two interfaces. The four policies are independent and must not share a rate, duration, or common policy abstraction."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/invoice-api.mjs",
+              "language": "javascript",
+              "content": "export function invoiceTax(netCents) {\n  return Math.floor(netCents * 21 / 100);\n}\n"
+            },
+            {
+              "path": "src/invoice-job.mjs",
+              "language": "javascript",
+              "content": "export function invoiceTax(netCents) {\n  return Math.floor(netCents * 21 / 100);\n}\n"
+            },
+            {
+              "path": "src/refund-api.mjs",
+              "language": "javascript",
+              "content": "export function refundDeadline(paidAtMs) {\n  return paidAtMs + 30 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/refund-job.mjs",
+              "language": "javascript",
+              "content": "export function refundDeadline(paidAtMs) {\n  return paidAtMs + 30 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/report-api.mjs",
+              "language": "javascript",
+              "content": "export function reportExpiry(createdAtMs) {\n  return createdAtMs + 7 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/report-job.mjs",
+              "language": "javascript",
+              "content": "export function reportExpiry(createdAtMs) {\n  return createdAtMs + 7 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/loyalty-api.mjs",
+              "language": "javascript",
+              "content": "export function loyaltyEligible(spentCents, suspended) {\n  return spentCents >= 10_000 && !suspended;\n}\n"
+            },
+            {
+              "path": "src/loyalty-job.mjs",
+              "language": "javascript",
+              "content": "export function loyaltyEligible(spentCents, suspended) {\n  return spentCents >= 10_000 && !suspended;\n}\n"
+            }
+          ],
+          "review_baseline": "All eight modules are submitted new code. Repository policy requires one implementation per business policy, consumed by both interfaces: these rules change independently and each change must affect both interfaces in one place. The new code instead duplicates each rule in its API and job. There is no generator or existing shared implementation. All four current calculations and supported inputs are correct; no new validation, calendar arithmetic, or policy choices are needed."
+        }
+      },
+      "expected": {
+        "finding_count": 4,
+        "required_severities": ["request-for-change"],
+        "must_report": [
+          "Duplicated invoice-tax knowledge requires synchronized edits in two interfaces",
+          "Duplicated refund-deadline knowledge requires synchronized edits in two interfaces",
+          "Duplicated report-retention knowledge requires synchronized edits in two interfaces",
+          "Duplicated loyalty-eligibility knowledge requires synchronized edits in two interfaces"
+        ],
+        "must_not_report": [
+          "Only three findings because maintainability is capped",
+          "All findings forced to optional merely because they concern maintainability",
+          "One generic finding hiding four independently fixable policies",
+          "One abstraction or constant joining the four unrelated policies"
+        ],
+        "output_checks": [
+          "The four maintenance hazards are retained and classified by their concrete change cost and explicit policy, not a category ceiling",
+          "Totals, report, and comment_bodies agree with the canonical findings",
+          "Posted comment bodies contain no added severity line or chat prefix"
+        ]
+      }
+    },
+    {
+      "id": "unverified-security-alongside-a-defect",
+      "input": {
+        "submission": {
+          "title": "Expose saved exports and split payment amounts",
+          "description": "Customers may read only their own exports. The share helper must reject an empty recipient list; otherwise divide whole cents evenly, rounding down."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/exports.mjs",
+              "language": "javascript",
+              "content": "export async function readExport(request, store) {\n  return store.read(request.params.exportId);\n}\n"
+            },
+            {
+              "path": "src/shares.mjs",
+              "language": "javascript",
+              "content": "export function shareCents(totalCents, recipients) {\n  return Math.floor(totalCents / recipients.length);\n}\n"
+            }
+          ],
+          "review_baseline": "The router middleware and store implementation are unavailable. Either may enforce export ownership, so the supplied code alone neither establishes nor disproves unauthorized access. No permitted source can supply them in this case. The share helper receives nonnegative safe integer totals and an array that may be empty; there is no earlier empty-list check. No other behavior is in scope."
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "required_severities": ["request-for-change"],
+        "must_report": ["An empty recipient list returns Infinity instead of being rejected"],
+        "must_not_report": [
+          "A confirmed authorization vulnerability without the missing router or store evidence",
+          "An optional security finding used to publish an unverified concern"
+        ],
+        "output_checks": [
+          "summary.residual_gaps names unverified export-ownership enforcement, the missing router or store evidence, and the verification needed",
+          "The rendered report includes the security uncertainty even though a genuine defect is also reported",
+          "The only finding and comment body concern the demonstrated empty-recipient defect",
+          "The report does not claim the export route is secure"
+        ]
+      }
+    },
+    {
+      "id": "failed-chunk-does-not-publish-earlier-findings",
+      "input": {
+        "submission": {
+          "type": "local-scope",
+          "title": "Integrate a review after its second chunk failed",
+          "description": "The first chunk found a defect. The second invocation failed before reading its assigned file. The agreed scope still contains both files; do not silently narrow it."
+        },
+        "code_input": {
+          "files": [
+            { "path": "src/share.mjs", "added": 900, "deleted": 0 },
+            { "path": "src/client.mjs", "added": 900, "deleted": 0 }
+          ],
+          "review_baseline": "Only the first chunk was reviewed. The second chunk failed with a source-read error; its code is unavailable. Completed results are working evidence, not permission to publish."
+        },
+        "review_context": {
+          "chunk_context": {
+            "phase": "integrate",
+            "plan": [
+              { "chunk": 1, "files": ["src/share.mjs"], "counted_lines": 900 },
+              { "chunk": 2, "files": ["src/client.mjs"], "counted_lines": 900 }
+            ],
+            "completed_results": [
+              {
+                "summary": {
+                  "submission": "Payment share chunk",
+                  "scope": ["src/share.mjs"],
+                  "review_complete": false,
+                  "cross_file_context": [
+                    "src/share.mjs:2 divides by recipients.length without rejecting an empty array; the accepted contract requires rejection."
+                  ]
+                },
+                "totals": { "security-violation": 0, "request-for-change": 1, "optional": 0 },
+                "findings": [
+                  {
+                    "id": "src/share.mjs:2:empty-recipients",
+                    "severity": "request-for-change",
+                    "category": "logic",
+                    "title": "Reject an empty recipient list",
+                    "body": "The helper returns Infinity instead of rejecting an empty list.",
+                    "location": { "file": "src/share.mjs", "line": 2, "line_type": "added" },
+                    "suggestion": "Reject an empty recipient list before dividing."
+                  }
+                ],
+                "report": "One candidate defect in src/share.mjs; whole-change integration is pending.",
+                "comment_bodies": {
+                  "src/share.mjs:2:empty-recipients": "Reject an empty recipient list before dividing."
+                }
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is false",
+          "Actual reviewed coverage is limited to src/share.mjs",
+          "The failed src/client.mjs chunk and required resumption are explicit in residual_gaps and report",
+          "Final findings and comment_bodies are empty, not the successful chunk's candidates",
+          "The incomplete result cannot authorize posting, approval, request-changes, or a successful self-review gate"
         ]
       }
     },

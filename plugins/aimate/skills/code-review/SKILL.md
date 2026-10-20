@@ -3,7 +3,7 @@ name: code-review
 description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 2.0.0
+  version: 2.1.0
   role: "reusable-review-core"
   dependencies: []
 ---
@@ -12,19 +12,16 @@ metadata:
 
 ## Purpose
 
-Provide constructive and comprehensive feedback on code changes. The primary goals are:
+Find what stands between a code change and safe, maintainable delivery, and say how to fix it:
 
-- **Quality Assurance**: Check changed behavior against stated intent and existing contracts to identify bugs, logic errors, and edge cases.
-- **Maintainability**: Ensure the change is readable, well decomposed, and consistent with the existing architecture, so the next change to this code stays cheap. SOLID, clean code, and DRY/KISS/YAGNI are lenses for finding that cost, not rules to enforce for their own sake.
-- **Security**: Detect common security vulnerabilities and privacy risks. Validate against OWASP Top 10 where applicable.
-- **Actionable Feedback**: Provide enough reasoning and remediation guidance for a human or agent to evaluate and address each finding.
+- **Quality Assurance**: Check changed behavior against stated intent and existing contracts to find bugs, logic errors, and edge cases.
+- **Maintainability**: Check that the change is readable, well decomposed, and consistent with the existing architecture, so the next change to this code stays cheap.
+- **Security**: Detect security vulnerabilities and privacy risks, using the OWASP Top 10 where applicable.
+- **Actionable Feedback**: Give enough reasoning and remediation guidance for a human or agent to evaluate and address each finding.
 
-This skill is **read-first**, **framework-agnostic**, and **non-invasive**:
+Report every finding that meets the [finding standard](#finding-standard), and nothing that does not.
 
-- Do not modify repository files.
-- Analyze the supplied code, diff, patch, commit, snippet, or changed files.
-- Return structured findings and formatted review text to the caller.
-- Leave provider-specific actions, posting comments, approvals, commits, or state changes to the calling skill.
+This skill is read-only and framework-agnostic. It analyzes the supplied code, diff, patch, commit, snippet, or changed files and returns structured findings and report text to the caller. The calling skill owns every provider-specific action; see [Guardrails](#guardrails).
 
 ## Input Interface
 
@@ -64,22 +61,26 @@ Minimum viable input:
 
 ## Output Interface
 
-Return review output to the caller in this shape:
+There are two output modes:
+
+- **Machine mode** (`calling-skill` or `inline-comments`; the two behave identically): return the full structure below and show nothing in chat.
+- **Chat mode** (`chat` or `report`; the two behave identically): show `report` to the user. Ask the user directly when a [question](#asking-for-missing-input) or the [size check](#size-check) is needed.
 
 ```yaml
-chunking_required: optional boolean; true only when the change exceeds 1,500 counted lines and the caller must run the review chunk by chunk
-confirm_scope: optional boolean; true only above 5,000 counted lines; confirm scope once before the first chunk unless full-scope review is already authorized
-counted_lines: optional number; total counted lines, present when chunking_required is true
+chunking_required: optional boolean
+confirm_scope: optional boolean
+counted_lines: optional number
 chunk_plan:
   - chunk: sequential number
     files: ordered list of file paths
     counted_lines: number of counted lines in this chunk
+clarification_question: optional string
 summary:
   submission: short description of reviewed input
   scope: reviewed files, snippets, or change set
-  review_complete: boolean; false for preflight, per-chunk results, or incomplete coverage; true only for a completed normal review or integrated agreed scope
+  review_complete: boolean
   residual_gaps: optional review gaps, missing context, or tests not run
-  cross_file_context: compact contract facts and unresolved cross-file concerns with source locations; required for chunk results, omitted otherwise
+  cross_file_context: compact contract facts and unresolved cross-file concerns with source locations
 totals:
   security-violation: number
   request-for-change: number
@@ -95,26 +96,40 @@ findings:
       line: precise line number or diff coordinate when available
       line_type: added | deleted | context | unknown
     suggestion: optional code block or concise remediation guidance
-report: formatted chat-ready findings report
-comment_bodies: provider-neutral comment text keyed by finding id; always present when output_target is calling-skill or inline-comments, omitted otherwise
+report: formatted findings report
+comment_bodies: provider-neutral comment text keyed by finding id
 ```
 
-`chunk_plan` and `counted_lines` are required when `chunking_required` is `true` and omitted otherwise; `confirm_scope` is omitted unless it is `true`. A chunking response is a preflight result, not a completed review: set `summary.review_complete: false` and return zero totals, empty `findings`, an explanatory `report`, and an empty `comment_bodies` map when the output target requires it. Record the counted line total and why chunking was needed in `summary.residual_gaps`; callers must use `chunk_plan` and `confirm_scope`, rather than parse `residual_gaps`, to drive chunk execution.
+Field rules:
 
-Do not invent precise line numbers when they cannot be derived. Use the best available location and state the limitation in `residual_gaps`.
+- `chunking_required`: true only when the change needs a [chunked review](#large-reviews) and the caller must run it chunk by chunk. `counted_lines` and `chunk_plan` are present when it is true and omitted otherwise.
+- `confirm_scope`: true when the change exceeds 5,000 counted lines; omitted otherwise. The caller decides whether full scope is already authorized; see the [size check](#size-check).
+- `clarification_question`: present only when the review cannot start without more input; see [Asking for missing input](#asking-for-missing-input).
+- `summary.review_complete`: true only for a completed normal review or a completed integration of the agreed scope. It is false for preflight, clarification, and per-chunk results, and whenever coverage is incomplete.
+- `summary.residual_gaps`: see [Residual gaps](#residual-gaps).
+- `summary.cross_file_context`: required for per-chunk results, as a list that may be empty; omitted otherwise.
+- `report`: always rendered in the [chat format](#finding-format-rules), in both modes.
+- `comment_bodies`: always present in machine mode, as a map that may be empty; omitted in chat mode.
+- `location.line`: never invent a precise line number. Use the best available location and state the limitation in `residual_gaps`.
+
+**Early return.** A preflight response (`chunking_required: true`) and a clarification response (`clarification_question` present) are not reviews. Both set `review_complete: false`, return zero totals, empty `findings`, and an empty `comment_bodies` map in machine mode, and use `report` to explain why the review has not run. A preflight records the counted line total and why chunking was needed in `residual_gaps`. Callers act on `chunk_plan`, `confirm_scope`, and `clarification_question`, never by parsing `residual_gaps` or `report`.
 
 ## Workflow
 
-Follow these steps in order. Do not skip a step.
+Run Steps 1–6 in order. A chunk or integration pass changes some steps, as described in [Large reviews](#large-reviews).
 
-### Step 1 — Normalize Review Context
+### Step 1 — Understand the Request
 
 1. Identify `submission.type` and the available code input.
 2. Determine whether the review is diff-based, full-file-based, snippet-based, or mixed.
-3. Establish the expected behavior and relevant constraints from the title, description, linked issues, user request, or existing feedback. Distinguish explicit requirements from assumptions; do not invent requirements where the request is silent.
-4. Note all open and resolved prior feedback to avoid duplicate findings and to verify whether previously requested changes have been addressed.
+3. Establish the expected behavior and relevant constraints from the title, description, linked issues, user request, or existing feedback. Separate explicit requirements from assumptions; do not invent requirements where the request is silent.
+4. Note all open and resolved prior feedback, so you do not repeat it and can check whether earlier requested changes were made.
 
-If the input is too ambiguous to review safely, ask the caller or user for the missing scope. If some context is missing but a useful review is still possible, continue and record the gap.
+#### Asking for missing input
+
+If the input is too ambiguous or incomplete to review safely, ask for the missing scope or code. In chat mode, ask the user and end the response. In machine mode, return an early-return response with the question in `clarification_question`. The caller asks the user and invokes the core again with the answer.
+
+If some context is missing but a useful review is still possible, continue and record the gap instead of asking. Asking for missing input is allowed at any size; it is separate from the [size check](#size-check).
 
 ### Step 2 — Gather Codebase Context
 
@@ -131,81 +146,93 @@ When using an exploration subagent, direct it specifically:
 
 > "Explore the repository path or supplied files. Focus primarily on the modules and adjacent dependencies affected by the review scope, while briefly checking for global configs such as framework config, README, linting configs, and repository instructions. Report: language, framework, architectural patterns, naming conventions, and test strategy relevant to the changed files."
 
-Use these as fallback context, not mandatory standards, if conventions are unclear:
+If the project states no conventions, use common practice for the language as background only, and note the assumption.
 
-- **PHP**: PSR-12, PSR-4.
-- **Python**: PEP 8, type hints where the project uses them.
-- **JavaScript/TypeScript**: project ESLint/Prettier config first, otherwise common idioms.
-- **Go**: `gofmt` and idiomatic Go patterns.
-- If still unclear, note the assumption and use idiomatic language practices as context. Do not report an inferred style preference as a defect; SOLID, DRY, and KISS remain lenses for finding concrete costs.
+### Step 3 — Inventory, Size, and Trace the Code
 
-### Step 3 — Retrieve, Parse, and Trace the Reviewed Code
-
-For `chunk_context.phase: integrate`, verify that the completed results cover every file in the effective plan. If any chunk or file is missing, stop and return a partial structured result with `summary.review_complete: false`, the actual reviewed scope, and missing work in `residual_gaps`. Leave findings and comment bodies empty rather than publishing unreconciled candidates, and explain that the review is incomplete, not clean. Otherwise preserve any files excluded from the original scope as residual gaps and use the chunk summaries and relevant code for the cross-file checks in Step 4, rather than sizing or reviewing every file again.
-
-For a normal or per-chunk review:
-
-1. Build a file-change inventory: if a `files` list is provided in `code_input`, use it directly. Otherwise, list each changed or reviewed file with its change type when known. **All files in the requested scope MUST be reviewed**; do not skip files silently.
-2. Prioritize the review order to build context progressively:
+1. Build a file-change inventory. Use the `code_input.files` list when supplied; otherwise list each changed or reviewed file with its change type when known. **Every file in the requested scope must be reviewed**; never skip a file silently.
+2. Order the review to build context progressively:
    - **High priority**: core business logic, security-sensitive code, public APIs, data models.
    - **Lower priority**: generated files, lock files, migration snapshots, test fixtures.
-   - **Within each tier, sort files alphabetically by path** to guarantee deterministic traversal order.
-3. Size the review by changed lines, not by file count. Review quality drops with the amount of changed code held at once; many files with small edits are an easy review, and splitting them apart hides cross-file bugs. Count the added plus deleted lines per file from the diff, or take them from `code_input.files` when the caller supplies them. With no diff, such as a folder or full-file review, count every line of the reviewed files. Leave lock files, generated files, vendored dependencies, minified bundles, and snapshot files out of the count; they are still reviewed. Then apply the first rule that matches:
-   - **`chunk_context.phase` is `chunk`, or the caller has already established chunking**: review the files supplied for this chunk, using prior results as context and tracing adjacent dependencies when needed.
-   - **1,500 counted lines or fewer**: review everything in one pass. Do not propose chunking or ask for size confirmation.
-   - **More than 1,500 counted lines**: review in chunks, built deterministically. Group files by the directory that holds them, keeping each file with its tests and with the changed files that directly call it where the diff shows that. Order the groups by the priority in item 2, then pack them in order into chunks of at most 1,500 counted lines. Split a group only between files, never inside one; a single file over the limit is a chunk of its own. Files left out of the count go in the chunk of the group they belong to.
-
-   The only size-related confirmation is a single question before the first chunk, and only above 5,000 lines: offer to narrow the scope or review every chunk. This limit does not prohibit clarifying missing input or unsafe ambiguity. Explicit authorization to proceed without size confirmation satisfies it; a generic request to review the change does not. When `output_target` is `chat` or `report`, follow the [chunked review protocol](#chunked-review-protocol) yourself. When `output_target` is `calling-skill` or `inline-comments`, do not prompt for size confirmation or review a chunk: return the preflight response defined in the Output Interface and let the calling skill execute that protocol.
+   - **Within each tier, sort files alphabetically by path**, so the order is always the same.
+3. Count the change size as described in [Counting lines](#counting-lines). At 1,500 counted lines or fewer, review everything in one pass; do not propose chunking or ask about size. Above 1,500, follow [Large reviews](#large-reviews).
 4. Do not evaluate diffs in isolation:
    - For logic changes, read the expanded surrounding context or the full file.
-   - Trace dependencies by searching where modified functions, classes, routes, schemas, or variables are invoked.
-   - Trace affected normal, boundary, and failure paths across files against the expected behavior from Step 1 and relevant existing contracts. Look for both unmet requirements and regressions.
+   - Trace dependencies by searching where modified functions, classes, routes, schemas, or variables are used.
+   - Trace the affected normal, boundary, and failure paths across files against the expected behavior from Step 1 and the relevant existing contracts. Look for both unmet requirements and regressions.
 
-#### Chunked Review Protocol
+### Step 4 — Analyze
 
-Use this shared protocol for every chunked review; calling skills own execution, not analysis or aggregation:
+Check the code in each [review area](#review-areas) and keep only what meets the [finding standard](#finding-standard).
 
-1. If `confirm_scope` is true and proceeding without size confirmation has not been explicitly authorized, present the preflight warning and plan, ask once whether to narrow the scope or review every chunk, and end the response. Otherwise start immediately. If narrowed, keep an effective plan for the selected files and record the excluded files as unreviewed.
-2. Review each chunk in plan order. Pass its files and diff, preserve the submission, repository baseline, source refs, existing feedback, and diff coordinates, and supply `chunk_context` with `phase: chunk`, the effective plan, and prior completed results. Retain each result, including its actual reviewed scope and `summary.cross_file_context`. Previous conclusions are context, not proof.
-3. After every selected chunk is reviewed, invoke the core once with `phase: integrate`, the effective plan, all completed results, and the original file inventory and repository context. The core checks cross-file seams in Step 4 and reconciles findings in Step 5; this is not another full review.
-4. Use only an integrated result with `summary.review_complete: true` as the final result. Do not concatenate rendered reports or sum pre-integration totals. Do not publish findings, approve, request changes, or pass a self-review gate before integration finishes. If stopped early, report the actual reviewed scope and unreviewed files instead of claiming completion.
+### Step 5 — Build the Findings List
 
-### Step 4 — Analyze by Review Module
+Build the canonical `findings` list using the Output Interface fields. This list is the only source for totals, report text, and comment bodies.
 
-For chunk integration, check the established contracts and unresolved cross-file concerns against the affected producers, consumers, and tests. Inspect only the seams needed to resolve them. Recheck conflicting prior conclusions against code rather than carrying either forward automatically.
+Order findings by severity (`security-violation`, `request-for-change`, `optional`), then file path, line when known, and id.
 
-All review modules use the same reporting bar:
+### Step 6 — Self-Check and Render
 
-- Identify concrete evidence from the diff, code, or nearby context and the affected behavior, contract, or maintenance cost. Explain the consequence.
-- Do not report taste, speculative improvements, or the mere absence of documentation or new tests. Optional findings still need an identifiable benefit and a proportionate fix.
-- Distinguish a demonstrated problem from an unresolved assumption. Record missing evidence in `summary.residual_gaps`, or seek clarification when needed, rather than presenting uncertainty as a defect.
-- Explain the smallest safe direction in the finding's `body` or `suggestion`. Include focused verification guidance when needed to evaluate the proposed fix. Keep the reasoning in review feedback; do not require a tutorial or additional source comments to teach the author.
+Check each finding before returning it, and rewrite or drop any that fails:
 
-Use the same severity standard across modules:
+- It is backed by concrete evidence, and its location is actionable by the caller.
+- Its severity follows the [shared standard](#severity), not an area-specific preference.
+- It is new, not a repeat of existing feedback.
+- The suggested fix fits the local codebase, or has a concrete reason to depart from its patterns.
+- The body or suggestion gives the smallest safe direction, with focused verification guidance where needed.
+- A maintainability finding names a concrete cost to a future change, not a principle citation dressed up as evidence.
 
-- `security-violation` for reachable or plausibly reachable vulnerabilities with a concrete attack path or sensitive-data exposure.
-- `request-for-change` for demonstrated correctness failures, unsafe behavior, broken stated or existing contracts, or concrete maintenance hazards that materially obstruct safe changes. Name the affected behavior, contract, or change and its consequence; reviewer discomfort alone is not enough.
-- `optional` for evidence-backed, non-blocking improvements with an identifiable benefit that a reasonable author could decline.
+Then recompute totals and render `report` and any required `comment_bodies` from the final findings, never separately. Set `summary.review_complete` by the field rules, and deliver by output mode.
 
-#### Syntax Module
+## Finding Standard
+
+These rules apply to every review area.
+
+### What counts as a finding
+
+- Identify concrete evidence from the diff, code, or nearby context, and the affected behavior, contract, or maintenance cost. Explain the consequence.
+- Do not report taste, speculative improvements, inferred style preferences, or the mere absence of documentation or new tests. An `optional` finding still needs an identifiable benefit and a proportionate fix.
+- Separate a demonstrated problem from an unresolved assumption. An unresolved assumption is a [residual gap](#residual-gaps), not a finding.
+- Explain the smallest safe direction in the finding's `body` or `suggestion`. Include focused verification guidance when needed to evaluate the proposed fix. Keep the reasoning in review feedback; do not require a tutorial or extra source comments to teach the author.
+- Report every distinct supported finding, with no cap per category. Write one finding per underlying cause, even when several areas or lenses flag the same spot, and merge findings only when they share a cause, never to fit a quota.
+
+### Severity
+
+- `security-violation`: a reachable or plausibly reachable vulnerability with a concrete attack path, or sensitive-data exposure.
+- `request-for-change`: a demonstrated correctness failure, unsafe behavior, broken stated or existing contract, or concrete maintenance hazard that materially obstructs safe changes. Name the affected behavior, contract, or change and its consequence; reviewer discomfort alone is not enough.
+- `optional`: an evidence-backed, non-blocking improvement with an identifiable benefit that a reasonable author could decline.
+
+Category does not decide severity: maintainability, style, and documentation findings can require changes when their consequences meet this standard.
+
+### Residual gaps
+
+`summary.residual_gaps` holds what the review could not establish: missing context, tests not run, line numbers that could not be derived, and files left unreviewed. For each unverified concern, state what is unverified, the missing evidence, and how to check it.
+
+An unverified security concern is a residual gap, never an `optional` finding: uncertainty is not a severity.
+
+Always include the residual gaps in `report`, whether or not there are findings. Keep unverified concerns clearly apart from demonstrated defects, and never imply that a completed review proved the absence of security issues.
+
+## Review Areas
+
+### Syntax
 
 Check for parse errors, invalid language constructs, broken imports, type mismatches visible from the code, malformed config, and obvious build-breaking changes.
 
-#### Logic Module
+### Logic
 
 Check for incorrect conditions, missing error handling, boundary mistakes, invalid state transitions, broken assumptions, concurrency issues, data loss, and unhandled null/empty/error cases.
 
-Assess regression protection for the affected behavior as part of quality assurance. Check existing tests before reporting a coverage gap, and identify the specific changed behavior and failure risk that remain unprotected. Do not request new tests merely because behavior changed or no test file was added.
+Assess regression protection for the affected behavior. Check existing tests before reporting a coverage gap, and name the specific changed behavior and failure risk left unprotected. Do not request new tests merely because behavior changed or no test file was added.
 
-#### Security Module
+### Security
 
 Check for injection flaws, exposed credentials, auth bypasses, authorization gaps, unsafe deserialization, path traversal, SSRF, XSS, CSRF, insecure randomness, sensitive logging, privacy risks, and OWASP Top 10 issues where applicable.
 
-#### Style and Maintainability Module
+### Style and Maintainability
 
-Maintainability is the cost of the *next* change. Judge whether a competent teammate who has never seen this code could read it, find the behavior they need to change, change it in one place, and be confident they broke nothing else. Every finding in this module must trace back to that cost.
+Maintainability is the cost of the *next* change. Judge whether a competent teammate who has never seen this code could read it, find the behavior they need to change, change it in one place, and be confident they broke nothing else. Every finding here must trace back to that cost.
 
-Apply the lenses below to what the change actually engages, and skip the rest silently. They are prompts for where to look, not a checklist to walk.
+Apply the lenses below to what the change actually touches, and skip the rest silently. They show where to look; they are not a checklist or rules to enforce for their own sake.
 
 - **Decomposition and cohesion**: Does each function or method do one identifiable job, at one level of abstraction? Look for long bodies, deep nesting, long parameter lists, flag parameters that hide two behaviors in one function, and mixed concerns such as I/O, business rules, and formatting in the same block. Name the seam the code is missing rather than prescribing a rewrite.
 - **SOLID, applied with judgment**:
@@ -219,52 +246,79 @@ Apply the lenses below to what the change actually engages, and skip the rest si
 - **Complexity budget**: abstraction, indirection, configuration, or generality added for a requirement that does not exist yet. Speculative flexibility is a maintainability cost, not a virtue.
 - **Consistency with the codebase**: prefer established patterns unless there is a concrete reason to depart. Report inconsistency only when it introduces a demonstrated cost or violates an explicit project requirement. A justified simplification is not a defect merely because it differs, and an existing convention does not excuse a demonstrated correctness or safety problem.
 
-Reporting bar for this module:
+Rules specific to this area:
 
 - Report the cost, not the principle. "This function mixes retry policy with request building, so changing the retry rules means re-testing serialization" lands; "violates SRP" does not. Name a principle only as shorthand after the concrete explanation.
-- Point at the seam, not the redesign. Suggest the smallest change that removes the cost.
+- Point at the seam, not the redesign.
 - Stay inside the submitted scope. Do not ask the author to refactor code they only touched incidentally, unless their change makes an existing problem materially worse.
-- Thresholds are signals, not findings. Line counts, parameter counts, and nesting depth tell you where to look; the finding still has to be a real readability or change-cost problem in this code.
-- One finding per underlying cause, even when several lenses flag the same spot.
+- Thresholds are signals, not findings. Line counts, parameter counts, and nesting depth show where to look; the finding still has to be a real readability or change-cost problem in this code.
 
-#### Documentation and Scope Module
+### Documentation and Scope
 
-Check stale documentation or comments that contradict behavior, changed public or operational contracts, missing translations for changed user-visible content, prior feedback that still applies, and mismatch between the submitted changes and stated intent.
+Check for stale documentation or comments that contradict behavior, changed public or operational contracts, missing translations for changed user-visible content, prior feedback that still applies, and mismatch between the submitted changes and stated intent.
 
-For unclear implementation, prefer clearer names, focused functions, explicit types or data, and simpler control flow over explanatory comments. Do not request comments that compensate for confusing code or narrate behavior already expressed by the code.
+For unclear implementation, prefer clearer names, focused functions, explicit types or data, and simpler control flow over explanatory comments. Do not request comments that compensate for confusing code or narrate behavior the code already expresses.
 
-Report missing documentation only when you can identify an unmet public or operational contract, an explicit project requirement, or an important constraint that cannot reasonably be expressed in code. Name who relies on it and the concrete consequence of its absence. Preserve concise rationale for such constraints; do not remove useful documentation merely because code should be self-explanatory.
+Report missing documentation only when you can identify an unmet public or operational contract, an explicit project requirement, or an important constraint that cannot reasonably be expressed in code. Name who relies on it and the concrete consequence of its absence. Keep concise rationale for such constraints; do not remove useful documentation merely because code should be self-explanatory.
 
-### Step 5 — Classify Findings
+## Large Reviews
 
-Build the canonical `findings` list using the field definitions in the Output Interface and the shared reporting and severity standard. This list is the only source for totals, report text, and comment bodies.
+A change above 1,500 counted lines is reviewed in chunks, then finished with one integration pass. Scope has three stages: the **requested** scope, the **agreed** scope after any narrowing (the effective plan), and the **reviewed** scope, meaning the code actually covered.
 
-For chunk integration, reconcile the completed results before rendering:
+### Counting lines
 
-- Merge findings with the same underlying cause, even if their ids or locations differ. Keep a representative cause location and id, and retain the evidence and smallest safe remediation needed to address that cause.
-- Resolve contradictory claims and severities against the code. Drop invalidated findings and remove resolved gaps only when supported by evidence; preserve unresolved questions as residual gaps.
-- Combine actual reviewed coverage and remaining gaps, then recompute totals from the final findings. Never add raw chunk totals or deduplicate by id alone.
+Size the review by changed lines, not by file count. Review quality drops with the amount of changed code held at once; many files with small edits are an easy review, and splitting them apart hides cross-file bugs.
 
-Order findings by severity (`security-violation`, `request-for-change`, `optional`), then file path, line when known, and id. For a chunk result, include compact, source-backed contract facts and unresolved cross-file concerns in `summary.cross_file_context`; use an empty list when there are none.
+Count added plus deleted lines per file from the diff, or take them from `code_input.files` when the caller supplies them. With no diff, such as a folder or full-file review, count every line of the reviewed files. Leave lock files, generated files, vendored dependencies, minified bundles, and snapshot files out of the count; they are still reviewed.
 
-### Step 6 — Rubber-Duck and Render
+### Building the chunk plan
 
-Before returning findings, critique them:
+1. Group files by the directory that holds them, keeping each file with its tests and with the changed files that directly call it where the diff shows that.
+2. Give each group the priority of its highest-priority file (Step 3, item 2). Order groups by priority, then by directory path.
+3. Pack the groups in order into chunks of at most 1,500 counted lines. Split a group only between files, never inside one; a single file over the limit is a chunk of its own. Files left out of the count go in the chunk of the group they belong to.
 
-- Is each finding backed by concrete evidence?
-- Is the location actionable by the caller?
-- Is the severity justified by the shared standard, rather than a module-specific preference?
-- Is the finding new, or does it duplicate existing feedback?
-- Does the suggested fix fit the local codebase, or have a concrete reason to depart from its patterns?
-- Does the body or suggestion give the smallest safe direction, with focused verification guidance where needed?
-- For maintainability findings: does the body name a concrete cost to a future change, or is it a principle citation dressed up as evidence? Rewrite or drop the latter.
+In chat mode, follow the [chunked review protocol](#chunked-review-protocol) yourself. In machine mode, do not ask about size or review any chunk: return the preflight response defined under Early return, and let the calling skill run the protocol.
 
-After critique, recompute totals and render `report` and any required `comment_bodies` from the final findings, never independently. Set `summary.review_complete` to true only when the agreed scope has been reviewed and any required integration has finished; per-chunk results remain false. Re-render after integration so numbering, totals, and comment keys match the reconciled list. Then deliver output based on `output_target`:
+### Size check
 
-- **`calling-skill`** or **`inline-comments`**: Return the complete structured output interface, including `summary`, `totals`, `findings`, `report`, and `comment_bodies` keyed by finding id. Suppress chat rendering, not metadata; preflight responses use the same interface.
-- **`chat`** or **`report`**: Render the report to the user in the format below.
+The only size question is a single one, asked before the first chunk and only above 5,000 counted lines: narrow the scope, or review every chunk. Skip it when the caller or user has explicitly authorized the full scope; a generic request to review the change does not count.
 
-If there are findings, use this chat format:
+### Chunked Review Protocol
+
+Use this shared protocol for every chunked review. Calling skills own execution, not analysis or aggregation.
+
+1. If `confirm_scope` is true and the full scope is not explicitly authorized, present the preflight warning and plan, ask once whether to narrow the scope or review every chunk, and end the response. Otherwise start immediately. If the user narrows the scope, keep an effective plan for the selected files and record the excluded files as unreviewed.
+2. Review each chunk in plan order. Pass its files and diff, keep the submission, repository baseline, source refs, existing feedback, and diff coordinates, and supply `chunk_context` with `phase: chunk`, the effective plan, and prior completed results. Retain each result, including its reviewed scope and `summary.cross_file_context`.
+3. After every selected chunk is reviewed, invoke the core once with `phase: integrate`, the effective plan, all completed results, and the original file inventory and repository context. This is not another full review.
+4. Use only an integrated result with `summary.review_complete: true` as the final result. Do not concatenate rendered reports or sum pre-integration totals. If a selected chunk fails, retain the completed results for resumption; do not integrate or publish the successful subset. Resume the missing work, or report the reviewed scope and gaps as incomplete. Do not publish findings, approve, request changes, or pass a self-review gate before integration finishes.
+
+### Chunk pass
+
+When `chunk_context.phase` is `chunk`, or the caller has otherwise already established chunking, run Steps 1–6 with these changes:
+
+- **Step 3**: skip sizing. Review the files supplied for this chunk, using prior results as context, not proof, and trace adjacent dependencies when needed.
+- **Step 5**: put compact, source-backed contract facts and unresolved cross-file concerns in `summary.cross_file_context`, or an empty list when there are none.
+- **Step 6**: `summary.review_complete` stays false.
+
+### Integration pass
+
+When `chunk_context.phase` is `integrate`, run Steps 1–6 with these changes:
+
+- **Step 3**: do not size or review every file again. Instead, check that the completed results cover every file in the effective plan. A failed or malformed chunk result does not establish coverage; count only code actually reviewed, not files merely assigned to a failed invocation.
+  - If any chunk or file is missing, stop. Return `review_complete: false`, the reviewed scope, and the missing work in `residual_gaps`. Leave findings and comment bodies empty rather than publishing unreconciled candidates, and say in `report` that the review is incomplete, not clean.
+  - Otherwise, record files excluded from the requested scope as residual gaps, and continue with the chunk summaries and the relevant code.
+- **Step 4**: check the established contracts and unresolved cross-file concerns against the affected producers, consumers, and tests. Inspect only the seams needed to resolve them. Recheck conflicting prior conclusions against the code rather than carrying either one forward.
+- **Step 5**: reconcile the completed results before rendering:
+  - Merge findings with the same underlying cause, even if their ids or locations differ. Keep one representative location and id, with the evidence and smallest safe remediation needed for that cause.
+  - Resolve contradictory claims and severities against the code. Drop invalidated findings, and remove resolved gaps only when evidence supports it; keep unresolved questions as residual gaps.
+  - Combine the reviewed coverage and remaining gaps, then recompute totals from the final findings. Never add raw chunk totals or deduplicate by id alone.
+- **Step 6**: render again from the reconciled list, so numbering, totals, and comment keys match it.
+
+## Finding Format Rules
+
+Derive `report` and `comment_bodies` from the same canonical findings. Keep the evidence, consequence, classification, and remediation the same in both.
+
+Render each finding in `report` in this chat format:
 
 `**Finding #N — <id> <severity>**`
 
@@ -276,16 +330,9 @@ If there are findings, use this chat format:
 
 `Suggested approach: <suggestion or concise remediation guidance>`
 
-If there are no findings, state that explicitly and mention any residual testing or review gaps.
+After the findings, include the [residual gaps](#residual-gaps). If there are no findings, say so explicitly, without hiding the gaps.
 
-## Finding Format Rules
-
-Derive chat and provider-neutral comment bodies from the same canonical findings. Preserve the evidence, consequence, classification, and remediation across destinations; presentation may differ as described below.
-
-Differences by destination:
-
-- In chat, include the `Finding #N — <id> <severity>` prefix.
-- In posted comments, omit the prefix and keep the rest unchanged.
+Each `comment_bodies` entry is the same rendered finding without the `Finding #N — <id> <severity>` prefix. Do not add a separate severity line or label; classification stays in the structured finding.
 
 Style rules:
 
@@ -295,13 +342,10 @@ Style rules:
 - Keep summaries short and factual.
 - Do not claim that tests, builds, or tools passed unless they were actually run.
 
-## Evaluating Skill Changes
-
-When changing review rules, compare the previous and proposed skill against [the fixed scenarios](evals/scenarios.json) in separate contexts. Supply the same scenario inputs and shared context to both; keep expected outcomes hidden until the reviews are complete. Compare missed problems, unsupported findings, remediation scope, and output-contract compliance, not finding counts alone. Record actual differences without claiming that a single comparison proves reliability. Run this comparison when maintaining the skill, not during ordinary code reviews.
-
 ## Guardrails
 
-- Never merge, alter code, commit, approve, request changes, or post provider comments from this core skill.
-- Keep findings tied to concrete evidence from the supplied code and available context.
-- Do not use provider-specific API tools from this skill; return provider-neutral output to the caller.
+- Never modify repository files, merge, commit, approve, request changes, or post provider comments from this core skill.
+- Do not use provider-specific API tools; return provider-neutral output to the caller.
 - Respect caller constraints about scope, chunking, and output target.
+
+To change this skill's rules, see [evals/README.md](evals/README.md).
