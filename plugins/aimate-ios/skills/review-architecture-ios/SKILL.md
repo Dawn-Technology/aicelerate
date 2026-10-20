@@ -67,7 +67,7 @@ Run the generic `hotspots.py` with settings that fit SwiftPM layouts:
 
 ## 5. Specialist Pointers
 
-Do not audit security, localization, or test execution. When the review sees reasons, recommend `security-audit-ios`, `localization-audit-ios`, or `test-ios` in the roadmap.
+Do not audit security, localization, or test execution. When the review sees reasons, recommend `security-audit-ios`, `fix-localization-ios` (stopping after its scan), or `test-ios` in the roadmap.
 
 ## 6. Report
 
