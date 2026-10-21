@@ -4,7 +4,7 @@ Optional native iOS specialist skills that work standalone and compose with `aim
 
 ## Status
 
-Version 0.1 pilots `review-ios`, `security-audit-ios`, `fix-localization-ios`, `summarize-project-ios`, `review-architecture-ios`, and the simulator-only `test-ios` and `drive-ios`. Implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 pilots nine skills, each evaluated on real projects before it was added. Most are read-only. The two that change code, `fix-localization-ios` and `raise-minimum-ios`, first scan and present a plan, and only change files after the developer confirms, on a new branch, without committing. Feature implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 
@@ -37,6 +37,19 @@ Alternatively, install or symlink the skill folders into `.opencode/skills/`, `~
 Install or symlink the individual skill folders into the host's Agent Skills directory. The user-facing skills use standard `SKILL.md` frontmatter and do not depend on Claude-specific hooks. Keep the complete `aimate-ios/skills` tree together so relative references resolve.
 
 ## Skills
+
+| Skill | Use it to | Changes |
+| --- | --- | --- |
+| `review-ios` | Review a change with iOS depth, next to the generic review | Nothing |
+| `test-ios` | Run the tests affected by a change, or named tests, on a simulator | Nothing |
+| `drive-ios` | Reproduce a QA ticket, validate a flow, or capture screenshots on a simulator | Simulator state only |
+| `security-audit-ios` | Audit a whole project for security problems | Nothing |
+| `fix-localization-ios` | Find and fix localization problems | Code and string catalogs, after confirmation |
+| `raise-minimum-ios` | Raise the minimum iOS version and remove code for older versions | Code and project files, after confirmation |
+| `review-architecture-ios` | Review architecture and design quality, with a refactoring roadmap | One report file in `docs/` |
+| `summarize-project-ios` | Get an overview, gotchas, and risks of a project | Nothing |
+
+Ask for a skill by name. In Claude Code you can also use `/aimate-ios:<skill>`.
 
 ### `review-ios`
 
@@ -80,6 +93,16 @@ Finds and fixes localization problems across a whole iOS project in three phases
 
 Ask for it by name, for example "run fix-localization-ios on this project".
 
+### `raise-minimum-ios`
+
+Raises the app's minimum iOS version, for example from iOS 16 to 18, and removes what only existed for the older versions. It works in three phases:
+
+1. **Scan** (read-only): current minimums per target and package, every `#available`/`@available` check classified by a bundled script (always true at the new minimum, backport wrapper, or still needed), backport modules and packages that become unused, migrations the new minimum forces (for example Perception to Observation at iOS 17), new deprecation warnings, and documents and scripts that state the old minimum.
+2. **Plan**: a short summary followed by numbered steps, what stays unchanged and why, follow-ups it will not do (optional modernizations such as `ObservableObject` to `@Observable`, removing legacy extensions), the verification plan, and the branch with its base. It then stops for the developer's choice: all steps, selected steps, or stop.
+3. **Execute**: on a new branch, never committing. It builds and runs the tests before changing anything, builds after each step, and compares tests and warnings afterwards. Targets already above the new minimum and other platforms are left alone; when the build needs a change outside the confirmed steps, it stops and asks.
+
+Ask for it by name, for example "use raise-minimum-ios to raise this app to iOS 18".
+
 ### `review-architecture-ios`
 
 iOS companion of `aimate`'s `review-architecture`: the same churn-first method, severities, roadmap, and report in `docs/`, with what the generic version cannot do for iOS. Two bundled scripts read the Swift module graph (package targets, declared dependencies, actual imports, app target links) and iOS platform health (deployment targets, Swift language settings, branch-pinned packages, `Package.resolved` drift, availability code) without writing to the repo. iOS rules cover TCA and MVVM + Coordinators layer mapping and signals such as hand-written `Equatable` that hides state from `TestStore`, side effects outside dependencies, and feature flags read in views. Uses `aimate`'s scripts and report template when `aimate` is installed and a condensed method otherwise. All scripts run with `xcrun python3`, the Python 3.9 that Xcode ships, so nothing extra needs installing. Writes one untracked report file; never edits source.
@@ -104,7 +127,7 @@ When Xcode is open with the project, the skills use Xcode's built-in MCP tools f
 claude mcp add xcode -- xcrun mcpbridge
 ```
 
-Xcode may ask you to allow the agent's connection. Read-only skills such as `review-ios` never use Xcode's file-editing tools.
+Xcode may ask you to allow the agent's connection. The skills use Xcode MCP only to read, build, test, and search documentation, never its file-editing tools; the skills that change code edit files directly on their own branch after the developer confirms.
 
 ## Optional Capability Providers
 
@@ -149,4 +172,4 @@ Projects should record approved providers and project-specific architecture or t
 
 ## Scope
 
-V1 excludes signing changes, provisioning, certificates, archives, TestFlight, App Store Connect, release automation, and incidental architecture migrations.
+V1 excludes signing changes, provisioning, certificates, archives, TestFlight, App Store Connect, release automation, physical devices, and incidental architecture migrations. No skill commits or pushes; reviewing and committing changes stays with the developer.
