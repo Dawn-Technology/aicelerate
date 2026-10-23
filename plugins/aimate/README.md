@@ -126,9 +126,19 @@ Parses the identifier, resolves the project's saved route, and returns one provi
 
 > Produce a step-by-step manual testing guide for a branch or PR.
 
-Analyzes the diff, identifies what changed, and writes a guide a real person can follow to verify the feature or fix works — including setup requirements, test scenarios, and expected outcomes. Supports GitLab MR URLs and local branches.
+Analyzes the diff, identifies what changed, and writes a guide a real person can follow to verify the feature or fix works — including setup requirements, test scenarios, and expected outcomes. Supports GitLab MR URLs and local branches. Triggers on a diff/branch/PR/MR reference; a ticket-only request with no diff goes to `write-test-scenarios` instead.
 
-**Trigger phrases:** "how do I test this PR", "create a test plan", "write a QA checklist", "how do I test this MR"
+**Trigger phrases:** "how do I test this PR", "create a test plan for this PR", "write a QA checklist for this MR", "how do I test this MR"
+
+---
+
+### `write-test-scenarios`
+
+> Design manual test scenarios from a ticket, mapped per acceptance criterion — before or independent of any implementation.
+
+Reads a Jira work item, GitHub Issue, or GitLab Issue through `fetch-ticket` and derives happy-path, edge, negative, and regression scenarios for each acceptance criterion, flagging criteria that are missing, ambiguous, or untestable instead of inventing scenarios for them. No branch or diff required, so it fits test design at refinement or parallel to development. With a repository open, light read-only context sharpens setup steps and the result is saved to `docs/specs/<ticket-id>-<slug>.test.md`; without one, scenarios come from the ticket alone, marked where unverified against code, saved to a local file, with an optional ticket comment after confirmation. Triggers on a ticket/issue reference; a PR/MR/branch/diff-based request goes to `test-pr-guide` instead.
+
+**Trigger phrases:** "write test scenarios for ABC-123", "create test cases for this ticket", "how should we test this ticket", "QA scenarios for this issue"
 
 ---
 
