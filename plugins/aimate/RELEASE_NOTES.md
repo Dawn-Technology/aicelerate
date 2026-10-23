@@ -1,5 +1,13 @@
 # Release notes
 
+## 4.3.0
+
+Added `write-test-scenarios` (1.0.0), which derives **manual** test scenarios from a Jira work item, GitHub Issue, or GitLab Issue, mapped per acceptance criterion — happy path, edge, negative, and regression — instead of from a diff. `test-pr-guide` verifies what was built; this verifies what was asked, so a criterion implemented wrongly has something to fail against. It needs no branch or code, so it fits test design at refinement or in parallel with implementation.
+
+The skill wraps `fetch-ticket` and makes exactly one write of its own: a comment on the ticket, posted only after explicit confirmation. With a repository open and matching the ticket, it gathers light read-only context and saves to `docs/specs/<ticket-id>-<slug>.test.md`, then offers a link comment, pinned to the commit once the file is committed and pushed. Without one — including the common case of a Jira ticket, which carries no repository binding — it derives scenarios from the ticket alone, marks code-dependent assumptions as unverified, saves to a user-chosen local path, and offers the full scenarios as a comment instead. Acceptance criteria that are missing, ambiguous, or untestable are flagged rather than invented around.
+
+`test-pr-guide` gains an explicit trigger boundary: it and `write-test-scenarios` both produce the same scenario taxonomy, but from a diff/branch/PR/MR versus a ticket respectively, and a bare "test plan" request with neither in context now prompts a disambiguating question instead of guessing.
+
 ## 4.2.0 (2026-10-20)
 
 Code reviews are easier for an agent to follow, report every supported finding, and keep unverified concerns visible without turning them into findings. The review rules themselves are unchanged; each one is now stated once, in one place.

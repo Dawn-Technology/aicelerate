@@ -276,9 +276,12 @@ Use `write-prd` to turn a larger feature or application idea into a Product Requ
 
 Start here when you already have a ticket or user story. `prepare-ticket` checks the claims against the repository, resolves material outcome decisions, and rewrites the description as an **intent-driven specification**. It states why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer. It assesses readiness and saves only approved changes; the ready specification feeds optional planning or goes directly to `implement-ticket`.
 
+Test design belongs here too, not only after the code is written: `write-test-scenarios` reads the same ticket and derives manual test scenarios per acceptance criterion before a line of code exists, so a criterion that gets implemented wrongly has something to fail against. It needs no branch or diff, so it runs equally well here or in parallel with Stage 3.
+
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `prepare-ticket` | aimate | Turn a Jira, GitHub, or GitLab ticket into an intent-driven specification and assess its readiness |
+| `write-test-scenarios` | aimate | Derive manual test scenarios per acceptance criterion from a ticket, before or independent of implementation |
 | `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
 | Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
 | Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
