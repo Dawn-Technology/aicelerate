@@ -69,6 +69,35 @@
       }
     },
     {
+      "id": "ban-redundant-what-comments",
+      "input": {
+        "submission": {
+          "title": "Add helper to group users by id",
+          "description": "Group an array of user records into a Map keyed by user.id."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/users.mjs",
+              "language": "javascript",
+              "content": "// Group users by id\nexport function groupUsersById(users) {\n  const usersById = new Map();\n  // Loop through all users and add each one to the map by id\n  for (const user of users) {\n    usersById.set(user.id, user);\n  }\n  return usersById;\n}\n"
+            }
+          ],
+          "review_baseline": "users is a validated iterable of user objects with unique id properties."
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "must_report": [
+          "Redundant comments that repeat what the self-explanatory code already says should be removed"
+        ],
+        "must_not_report": [
+          "Invented input-validation or duplicate-id requirements",
+          "Valid tooling directives or required public API contract docs when present"
+        ]
+      }
+    },
+    {
       "id": "similarity-is-not-shared-knowledge",
       "input": {
         "submission": {

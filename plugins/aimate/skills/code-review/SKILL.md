@@ -3,7 +3,7 @@ name: code-review
 description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 2.1.0
+  version: 2.2.0
   role: "reusable-review-core"
   dependencies: []
 ---
@@ -230,7 +230,7 @@ Check for injection flaws, exposed credentials, auth bypasses, authorization gap
 
 ### Style and Maintainability
 
-Maintainability is the cost of the *next* change. Judge whether a competent teammate who has never seen this code could read it, find the behavior they need to change, change it in one place, and be confident they broke nothing else. Every finding here must trace back to that cost.
+Maintainability is readability and the cost of the *next* change. Judge whether a competent teammate who has never seen this code could read it directly, find the behavior they need to change, change it in one place, and be confident they broke nothing else. Every finding here must trace back to that cost.
 
 Apply the lenses below to what the change actually touches, and skip the rest silently. They show where to look; they are not a checklist or rules to enforce for their own sake.
 
@@ -241,7 +241,7 @@ Apply the lenses below to what the change actually touches, and skip the rest si
   - *Liskov*: do subtypes and implementations honor the contract they stand in for, without strengthened preconditions, `not supported` throws, or quietly different semantics?
   - *Interface segregation*: are callers forced to depend on, implement, or mock members they never use?
   - *Dependency inversion*: does policy or domain logic reach directly for a concrete detail such as the clock, filesystem, HTTP client, ORM, or a global singleton, in a way that hard-wires it and blocks testing?
-- **Clean code signals**: intention-revealing names, comments that explain *why* instead of restating *what*, dead or commented-out code, leftover debug output, magic numbers and strings that deserve a name, primitive obsession where a domain type already exists, and error handling that swallows or loses context.
+- **Clean code signals**: self-explanatory code with intention-revealing names, comments used only when the code could be misread or needs *why* context (never to repeat *what* the code says), dead or commented-out code, leftover debug output, magic numbers and strings that deserve a name, primitive obsession where a domain type already exists, and error handling that swallows or loses context.
 - **Duplication and coupling**: distinguish duplicated *knowledge*, one rule that must change in lockstep in several places, from code that merely looks alike. De-duplicating coincidental similarity introduces worse coupling than it removes. Also watch for a change that reaches across an architectural boundary the codebase otherwise respects.
 - **Complexity budget**: abstraction, indirection, configuration, or generality added for a requirement that does not exist yet. Speculative flexibility is a maintainability cost, not a virtue.
 - **Consistency with the codebase**: prefer established patterns unless there is a concrete reason to depart. Report inconsistency only when it introduces a demonstrated cost or violates an explicit project requirement. A justified simplification is not a defect merely because it differs, and an existing convention does not excuse a demonstrated correctness or safety problem.
@@ -255,11 +255,11 @@ Rules specific to this area:
 
 ### Documentation and Scope
 
-Check for stale documentation or comments that contradict behavior, changed public or operational contracts, missing translations for changed user-visible content, prior feedback that still applies, and mismatch between the submitted changes and stated intent.
+Check for comments that repeat what the code says, stale documentation or comments that contradict behavior, changed public or operational contracts, missing translations for changed user-visible content, prior feedback that still applies, and mismatch between the submitted changes and stated intent.
 
-For unclear implementation, prefer clearer names, focused functions, explicit types or data, and simpler control flow over explanatory comments. Do not request comments that compensate for confusing code or narrate behavior the code already expresses.
+Code must be self-explanatory. Aside from tooling or type-checker directives and required public API contract docs, comments are allowed only when the code could reasonably be read differently or when extra context is needed to understand *why* it behaves as it does (such as an external constraint, non-obvious invariant, or deliberate trade-off that the code itself cannot express). Flag comments in the submitted scope that repeat or narrate what the code already says (they add reading noise and drift as code changes), and flag comments that compensate for hard-to-read code (direct the author to make the code readable through clearer names, focused functions, explicit types, or simpler control flow and remove the comment). Do not flag valid tooling directives, required public contract docs, or untouched comments that were not made stale by the change. Never ask an author to add comments that narrate behavior or excuse unclear code.
 
-Report missing documentation only when you can identify an unmet public or operational contract, an explicit project requirement, or an important constraint that cannot reasonably be expressed in code. Name who relies on it and the concrete consequence of its absence. Keep concise rationale for such constraints; do not remove useful documentation merely because code should be self-explanatory.
+Report missing documentation only when you can identify an unmet public or operational contract, an explicit project requirement, or an important constraint that cannot reasonably be expressed in code. Name who relies on it and the concrete consequence of its absence. Keep concise rationale for such constraints when the code alone could be misread without it.
 
 ## Large Reviews
 

@@ -1,5 +1,13 @@
 # Release notes
 
+## 4.3.0 (2026-10-24)
+
+Code reviews now flag comments that repeat what the code already says or paper over hard-to-read logic, so code stays self-explanatory and free of comment noise that goes stale.
+
+- **`code-review` (2.2.0)** requires code to be readable on its own and flags comments in the submitted scope that narrate behavior or compensate for unclear code, directing the author to clarify the code and remove the comment.
+- **`code-review` (2.2.0)** keeps comments only when the code could reasonably be misread or needs extra *why* context, and explicitly exempts valid tooling or type-checker directives, required public API contract docs, and untouched comments that were not made stale by the change.
+- The [review scenarios](skills/code-review/evals/scenarios.json) grew to 15 with `ban-redundant-what-comments`.
+
 ## 4.2.0 (2026-10-20)
 
 Code reviews are easier for an agent to follow, report every supported finding, and keep unverified concerns visible without turning them into findings. The review rules themselves are unchanged; each one is now stated once, in one place.
