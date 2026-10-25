@@ -1,9 +1,9 @@
 ---
 name: code-review
-description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr and review-local; not for reviewing a PR/MR or local working tree directly, use those skills instead.
+description: Reusable review core for structured findings on supplied code or diffs. Invoked by review-pr, review-local, and the pre-push self-review in resolve-pr-feedback; not for reviewing a PR/MR or local working tree directly, use those skills instead.
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
-  version: 2.2.0
+  version: 2.2.1
   role: "reusable-review-core"
   dependencies: []
 ---

@@ -1,5 +1,12 @@
 # Release notes
 
+## 4.4.0 (2026-10-25)
+
+`implement-ticket` no longer mistakes an unfinished code review for a clean one, and the `code-review` description now names all three skills that call it.
+
+- **`implement-ticket` (1.3.0)** counts a review pass only when the report says the review is complete. The review subagent returns any clarification question instead of trying to ask it. An incomplete pass is retried once, with the missing input when it asked for one. The retry counts toward the three-pass limit. If it is still incomplete, it is listed in the final report as unresolved with its gaps, and the Stage 7 gate accepts that outcome.
+- **`code-review` (2.2.1)** lists the pre-push self-review in `resolve-pr-feedback` next to `review-pr` and `review-local` as its callers. The review rules are unchanged.
+
 ## 4.3.0 (2026-10-24)
 
 Code reviews now flag comments that repeat what the code already says or paper over hard-to-read logic, so code stays self-explanatory and free of comment noise that goes stale.
