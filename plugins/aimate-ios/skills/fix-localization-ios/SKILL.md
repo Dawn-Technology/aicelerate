@@ -3,7 +3,7 @@ name: fix-localization-ios
 description: Use when the user asks to check or fix localization across a whole iOS app, such as missing or wrong translations, text that bypasses localization, wrong-bundle lookups, plurals, and date or number formatting. Scans first and presents what it will fix; changes code and string catalogs only after the developer approves, on a new branch, without committing. Stopping after the scan gives a localization audit. For localization review of a single change, use review-ios instead.
 metadata:
   author: "Dawn Technology"
-  version: 0.2.0
+  version: 0.2.1
   role: "localization-fix"
   writes_source: "true"
   external_dependencies: "none"
@@ -79,15 +79,16 @@ Agent-written translations follow the project's tone and terminology and are mar
 4. When moving text into a catalog or fixing a lookup in package code, pass `bundle: .module` (or the module's own resource accessor) and add the key to that module's catalog with every supported language.
 5. When the project generates code from strings (SwiftGen `L10n`), run its documented generation command after editing the tables, and report if it cannot run.
 6. When a fix needs a change outside the approved items, stop and ask.
-7. Build the affected schemes with the `tooling.md` route, and run the tests when the project has them. Run `xcstrings.py check` on every catalog you changed.
+7. Reconcile against the approved plan before building. Go through every approved item, including each hard-coded literal in category 4, and confirm in the working tree that it is fixed: the literal is gone from the source (`git grep`), the lookup resolves in the right bundle, and the key exists in the catalog for every supported language. For each item that is not fixed, say why (for example the text is built at runtime, passed through a `String` parameter that skips localization, or shared with non-user-facing code), state how to fix it, then apply that fix and check again. If the fix would go beyond the approved items or needs a team decision, ask as in step 6. Never leave an approved item unfixed without saying so.
+8. Build the affected schemes with the `tooling.md` route, and run the tests when the project has them. Run `xcstrings.py check` on every catalog you changed.
 
 ## Report
 
 End with:
 
-- `Changes`: per category, the items fixed, with files.
+- `Changes`: per category, every approved item with its status (fixed, fixed after reconciliation, or not fixed), with files.
 - `Needs review`: every translation written by the agent, per language, for a translator.
-- `Not changed`: with reasons, and any questions still open.
+- `Not changed`: every approved item that is still not fixed, with the reason, the suggested fix, and what is needed to apply it; then the findings left out of the plan and any questions still open.
 - `Verification`: build and test results, catalog checks, and what was not verified (layout, truncation, VoiceOver); suggest `drive-ios` with a `capture` per language for a visual check.
 - `Git`: the branch, that nothing is committed, and the changed-file count.
 
@@ -97,5 +98,6 @@ Before returning, confirm:
 
 - supported languages are stated with their sources, and keys used in code were matched exactly against each lookup's bundle;
 - nothing was changed before approval, and only approved items were fixed;
+- every approved item was checked in the working tree, and each one that is still not fixed is reported with its reason and suggested fix;
 - catalogs were edited through `xcstrings.py` and still round-trip, and agent translations are marked `needs_review`;
 - work happened on a new branch, nothing was committed or pushed, and the build ran.
