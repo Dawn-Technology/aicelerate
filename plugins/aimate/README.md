@@ -28,11 +28,11 @@ Detects working official CLIs and existing MCP connections before asking questio
 
 ### `asvs-audit`
 
-> OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings.
+> Static OWASP ASVS 5.0 Level 1 security audit with verified, evidence-based findings.
 
-Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requirements. Produces structured reports with evidence-backed PASS/FAIL/N/A classifications and severity-rated findings.
+Reads the code and configuration in a repository and checks them against all 70 OWASP ASVS 5.0 Level 1 requirements. It first maps the application's entry points, authentication, data access and deployment files, then two workers on different models evaluate every requirement independently. Before anything reaches the report, the coordinator re-reads every cited line and checks that the code runs in production, is reachable, and is not already protected elsewhere; rejected candidates are listed so a reviewer can see what was ruled out. Each requirement has fixed rules for when it applies and what counts as passing, so two runs on the same commit give the same statuses. The report lists every failing location with a severity, other security issues outside the 70 requirements, and the questions a person must answer for anything the repository cannot show, such as TLS settings at the load balancer. It also runs the package manager's dependency audit, which sends package names and versions, not code, to the registry's advisory service. It does not run the application, so it is not a live penetration test.
 
-**Trigger phrases:** "security audit", "asvs audit", "vulnerability scan", "compliance review", "pentest"
+**Trigger phrases:** "security audit", "asvs audit", "vulnerability scan", "security compliance review"
 
 ---
 

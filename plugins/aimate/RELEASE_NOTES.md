@@ -1,5 +1,24 @@
 # Release notes
 
+## 4.5.0 (2026-10-28)
+
+`asvs-audit` (3.0.0) now checks every finding against the code before it reaches the report, and gives the same statuses when run twice on the same commit.
+
+- **Correct ASVS 5.0 mapping.** Severity defaults, framework defaults and examples used ASVS 4.0 chapter numbers, so most severities and framework passes landed on the wrong requirements. They are now keyed to the 70 ASVS 5.0 item IDs.
+- **Verification pass.** The coordinator re-reads every cited line and rejects failures that are not in production code, not reachable, already protected elsewhere, or belong to another requirement. Rejected candidates are listed in the report.
+- **Fixed decision rules.** A new [requirements guide](skills/asvs-audit/references/requirements-guide.md) gives each item when it applies, what passes and fails, what to search, and a default severity. NEEDS_REVIEW is limited to four reasons where the evidence is outside the repository, and it no longer raises the compliance score.
+- **More complete results.** The audit maps entry points before evaluating, includes monorepo `packages/` folders, lists every failing location instead of one, reports security issues outside the 70 items, and runs the package manager's dependency audit without installing anything. Every advisory is reported; V15.2.1 fails only when an advisory is older than the project's documented fix time frame.
+- **Simpler worker setup.** Two workers on different models, or one when the host offers only one, with a defined output format. Workers write their results to a file instead of the conversation and report `unknown` rather than guess the model they ran on.
+- **Survives context resets on large repositories.** The audit keeps the project profile, worker results and finished verdicts in a private folder outside the repository, resumes from the first unfinished item after a reset, and builds the report there before copying it to `docs/` in one step. The folder is deleted once the report is published.
+- **Bundled bookkeeping helpers.** One Python command fingerprints the current file scope, with or without Git. Another assembles the report from verified verdicts and checks all 70 items, references, counts and scores before writing it. Naming now specifies the actual TOML, .NET and Go fields without guessing template names or reusing earlier report names. A vulnerability affecting several requirements gets one detailed finding and references from the other failing items.
+- **Clearer evidence rules.** A quoted line must show the operation and the value the finding depends on, not just a function name. Overlapping locations are merged only when they describe the same vulnerability. A candidate moved to another requirement is counted where it lands, not as a false positive. MD5 or SHA-1 checking a TLS download against a digest pinned in the repository is Low instead of High.
+
+### Breaking changes
+
+- The report layout changed: findings list all locations, and new sections cover other findings, items needing review, an evidence appendix with every search, and rejected candidates. Partial reports are no longer written; a report always covers all 70 items. The compliance score now counts NEEDS_REVIEW items as not passed and shows the best case separately.
+- `references/evidence-patterns.md` is replaced by [audit-rules.md](skills/asvs-audit/references/audit-rules.md).
+- "pentest" is no longer a trigger phrase; the skill does not test a running application.
+
 ## 4.4.0 (2026-10-25)
 
 `implement-ticket` no longer mistakes an unfinished code review for a clean one, and the `code-review` description now names all three skills that call it.

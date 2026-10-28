@@ -1,46 +1,55 @@
-# ASVS Audit Examples
+# Examples
 
-Minimal examples showing how each status type should appear in a final report. For evidence formats, see `references/evidence-patterns.md`. For severity rules, see `references/severity-guidance.md`.
+Filled-in fragments of a report, for the formats in [REPORT-TEMPLATE.md](./references/REPORT-TEMPLATE.md). The application here is invented.
 
----
-
-## Example: ❌ FAIL Finding
+## A FAIL finding
 
 ````markdown
-### #12 - V2.1.2 - Password Security
+### #4 V1.2.4 Injection Prevention: SQL built from request data
 
-- **Chapter**: V2 Authentication
-- **Section**: V2.1 Password Security
-- **ASVS ID**: V2.1.2
-- **Internal Item #**: 12
-- **Requirement**: Verify that passwords of at least 64 characters are permitted, and that passwords of more than 128 characters are denied.
-- **Severity**: 🟡 Medium
-- **Location**: `src/lib/auth/validation.ts:23`
-- **Evidence**: `src/lib/auth/validation.ts:23` - `maxLength: 50` restricts passwords to 50 characters
-- **Description**: The password validation schema enforces a maximum length of 50 characters, which is below the ASVS requirement of permitting at least 64 characters. This unnecessarily limits password strength and may prevent users from using passphrases.
-- **Remediation**:
-  Update the password validation to allow 64-128 characters:
+- **Severity**: 🔴 Critical
+- **Chapter**: V1 Encoding and Sanitization
+- **Requirement**: Verify that data selection or database queries (e.g., SQL, HQL, NoSQL, Cypher) use parameterized queries, ORMs, entity frameworks, or are otherwise protected from SQL Injection and other database injection attacks. This is also relevant when writing stored procedures.
+- **Description**: Two queries insert request values straight into SQL text. The order lookup is reachable by any signed-in user, and sign-up is open, so anyone can read every order in the database: raised to Critical. The report export is reachable only by administrators: lowered from Critical to High.
+- **Locations**:
+
+  | Location | Code | Why it fails | Severity |
+  |---|---|---|---|
+  | `src/orders/repository.ts:41` | `` db.query(`SELECT * FROM orders WHERE id = ${id}`) `` | `id` comes from `GET /orders/:id` (src/orders/routes.ts:12) unchanged. | Critical |
+  | `src/admin/reports.ts:88` | `` db.query(`... ORDER BY ${req.query.sort}`) `` | Sort column from the query string; route requires the admin role. | High |
+
+- **Remediation**: Pass values as parameters. Column names cannot be parameters, so map the sort value to an allowlist.
 
   ```typescript
-  // src/lib/auth/validation.ts
-  export const passwordSchema = z.string()
-    .min(12, "Password must be at least 12 characters")
-    .max(128, "Password must not exceed 128 characters"); // Changed from 50
+  db.query("SELECT * FROM orders WHERE id = $1", [id]);
+
+  const SORTABLE = new Map([
+    ["date", "created_at"],
+    ["total", "total"],
+  ]);
+  const sort = typeof req.query.sort === "string" ? req.query.sort : "";
+  const column = SORTABLE.get(sort) ?? "created_at";
+  db.query(`SELECT * FROM report ORDER BY ${column}`);
   ```
 ````
 
----
-
-## Example: ✅ PASS Row (Verification Summary Table)
+## Verification summary rows
 
 ```markdown
-| #15 V2.2.1 | V2 Authentication<br>V2.2 General Authenticator Security | Verify that anti-automation controls are effective at mitigating breached credential testing, brute force, and account lockout attacks. | ✅ PASS | `library:next-auth@5.0:built-in-rate-limiting` + `src/app/api/auth/[...nextauth]/route.ts:12` custom lockout after 5 attempts |
+| #18 V3.5.1 | V3 Web Frontend Security<br>V3.5 Browser Origin Separation | Verify that, if the application does not rely on the CORS preflight mechanism ... | ✅ PASS | `framework:Django@5.0:CsrfViewMiddleware` + `config/settings.py:44` middleware enabled; no `csrf_exempt` |
+| #23 V5.2.1 | V5 File Handling<br>V5.2 File Upload and Content | Verify that the application will only accept files of a size ... | ⚪ N/A | N/A - no file uploads; searched `multer`, `multipart`, `type="file"`, `createPresignedPost` in all tracked files |
+| #16 V3.4.1 | V3 Web Frontend Security<br>V3.4 Browser Security Mechanism Headers | Verify that a Strict-Transport-Security header field is included ... | ⚠️ NEEDS_REVIEW | `deployment` |
+| #4 V1.2.4 | V1 Encoding and Sanitization<br>V1.2 Injection Prevention | Verify that data selection or database queries ... | ❌ FAIL | See finding #4, 2 locations |
 ```
 
----
-
-## Example: ⚪ N/A Row (Verification Summary Table)
+## A needs-review row
 
 ```markdown
-| #45 V12.1.1 | V12 Files and Resources<br>V12.1 File Upload | Verify that the application will not accept large files that could fill up storage or cause a denial of service. | ⚪ N/A | N/A - no file upload endpoints found (searched: `upload`, `multer`, `formidable`, `multipart` in src/) |
+| #16 V3.4.1 | `deployment` | Does the load balancer or CDN in front of the app send `Strict-Transport-Security` with `max-age` of at least 31536000 on every response? | `Strict-Transport-Security`, `hsts`, `helmet`, `SECURE_HSTS_SECONDS` in all tracked files: 0 hits |
+```
+
+## A rejected candidate
+
+```markdown
+- #61 `src/cache/keys.ts:9`: MD5 builds cache keys only; no security purpose.
 ```
