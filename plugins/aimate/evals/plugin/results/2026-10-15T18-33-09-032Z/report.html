@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eval report — aimate v3.7.0</title>
+</head>
+<body>
+<style>
+:root{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{--plane:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink-2:#c3c2b7;--ink-3:#898781;--hairline:rgba(255,255,255,.10);--grid:#2c2c2a;--inset:rgba(255,255,255,.05);--accent:#3987e5;--base-fill:#898781;--delta-good:#0ca30c;--good:#0ca30c;--warning:#fab219;--critical:#e06c6c;color-scheme:dark}}
+:root[data-theme="dark"]{--plane:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink-2:#c3c2b7;--ink-3:#898781;--hairline:rgba(255,255,255,.10);--grid:#2c2c2a;--inset:rgba(255,255,255,.05);--accent:#3987e5;--base-fill:#898781;--delta-good:#0ca30c;--good:#0ca30c;--warning:#fab219;--critical:#e06c6c;color-scheme:dark}
+:root[data-theme="light"]{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:880px;margin:0 auto;padding:40px 24px 64px;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+header h1{margin:2px 0 0;font-size:24px;font-weight:600;line-height:1.25;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;color:var(--ink-2);font-size:13px}
+.meta .num{font-variant-numeric:tabular-nums lining-nums}
+.banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;
+  border:1px solid var(--hairline);background:var(--surface);font-size:13px}
+.banner .chip-warn{color:var(--warning);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:4px}
+.tile .label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.tile .value{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums lining-nums;line-height:1.1}
+.tile.hero .value{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:48px}
+.tile .sub{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tile .value.delta-pos{color:var(--delta-good)}
+.tile .value.delta-neg{color:var(--critical)}
+.toolbar{display:flex;gap:8px;justify-content:flex-end}
+.toolbar button{font:12px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--hairline);border-radius:6px;padding:4px 10px;cursor:pointer}
+.toolbar button:hover{color:var(--ink)}
+.toolbar button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.case{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;padding:18px 20px;
+  display:flex;flex-direction:column;gap:10px}
+.case-regressed{border-left:3px solid var(--critical)}
+.verdict{margin:6px 0 0;font-size:15px}
+.verdict .delta{font-size:15px}
+.flag{font-size:11px;font-weight:600;color:var(--warning);white-space:nowrap}
+.star{color:var(--warning);font-size:.45em;vertical-align:super;line-height:0;cursor:help}
+.legend summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.legend-list{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink-2)}
+.case-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.case-head h2{margin:0;font-size:16px;font-weight:600}
+.case-head .spacer{flex:1}
+.case-score{font-size:15px;font-weight:600}
+.mono{font:12px "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.muted{color:var(--ink-3);font-size:12px}
+.meter{display:inline-block;position:relative;width:120px;height:6px;border-radius:4px;background:var(--grid);
+  vertical-align:middle}
+.meter>span{display:block;height:100%;border-radius:4px;max-width:100%}
+.meter .tick{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink-3);border-radius:1px}
+.m-accent>span{background:var(--accent)}
+.m-base>span{background:var(--base-fill)}
+.delta{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.delta-pos{color:var(--delta-good)}
+.delta-neg{color:var(--critical)}
+.delta-zero{color:var(--ink-3)}
+details.section{border-top:1px solid var(--grid);padding-top:10px}
+details.section>summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-2);list-style-position:outside;margin-left:2px}
+details.section>summary:hover{color:var(--ink)}
+details.section[open]>summary{margin-bottom:8px}
+.md{display:flex;flex-direction:column;gap:8px;background:var(--inset);border-radius:8px;
+  padding:12px 14px;overflow-wrap:break-word}
+.md>:first-child{margin-top:0}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:4px 0 0;font-size:1em;font-weight:600;line-height:1.3}
+.md p,.md ul,.md ol,.md blockquote,.md table,.md pre,.md hr{margin:0}
+.md ul,.md ol{display:flex;flex-direction:column;gap:4px;padding-left:20px}
+.md blockquote{border-left:2px solid var(--hairline);padding-left:10px;color:var(--ink-2)}
+.md :not(pre)>code{background:var(--inset);padding:1px 4px;border-radius:4px;
+  font:.92em "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.md pre{background:var(--inset);border:1px solid var(--hairline);padding:10px 12px;border-radius:6px;
+  overflow-x:auto;font:12px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.md pre code{background:none;padding:0;font:inherit}
+.md table{width:100%;border-collapse:collapse}
+.md th,.md td{padding:5px 8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--grid)}
+.md th{font-weight:600;color:var(--ink-2)}
+.md a{color:var(--accent);text-decoration:none}
+.md a:hover{text-decoration:underline}
+.grader-def{display:flex;flex-direction:column;gap:6px;padding:8px 0}
+.grader-def+.grader-def{border-top:1px solid var(--grid)}
+.grader-def-head{display:flex;align-items:baseline;gap:8px}
+.grader-name{font:13px "SF Mono",ui-monospace,Menlo,Consolas,monospace;font-weight:600}
+.badge{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--hairline);border-radius:999px;padding:1px 8px}
+.config{display:flex;flex-direction:column;gap:2px;background:var(--inset);border-radius:8px;padding:10px 14px}
+.config code{font:12px "SF Mono",ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.arm{display:flex;flex-direction:column;gap:8px;padding:6px 0}
+.arm+.arm{border-top:1px dashed var(--grid);margin-top:4px;padding-top:12px}
+.arm-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.arm-label{font-size:13px;font-weight:600}
+.run{border:1px solid var(--grid);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.run-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.run-title{font-size:12px;font-weight:600;color:var(--ink-2)}
+.run-error .explanation{color:var(--ink-2)}
+.note{font-size:12px;color:var(--ink-2)}
+.graders{display:flex;flex-direction:column;gap:4px}
+details.grader{border-radius:6px}
+details.grader>summary{cursor:pointer;display:flex;align-items:baseline;gap:8px;padding:3px 4px;
+  border-radius:6px;list-style:none}
+details.grader>summary::-webkit-details-marker{display:none}
+details.grader>summary::before{content:'▸';font-size:10px;color:var(--ink-3);flex:none;
+  transition:transform .12s ease}
+details.grader[open]>summary::before{transform:rotate(90deg)}
+details.grader>summary:hover{background:var(--inset)}
+details.grader>summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.grader-body{padding:6px 8px 8px 24px;display:flex;flex-direction:column;gap:6px}
+.chip{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.chip-pass{color:var(--good);border:1px solid currentColor}
+.chip-fail{color:var(--critical);border:1px solid currentColor}
+.chip.chip-warn{color:var(--warning);border:1px solid currentColor}
+.explanation{margin:0;font-size:13px;color:var(--ink-2);white-space:pre-wrap;overflow-wrap:break-word}
+.kv{display:flex;gap:8px;font-size:12px;color:var(--ink-3)}
+.votes{font-variant-numeric:tabular-nums;letter-spacing:.1em}
+pre.evidence{margin:0;background:var(--inset);border:1px solid var(--hairline);border-radius:6px;
+  padding:8px 10px;overflow-x:auto;max-height:320px;
+  font:12px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:break-word}
+footer{color:var(--ink-3);font-size:12px;text-align:center;padding-top:8px}
+@media (prefers-reduced-motion:no-preference){
+  details.grader>summary,.toolbar button{transition:background .12s ease,color .12s ease}
+}
+@media (prefers-reduced-motion:reduce){
+  details.grader>summary::before{transition:none}
+}
+@media print{
+  :root,:root[data-theme="dark"],:root[data-theme="light"]{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;color-scheme:light}
+  body{background:#fff}
+  .toolbar{display:none}
+  .case,.run,.grader-def{break-inside:avoid}
+  pre.evidence{max-height:none}
+}
+</style>
+<div class="wrap">
+<header>
+<div class="eyebrow">Plugin eval report</div>
+<h1>aimate v3.7.0</h1>
+<p class="verdict">Plugin effect: <span class="delta delta-zero">· 0.0 pts</span> vs baseline — improved 1 · flat 2 · regressed 1 of 4 cases.</p>
+<div class="meta">
+<span class="mono">.</span>
+<span>Claude Code v2.1.300</span>
+<span class="num">2026-10-15 18:33 UTC</span>
+<span class="num">3m 27s</span>
+<span class="num">$1.05</span>
+<span class="num">8 runs</span>
+
+
+
+<span>judge default</span>
+<span class="num">threshold 100%</span>
+
+</div>
+</header>
+
+<section class="tiles">
+<div class="tile hero"><span class="label">Suite score · with plugin</span><span class="value">50%</span><span class="sub">mean of per-case scores</span></div>
+<div class="tile"><span class="label">Ablation Δ</span><span class="value num delta-zero">0.0</span><span class="sub">score points vs baseline, 4 of 4 cases</span></div>
+<div class="tile"><span class="label">Baseline score</span><span class="value num">50%</span><span class="sub">without the plugin</span></div>
+<div class="tile"><span class="label">Cases</span><span class="value num">4</span><span class="sub">2 of 4 ≥ 100% threshold</span></div>
+<div class="tile"><span class="label">Perfect runs</span><span class="value num">50%</span><span class="sub">runs where every grader passed</span></div>
+</section>
+<details class="section legend">
+<summary>How to read this report</summary>
+<ul class="legend-list">
+<li>A run's score is the weighted fraction of its graders that passed; a "perfect" run passed every grader.</li>
+<li>A case's score is the mean of its runs; a case passes when its score is at or above the 100% threshold (the tick on each case bar).</li>
+<li>The suite score is the mean of the per-case scores.</li>
+<li>Judge votes are independent samples of the LLM judge; the majority decides pass or fail.</li>
+<li>"With plugin" and "Baseline" runs are identical except for the plugin being loaded; Δ is the with-plugin score minus the baseline score.</li>
+
+</ul>
+</details>
+<div class="toolbar"><button type="button" data-act="expand">Expand all</button><button type="button" data-act="collapse">Collapse all</button></div>
+<article class="case" id="case-1">
+<div class="case-head">
+<h2>commit-message-fires</h2>
+<span class="muted mono">evals/plugin/commit-message-fires</span>
+<span class="spacer"></span>
+
+<span class="delta delta-zero">· 0.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">100%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">4 turns · $0.13 · 18:33:09 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">dawn-format</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">Here&apos;s the commit message. Branch `main` has no ticket key, so there&apos;s no links line.
+
+```text
+Use ISO 8601 dates in CSV export
+
+Prior to this change, the CSV export wrote order dates in US
+month/day/year format (03/09/2026). Readers outside the US can take
+that as 9 March or 3 September, and the dates don&apos;t sort correctly
+as text.
+
+This change writes dates as year-month-day (2026-03-09). That format
+has only one reading, sorts in date order, and spreadsheets and other
+importers parse it reliably.
+```
+
+I haven&apos;t committed it. I don&apos;t have shell access in this session, so I couldn&apos;t run `git commit`. To commit it yourself, save the message to a file and run `git commit -F &lt;file&gt;`.
+
+The diff shows the format change but not your reason for making it. I filled in the usual reasons for switching to ISO dates. If you had a specific reason, like a downstream importer that misread the old dates, put it in the second paragraph instead.
+
+Anyone who parses this CSV and expects `m/d/Y` will break after this change, so it&apos;s worth checking for downstream users.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">no-conventional-prefix</span>  </summary>
+<div class="grader-body">
+<p class="explanation">matched ^(?!.*\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\([^)]*\))?!?:)</p>
+
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">1 turns · $0.05 · 18:33:27 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">dawn-format</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">```
+Use ISO 8601 dates in CSV export
+
+Format orderedAt as Y-m-d instead of m/d/Y. US-style dates are
+ambiguous to non-US readers, sort wrong as text, and spreadsheet apps
+can misread them depending on locale. ISO dates avoid all three
+problems.
+
+Update the export date format test to match.
+```
+
+Anything that reads these CSV files and expects `m/d/Y` dates will break with this change. If there are known consumers, add a note like `BREAKING: CSV date column is now YYYY-MM-DD` to the message body.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">no-conventional-prefix</span>  </summary>
+<div class="grader-body">
+<p class="explanation">matched ^(?!.*\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\([^)]*\))?!?:)</p>
+
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>I've staged my changes — write the commit message for them. Here is the staged diff:</p>
+<pre><code class="language-diff">diff --git a/src/export.php b/src/export.php
+--- a/src/export.php
++++ b/src/export.php
+@@ -18,7 +18,7 @@ class CsvExporter
+-                $order-&gt;orderedAt-&gt;format(&#39;m/d/Y&#39;),
++                $order-&gt;orderedAt-&gt;format(&#39;Y-m-d&#39;),
+diff --git a/tests/run.php b/tests/run.php
+--- a/tests/run.php
++++ b/tests/run.php
+@@ -26,7 +26,7 @@
+-check(str_contains($csv, &#39;03/09/2026&#39;), &#39;export date format&#39;);
++check(str_contains($csv, &#39;2026-03-09&#39;), &#39;export date format&#39;);
+</code></pre>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">dawn-format</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the drafted commit message has a short imperative subject line with no Conventional-Commits prefix (no "fix:", "feat:" or similar), followed by body text that explains the problem (dates read wrong in the US format) and the approach, as the Dawn commit rules require.</p>
+<p>FAIL if the message is subject-only, uses a type/scope prefix, merely lists the files changed, or restates the diff line by line instead of explaining why.</p>
+</div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">no-conventional-prefix</span><span class="badge">regex</span></div>
+<div class="config"><div class="kv"><span>target</span><code>&quot;last_message&quot;</code></div><div class="kv"><span>pattern</span><code>&quot;^(?!.*\\b(feat|fix|chore|docs|refactor|style|test|perf|build|ci)(\\([^)]*\\))?!?:)&quot;</code></div><div class="kv"><span>flags</span><code>&quot;&quot;</code></div><div class="kv"><span>match</span><code>&quot;contains&quot;</code></div></div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?write-commit-message\&quot;&quot;</code></div></div>
+</div>
+</details>
+</article>
+<article class="case" id="case-2">
+<div class="case-head">
+<h2>decompose-routes-to-a-skill</h2>
+<span class="muted mono">evals/plugin/decompose-routes-to-a-skill</span>
+<span class="spacer"></span>
+
+<span class="delta delta-zero">· 0.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">0%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">0% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">4 turns · $0.16 · 18:33:33 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details>
+<details class="grader" open>
+<summary><span class="chip chip-fail">✗ fail</span> <span class="grader-name">vertical-tickets</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: FAIL FAIL FAIL</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✗ ✗ ✗</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">The working directory (`/tmp/claude-eval-3fsYKz/home/cwd`) is empty, so there&apos;s no code to base the tickets on. Before I write the plan I need a few answers, mostly because the spec doesn&apos;t define some behaviour and the answers change what the tickets contain.
+
+**1. Where is the code, and what does it run on?** *(blocking)*
+- **Recommendation:** Give me the repo path so I can match its framework, job queue, database and test setup.
+- **If I don&apos;t have it:** I can still write tickets, but file paths, the job queue and test commands would be guesses that developers would have to rework.
+
+**2. What counts as a duplicate?**
+- **Recommendation:** The same email within the same customer account, ignoring case and surrounding spaces. If the same email appears twice in one file, keep the first row and reject the later ones as &quot;duplicate in file.&quot;
+- **Why:** Email is the only field that reliably identifies a person.
+- **If you choose differently:** Matching on name plus email, or across all accounts, changes the database index and the lookup query.
+
+**3. If some rows fail, do the good rows still get imported?**
+- **Recommendation:** Yes. Import the valid rows, reject the bad ones and report them.
+- **Why:** The spec&apos;s &quot;rejected row&quot; wording suggests this.
+- **If you choose differently:** All-or-nothing needs one transaction or a staging table for the whole file, which is a different design.
+
+**4. How does the user get the error report?**
+- **Recommendation:** A status endpoint the client checks, plus a downloadable CSV of the rejected rows (original row number, the row&apos;s data, the reason).
+- **If you choose differently:** Sending it by email adds an email-sending ticket. A screen in the app adds frontend tickets.
+
+**5. Is a frontend in scope** (upload screen, progress, report download), or only the API?
+- **Recommendation:** Only the API, unless you have a web app in this repo.
+
+**6. What makes an email invalid, and what about other fields?**
+- **Recommendation:**
+  - Check the email&apos;s format only, without checking that the domain can receive mail.
+  - Reject a row with no name as &quot;missing name.&quot; City is optional.
+  - Reject a file with more than 50,000 rows, or the wrong headers, before any processing.
+- **Why:** The spec only names invalid email and duplicates as reasons, so a missing name or city is a decision you need to make.
+
+**7. Does the app already have a background job system** (e.g. Sidekiq, Celery, BullMQ, Hangfire, SQS) and file storage (e.g. S3)?
+- **Recommendation:** Use what&apos;s already there. Running the import in a background worker is how &quot;must not block the API for other users&quot; gets met.
+- **If you choose differently:** If there&apos;s no job system, setting one up becomes its own ticket.
+
+Send me the repo path, or say &quot;use your defaults&quot; and name a stack. I&apos;ll then save the full ticket breakdown to `docs/plans/2026-10-15-contact-csv-import.md`.</pre>
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">0% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">2 turns · $0.11 · 18:33:56 UTC</span>
+</div>
+
+<div class="graders"><details class="grader" open>
+<summary><span class="chip chip-fail">✗ fail</span> <span class="grader-name">vertical-tickets</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: FAIL FAIL FAIL</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✗ ✗ ✗</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I couldn&apos;t find a codebase in the working directory, so these tickets don&apos;t assume a particular stack. Before anyone picks them up, a few decisions are needed (listed at the end). Where the spec is silent I made an assumption and marked it **[Assumption]**.
+
+---
+
+### IMP-1 — Data model for imports and rejected rows
+**Size:** S · **Depends on:** none
+
+- Add an `import_jobs` table: id, account_id, user_id, status (`queued` / `processing` / `completed` / `failed`), file reference, total_rows, imported_count, rejected_count, timestamps, error_message.
+- Add an `import_rejections` table: job_id, row_number, the raw row values, reason_code, and a reason message.
+- Add a unique index on contacts `(account_id, normalized_email)`. This is the backstop that stops two imports running at once from both inserting the same contact.
+
+**Acceptance criteria**
+- Migrations run forward and back cleanly.
+- If the contacts table already has duplicates, the index migration finds them and reports them instead of failing partway.
+
+---
+
+### IMP-2 — Upload endpoint (async handoff)
+**Size:** M · **Depends on:** IMP-1
+
+- `POST /contacts/imports` accepts the file, stores it in object storage, creates an `import_jobs` row with status `queued`, puts a job on the queue and returns **202** with the job id.
+- It checks only what&apos;s cheap: file size limit, content type, readable encoding, and a header row containing `name`, `email`, `city`. It does no row-by-row work.
+- **[Assumption]** Files over 50,000 data rows are rejected outright, not cut off at 50,000. The worker checks the count; the endpoint only enforces the size limit.
+
+**Acceptance criteria**
+- Responds in under about 1s for a 50k-row file.
+- Bad headers or a wrong file type return 400 with a clear message.
+- Requests without auth or permission are rejected.
+
+---
+
+### IMP-3 — Row validation rules
+**Size:** S · **Depends on:** none (can run in parallel)
+
+- Write a pure function that takes a row and returns either a normalized contact or a rejection reason.
+- Email: trim it, check the syntax, and lowercase it for comparison.
+- Name and city: trim them. Whether they&apos;re required is open question 3.
+- Use stable reason codes such as `INVALID_EMAIL`, `MISSING_FIELD`, `DUPLICATE_EXISTING`, `DUPLICATE_IN_FILE`.
+
+**Acceptance criteria**
+- Unit tests cover valid and invalid emails, whitespace, unicode, empty cells, extra or missing columns, and quoted fields with commas or newlines.
+
+---
+
+### IMP-4 — Background import worker
+**Size:** L · **Depends on:** IMP-1, IMP-2, IMP-3
+
+- Read the stored file as a stream. Don&apos;t load all 50k rows into memory.
+- Work in batches of about 500–1,000 rows. For each batch:
+  - validate each row (IMP-3)
+  - look up existing emails for the account in one query
+  - check for duplicates against emails seen earlier in the same file
+  - bulk insert using insert-or-skip-on-conflict, and record any conflicts as `DUPLICATE_EXISTING`
+  - write the rejected rows
+  - update the job&apos;s progress counters
+- Set the job status to `completed` or `failed`, recording an error message on failure.
+- Idempotency: if the worker crashes and the job is retried, it must not create double inserts or double rejections. Either resume from the last committed batch or make the batches idempotent.
+
+**Acceptance criteria**
+- A 50k-row file with mixed valid, invalid and duplicate rows ends with `imported + rejected = total`.
+- Killing the worker partway and retrying gives the same final result.
+- Memory use stays roughly flat regardless of file size.
+
+---
+
+### IMP-5 — Isolation so imports don&apos;t block the API
+**Size:** M · **Depends on:** IMP-4
+
+- Run imports on their own queue and worker pool, separate from the request-serving processes.
+- Limit concurrency per account (e.g. one active import per account) and globally. **[Assumption]** A second upload while one is running is queued, not rejected.
+- Keep each database transaction to one batch so locks stay short. Use the DB connection pool assigned to workers.
+- Rate-limit the upload endpoint.
+
+**Acceptance criteria**
+- See IMP-9. API p95 latency for other users stays within an agreed limit while several 50k imports run.
+
+---
+
+### IMP-6 — Job status endpoint and completion notification
+**Size:** S · **Depends on:** IMP-1
+
+- `GET /contacts/imports/{id}` returns status, progress counts, and a link to the error report once the job is complete. Only the owning account can read it.
+- Notify the user when the job finishes. **[Assumption]** This is an in-app notification, and email is open question 5.
+
+**Acceptance criteria**
+- Another account&apos;s job id returns 404.
+- Progress numbers update while the job is processing.
+
+---
+
+### IMP-7 — Error report generation and download
+**Size:** M · **Depends on:** IMP-4
+
+- When the job finishes, generate a CSV report: the original row number, the original name/email/city values, the reason code, and a readable reason.
+- Store it and serve it from `GET /contacts/imports/{id}/errors` (or a short-lived signed URL). If nothing was rejected, return an empty report with headers only.
+- Neutralize CSV formula injection in the output: prefix or escape cells that start with `=`, `+`, `-` or `@`. The report contains user-supplied data and will be opened in Excel.
+
+**Acceptance criteria**
+- Every rejected row appears exactly once.
+- Row numbers match the user&apos;s original file.
+- A worst case of 50k rejections is generated without a memory spike.
+
+---
+
+### IMP-8 — Frontend: upload flow and results
+**Size:** M · **Depends on:** IMP-2, IMP-6, IMP-7
+
+- Upload screen showing the expected format and a downloadable template CSV.
+- Client-side check of file size and type before upload.
+- Progress view that polls status, then a summary (&quot;X imported, Y rejected&quot;) with a download link for the error report.
+- The user can leave the page and come back to see the result.
+
+**Acceptance criteria**
+- Covers the happy path, the all-rejected case, a server 400, and a failed job.
+
+---
+
+### IMP-9 — Load and end-to-end tests
+**Size:** M · **Depends on:** IMP-4, IMP-5, IMP-7
+
+- Fixture files:
+  - 50k valid rows
+  - 50k mixed rows
+  - 50,001 rows
+  - malformed CSV
+  - duplicates within the file
+  - duplicates of existing contacts
+- Load test: run N concurrent 50k imports while sending normal API traffic, and record API latency and error rate.
+- Record how long a 50k import takes in practice.
+
+**Acceptance criteria**
+- The non-blocking requirement is checked against an agreed threshold (open question 7).
+
+---
+
+### Suggested order
+IMP-1 and IMP-3 in parallel → IMP-2 and IMP-6 → IMP-4 → IMP-5 and IMP-7 → IMP-8 (can start earlier against mocked endpoints) → IMP-9.
+
+### Open questions for product (answer before IMP-3 and IMP-4)
+1. **What counts as a duplicate?** Matching email only, compared case-insensitively? Or email plus name?
+2. **Duplicates within the file:** if the same email appears twice in the upload, keep the first and reject the rest?
+3. **Name and city:** are they required? Are there length limits?
+4. **Partial imports:** I assumed valid rows are imported even when other rows are rejected. Is that right, rather than all-or-nothing?
+5. **Report delivery:** download in the app, email, or both? How long is the report kept? It contains personal data.
+6. **Over-limit files:** reject the whole file, or import the first 50,000 rows?
+7. **&quot;Must not block the API&quot;:** what&apos;s the measurable target, e.g. p95 latency increase under X ms during imports?</pre>
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>Break this work down into tickets our developers can pick up.</p>
+<p>Spec: customers must be able to import a CSV of contacts (name, email, city), up to 50,000 rows. Rows with an invalid email or a duplicate of an existing contact are rejected, and after the import the user gets an error report listing every rejected row with the reason. Imports must not block the API for other users.</p>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?(write-plan|prepare-ticket|write-prd)\&quot;&quot;</code></div></div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">vertical-tickets</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the reply cuts the work into tickets where the first ticket delivers one demonstrable end-to-end slice (for example: one valid row imported from upload through stored contact), and no ticket covers only a single layer such as "parsing only", "storage only" or "endpoint only".</p>
+<p>FAIL if the tickets mirror the layers (parser ticket, storage ticket, API ticket), if any ticket cannot be demonstrated on its own, or if the reply is a single implementation plan rather than independent tickets.</p>
+</div>
+</div>
+</details>
+</article>
+<article class="case case-regressed" id="case-3">
+<div class="case-head">
+<h2>plan-fires-on-break-down-ticket</h2>
+<span class="muted mono">evals/plugin/plan-fires-on-break-down-ticket</span>
+<span class="spacer"></span>
+
+<span class="delta delta-neg">↓ -100.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">0%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">0% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">5 turns · $0.16 · 18:34:38 UTC</span>
+</div>
+
+<div class="graders"><details class="grader" open>
+<summary><span class="chip chip-fail">✗ fail</span> <span class="grader-name">sized-tasks</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: FAIL FAIL FAIL</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✗ ✗ ✗</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t write a code-grounded plan yet because there&apos;s no code to look at. The working directory (`/tmp/claude-eval-TapUBk/home/cwd`) is empty, and the git repo above it only holds a `.gitconfig`. There&apos;s no orders page, framework, filter state or API for me to check.
+
+The planning process requires every architecture-affecting branch to be either confirmed in code or decided by you. Right now these branches block the plan:
+
+| # | Question | Recommendation | Rationale | Scope impact if answered differently |
+|---|---|---|---|---|
+| 1 | **Where&apos;s the orders page code?** Which repo or path, and what stack (e.g. React/Next, Vue, Angular; Node, .NET, Rails, Django)? | Point me at the repo so I can find the answer myself | Every file path, test command and convention in the plan comes from this | Without it the plan is generic and can&apos;t be handed to an implementer |
+| 2 | **Does filtering happen in the browser or on the server?** Does the page load all orders and filter locally, or fetch paged and filtered results from an API? | Server-side export: a new endpoint that takes the same filter parameters as the list API | The page usually holds only one page of results. Exporting just that would silently break &quot;respects active filters&quot; for anything past page 1. | If all orders are already in the browser, it becomes frontend-only: build the CSV in the browser, no backend task, about half the scope |
+| 3 | **How should we handle 10k rows?** | Stream the CSV from the server in batches, with no async job or emailed file | 10k rows is roughly 1–3 MB, small enough for one streamed HTTP response. A background job with a &quot;we&apos;ll email you&quot; flow is overkill. | If the real limit is much higher (100k+), it needs an async export job, storage and a notification, which adds about 2 more tasks |
+| 4 | **What counts as a &quot;visible column&quot;?** Can users show and hide columns, and is that choice stored anywhere? | The client sends its current list of visible column keys with the export request, and the server only allows known keys | This keeps the CSV matching what the user sees without the server storing view state | If the columns are fixed, this branch disappears and the CSV uses a fixed column set |
+| 5 | **Export by page or everything?** Should export include all rows that match the filters, or only the current page? | All matching rows | That&apos;s what &quot;current filtered list&quot; usually means, and it&apos;s the reason the 10k-row requirement exists | Exporting one page drops the streaming work |
+
+These are the defaults I&apos;d assume unless you say otherwise, since they don&apos;t change the structure of the plan:
+- Filename `orders-YYYY-MM-DD.csv`, using the user&apos;s local date.
+- UTF-8 with a BOM so Excel opens it correctly, and standard RFC 4180 quoting.
+- Formula-injection protection: cells starting with `=`, `+`, `-` or `@` get a leading `&apos;`.
+- The current sort order is kept.
+- The button is disabled while the export runs and shows an error toast if it fails.
+- The export uses the same authorization as the orders list.
+
+Send me the repo location, or just answer questions 2–5, and I&apos;ll write the full task breakdown to `docs/plans/2026-10-15-orders-csv-export.md`.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">2 turns · $0.08 · 18:35:06 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">sized-tasks</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">The working directory is empty, so I couldn&apos;t look at your orders page code. This plan assumes a typical setup: a frontend table that gets its data from an API, with server-side filtering and pagination. The open questions at the end are the places where your real code could change the plan.
+
+## Main decision: build the CSV on the server
+
+If the table loads data page by page, the browser only holds the current page. Building the CSV in the browser would export ~50 rows, not the full filtered list. A server endpoint that **runs the same filter logic as the list endpoint** is what makes &quot;respects active filters&quot; true by design, not just by testing. It also handles 10k rows easily if you stream the output.
+
+(If the whole filtered dataset is already loaded in the browser, building the CSV there is a fine and simpler choice. Tasks 2–3 below would shrink to a small helper function.)
+
+## Tasks
+
+**1. Share the filter logic** (backend, ~0.5d)
+- Move the orders list&apos;s filter/sort query building into one shared function, if it isn&apos;t already.
+- The list endpoint and the export endpoint both call it. This prevents the two from drifting apart.
+
+**2. Export endpoint** (backend, ~1d)
+- `GET /orders/export?&lt;same filter params&gt;&amp;columns=id,status,total,...`
+- Allow only column keys from a server-side list (column key → header label + formatter). Reject unknown keys.
+- Stream rows (DB cursor or batches of ~1000) straight into the response instead of building the whole file in memory.
+- Headers: `Content-Type: text/csv; charset=utf-8` and `Content-Disposition: attachment; filename=&quot;orders-2026-10-15.csv&quot;`.
+- Use the same auth/permission checks as the list endpoint.
+- Set a row cap (e.g., 50k) and return a clear error above it, so a large export can&apos;t overload the server.
+
+**3. CSV formatting** (backend, ~0.5d)
+- Use a proper CSV library for quoting, commas, quotes and newlines inside values.
+- Start the file with a UTF-8 BOM so Excel shows non-ASCII names correctly.
+- **Block formula injection:** prefix any cell starting with `=`, `+`, `-`, `@`, tab or CR with `&apos;`. Customer-entered fields like names and notes are the risk here.
+- Use the same formats as the UI for dates (ISO or the UI&apos;s locale), money (raw number vs. formatted) and enums (label vs. code).
+
+**4. Frontend button** (~0.5d)
+- Add an &quot;Export CSV&quot; button to the orders toolbar.
+- Build the request from the **current filter state** (the same object the table query uses) plus the currently visible columns, in display order.
+- Download with a plain link/navigation to the endpoint, or with `fetch` → blob → object URL if auth uses a header token instead of cookies.
+- Show a loading state and disable the button while the export runs. Show an error toast on failure.
+- Disable the button, or say &quot;No results&quot;, when the filtered list is empty.
+
+**5. Tests** (~1d)
+- Backend unit tests: escaping, formula-injection guard, column allow-list, filename date.
+- Backend integration test: with filters applied, the export rows exactly match the list endpoint&apos;s results (all pages combined). This covers the main acceptance criterion directly.
+- Load test: 10k rows, check response time (e.g., under 5s) and that memory stays flat.
+- Frontend test: the button sends the active filters and visible columns.
+- Manual test: open the file in Excel and Google Sheets.
+
+**Estimate:** ~3–4 dev days, plus review.
+
+## Acceptance criteria → where they&apos;re covered
+
+| Criterion | Covered by |
+|---|---|
+| Respects active filters | Shared filter logic (1) + export-vs-list integration test (5) |
+| Handles 10k rows | Streaming + batching (2) + load test (5) |
+| Filename contains the date | `Content-Disposition` (2) + unit test (5) |
+| Visible columns only | `columns` param + allow-list (2, 4) |
+
+## Questions for the ticket owner
+1. **Whose date and timezone?** The server&apos;s date, or the user&apos;s local date? I suggest the user&apos;s local date, sent by the client or applied on the client side.
+2. **Sort order:** should the export keep the table&apos;s current sort? I&apos;d assume yes.
+3. **Selected rows:** if the table has row checkboxes, should the export use only the selected rows? I&apos;d leave that out of scope.
+4. **Formatted or raw values:** for money and dates, does finance want raw numbers they can calculate with, or the formatted display strings?
+5. **Upper limit:** is 10k the realistic maximum? If exports could reach 100k+, plan for a background job that emails a download link instead.
+6. **Audit/PII:** do order exports need to be logged, or limited to certain roles?</pre>
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>Break down this ticket into an implementation plan: "Add CSV export to the orders page — a button that downloads the current filtered list as CSV with the visible columns. Acceptance: export respects active filters, handles 10k rows, filename contains the date."</p>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">sized-tasks</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the reply is an implementation plan broken into small, individually executable tasks, each with some size or effort indication, covering the export respecting filters, the 10k-row handling and the dated filename.</p>
+<p>FAIL if the reply is one undifferentiated task list without sizing, starts writing the implementation code itself, or ignores any of the three acceptance criteria.</p>
+</div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?write-plan\&quot;&quot;</code></div></div>
+</div>
+</details>
+</article>
+<article class="case" id="case-4">
+<div class="case-head">
+<h2>prepare-ticket-fires</h2>
+<span class="muted mono">evals/plugin/prepare-ticket-fires</span>
+<span class="spacer"></span>
+
+<span class="delta delta-pos">↑ +100.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">100%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">6 turns · $0.29 · 18:35:38 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">verdict-not-implementation</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">**Not ready.** The ticket names two symptoms but not which page, how slow it is now, or how fast it needs to be. A developer can&apos;t start, and couldn&apos;t tell when they were done.
+
+### Blocking (3)
+
+**1. The ticket doesn&apos;t say which page &quot;the list page&quot; is.** I couldn&apos;t work it out from the code, because the working directory is empty.
+→ Name the page and the screen or route where customers see it. Also say whether every customer is affected or only some, for example accounts with a lot of data. *Ticket author.*
+
+**2. &quot;Make it faster&quot; has no starting measurement and no target.** Nothing says which part is slow (opening the page, scrolling, filtering, searching), how slow it is now, or what counts as fast enough. Without a number, the work can&apos;t be checked or finished.
+→ Add the current load time for a typical complaining customer and a target, for example &quot;the list is usable within 2 s for an account with 5,000 rows.&quot; I recommend taking the starting figure from real-user monitoring or from the support tickets behind the complaints. Without a target the work tends to drag on, and nobody can say whether it helped. *Ticket author, with support or product.*
+
+**3. This is two separate changes.** Load speed and the layout jumping while it loads are different problems with different fixes. The layout fix is usually small and can ship on its own. The speed fix may need back-end work.
+→ Split it:
+- &quot;Make the [X] list load in under [N] seconds&quot;: speed only, waits on questions 1 and 2.
+- &quot;Stop the [X] list jumping around while it loads&quot;: reserve space or show placeholders so content doesn&apos;t move as it arrives. Once the page is named, this one could be ready almost straight away.
+
+I recommend splitting, so the quick fix for the jumping isn&apos;t held up by the speed work.
+
+### Worth a look (1)
+
+**The reason is vague.** &quot;Customers keep complaining&quot; would carry more weight with a count or a few ticket links. That would also support the &quot;high&quot; priority.
+
+### What a rewrite would change
+
+The title would change from &quot;Customers keep complaining about the slow list page…&quot; to &quot;Make the [X] list load in under [N] seconds&quot;, plus the second ticket from the split. Each ticket would get a Why, a measurable Goal with a &quot;How to check&quot; step, acceptance criteria, and an Out of scope section. I can&apos;t write the code-level implementation notes until I&apos;m looking at the right repository.
+
+**What I checked:** I traced no claims and closed no design branches. The working directory is an empty git repository with no commits, so none of the ticket&apos;s statements could be checked against code. I also worked only from the text you pasted and haven&apos;t fetched USER-91 from the tracker, so I haven&apos;t read any comments on it. Those may already answer some of the questions above.
+
+---
+**USER-91: not ready.** It doesn&apos;t name the page, gives no starting time or target for &quot;faster&quot;, and combines two separate fixes.
+**Next:** the ticket author answers the three questions above. Then run this again from the repository that contains the list page. *Ticket author.*
+
+**Should I fetch USER-91 from the tracker to read its comments, then post these three questions on it?** yes / no</pre>
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">0% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:0.0%"></span></span>
+<span class="num">0%</span>
+<span class="muted num">1 turns · $0.06 · 18:36:11 UTC</span>
+</div>
+
+<div class="graders"><details class="grader" open>
+<summary><span class="chip chip-fail">✗ fail</span> <span class="grader-name">verdict-not-implementation</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: FAIL FAIL FAIL</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✗ ✗ ✗</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">**Not yet.** It describes two real problems, but a developer can&apos;t tell where to start or when they&apos;re done.
+
+**What&apos;s missing**
+
+1. **Which page?** &quot;The list page&quot; could mean several screens. Name it with a route or URL, and say whether it affects every user or only some (large accounts, certain filters, mobile).
+2. **How slow is it now?** There&apos;s no baseline. Add current numbers, such as p50/p95 load time, API response time, or LCP, and where they came from (RUM, APM, a recorded repro).
+3. **What counts as fast enough?** Without a target, &quot;make it faster&quot; never ends. Example: &quot;p95 time to interactive under 2s for accounts with 10k rows.&quot;
+4. **Steps to reproduce:** an account, data size or filters that show the slowness, plus browser/device and network if they matter.
+5. **Evidence from customers:** links to support tickets or quotes. This shows how bad it is and who is hit, which also backs up the &quot;high&quot; priority.
+6. **Scope:** Can the API, pagination or UX change (virtualization, infinite scroll), or is this frontend-only?
+
+**Split it into two tickets.** Slowness and layout shift have different causes and different fixes, and you&apos;d verify them differently:
+
+- **USER-91a: List page load performance.** Baseline, target, repro, scope as above.
+- **USER-91b: Layout shift during list page load.** Which elements jump (table, header, images, filters)? Include a screen recording. Acceptance criterion: &quot;CLS &lt; 0.1, with skeleton or reserved space for X and Y.&quot;
+
+The layout-shift fix is usually smaller and well-bounded. It could be picked up now, once someone notes which elements jump.
+
+**Suggested rewrite (performance half)**
+
+&gt; **Page:** `/orders` list view
+&gt; **Problem:** p95 load is ~6s for accounts with &gt;5k orders (Datadog, last 30 days). 14 support tickets this month (links).
+&gt; **Repro:** Log in as `demo-large@…`, open Orders, default filters.
+&gt; **Acceptance criteria:** p95 load ≤ 2s for the same cohort, with no regression for small accounts. Measured via [dashboard].
+&gt; **Out of scope:** Redesigning the filters UI.
+&gt; **Priority:** High. Top support driver for enterprise accounts.
+
+If you know which page it is, I can look through the codebase for likely culprits (unpaginated queries, N+1 calls, missing size reservations) and add technical pointers to the ticket.</pre>
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>Is this ticket ready for a developer to pick up?</p>
+<p>Ticket USER-91: "Customers keep complaining about the slow list page. Make it faster. Also the layout jumps around while loading. Priority: high."</p>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?(prepare-ticket|validate-ticket)\&quot;&quot;</code></div></div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">verdict-not-implementation</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the reply treats the ticket as not ready, names what is missing (no measurable performance target, two unrelated problems in one ticket, no acceptance criteria), and ends with a clear readiness verdict and a concrete next action — without inventing acceptance criteria as if they came from the requester and without starting to implement anything.</p>
+<p>FAIL if the reply starts implementing or planning the fix, declares the ticket ready, or fabricates specific acceptance criteria and presents them as given.</p>
+</div>
+</div>
+</details>
+</article>
+<footer>Generated by <code>claude plugin eval</code> · schema v1 · scores are not comparable across different suites</footer>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var bar=document.querySelector('.toolbar');
+  if(!bar)return;
+  bar.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest('button');
+    if(!b)return;
+    var open=b.dataset.act==='expand';
+    document.querySelectorAll('details.section, details.grader').forEach(function(d){d.open=open});
+  });
+});
+// Collapsed details vanish from print/PDF; these pages are share artifacts.
+window.addEventListener('beforeprint',function(){
+  document.querySelectorAll('details').forEach(function(d){
+    if(!d.open){d.dataset.printOpened='1';d.open=true}
+  });
+});
+window.addEventListener('afterprint',function(){
+  document.querySelectorAll('details[data-print-opened]').forEach(function(d){
+    d.open=false;delete d.dataset.printOpened;
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+fastapi>=0.115
+pydantic[email]>=2.8
+httpx>=0.27
+pytest>=8.2

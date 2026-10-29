@@ -1,0 +1,26 @@
+{
+  "id": "d02-refined-ticket-deactivate-user",
+  "type": "delivery",
+  "entry_state": "refined-ticket",
+  "stack": "php",
+  "fixture": "php-app",
+  "acceptance": "d02",
+  "max_turns": 40,
+  "prompt": "Pick up this refined ticket:",
+  "spec": [
+    "USER-88: Support deactivating users.",
+    "Intent: offboarded employees must lose all editing rights immediately while staying visible in historical data.",
+    "Acceptance criteria:",
+    "- A user can be deactivated and reactivated (methods on App\\Auth\\User).",
+    "- A deactivated user's canEdit() and canAdministrate() return false regardless of role.",
+    "- Reactivating restores the role's previous rights.",
+    "- A user's active state is readable (isActive()).",
+    "- Existing tests keep passing; new behavior is covered by tests.",
+    "Definition of done: composer test passes, no other behavior changes."
+  ],
+  "expect": [
+    { "check": "new behavior is covered by tests the agent added or extended", "by": "judge", "req": "R3" },
+    { "check": "no behavior outside the ticket changed (export, orders and role logic for active users untouched)", "by": "judge", "req": "R5" }
+  ],
+  "behavioral": true
+}

@@ -1,0 +1,32 @@
+{
+  "id": "02-dotnet-phone-field",
+  "stack": "dotnet",
+  "size": "small",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Add a phone number field to the customer profile in our .NET back office: stored in the database, shown on the customer detail page, editable in the edit form.",
+    "Validation: digits, spaces and + only, max 20 characters. Existing customers simply have no phone number yet."
+  ],
+  "expect": [
+    {
+      "check": "small work stays whole: exactly one ticket, no multi-ticket plan",
+      "by": "structural",
+      "type": "single_ticket_or_none",
+      "req": "R5"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the single ticket covers database through screen as one vertical slice, not split per layer",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}
