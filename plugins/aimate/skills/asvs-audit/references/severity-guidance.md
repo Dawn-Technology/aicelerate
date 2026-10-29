@@ -1,72 +1,36 @@
-# Severity Assignment Guidance
+# Severity guidance
 
-Use this table to assign severity levels to FAIL findings. The default severity is based on the ASVS chapter, but can be overridden with direct code evidence showing different impact.
+Severity tells the reader what to fix first. To keep it the same between runs, it starts from a fixed default and changes only through the rules below.
 
-## Severity Table
+## Levels
 
-| ASVS Chapter | Default Severity | Can Override To | Override Conditions |
-|---|---|---|---|
-| V1 Architecture | Medium | **Critical** | If authentication bypass or fundamental security flaw |
-| V2 Authentication | **Critical** | Medium | If non-critical authentication method (e.g., remember-me token) |
-| V3 Session Mgmt | High | **Critical** | If session hijacking is trivial (e.g., no httpOnly) |
-| V4 Access Control | **Critical** | High | For non-sensitive resources only |
-| V5 Validation | High | Medium | For non-critical UX fields only |
-| V6 Cryptography | High | Medium | For non-sensitive data encryption |
-| V7 Error & Logging | Medium | High | If exposes secrets or enables attacks |
-| V8 Data Protection | High | **Critical** | If PII stored in plaintext or logged |
-| V9 Communication | High | **Critical** | If sensitive data over unencrypted channel |
-| V10 Malicious Code | Medium | High | If third-party dependency vulnerability |
-| V11 Business Logic | Medium | High | If financial/critical business impact |
-| V12 Files & Resources | High | **Critical** | If remote code execution via upload |
-| V13 API & Web Services | High | **Critical** | If mass data exposure or injection |
-| V14 Configuration | Medium | High | If production secrets exposed |
+| Level | Icon | Meaning |
+|---|---|---|
+| Critical | 🔴 | An attacker with no account, or with an account anyone can create, can run code, bypass authentication, or read or change other users' data in bulk. |
+| High | 🟠 | Directly exploitable against other users or their data, needing at most a normal account or one action by the victim. |
+| Medium | 🟡 | Exploitable only with preconditions (network position, a specific browser, another weakness) or with limited impact. |
+| Low | 🟢 | Hardening or documentation gap with no direct path to exploitation. |
 
-## Severity Level Definitions
+## Setting severity for a FAIL item
 
-| Severity | Icon | Impact | Example |
-|----------|------|--------|---------|
-| **Critical** | 🔴 | Immediate exploitation leading to full compromise | SQL injection in authentication, RCE via file upload, plaintext passwords |
-| **High** | 🟠 | Directly exploitable with significant impact | Missing CSRF protection, weak crypto, session fixation |
-| **Medium** | 🟡 | Requires preconditions or has limited impact | Password policy weakness, missing rate limiting, verbose errors |
-| **Low** | 🟢 | Informational or requires complex attack chain | Documentation gaps, deprecated but still secure methods |
+1. Start from the default after the item's title in [requirements-guide.md](./requirements-guide.md), including any item-specific note there (for example #18 with SameSite cookies, #61 with a repository-pinned download digest, #70 with exposed password hashes).
+2. Set each verified location's severity:
+   - **Raise to Critical** when the location matches the Critical meaning above.
+   - **Lower one level** when every path to the location requires an administrator or similarly privileged account.
+   - Otherwise keep the default.
+3. The item's severity is the highest severity among its locations.
+4. When a rule changed the severity, write the reason in the finding's description.
 
-## Assignment Rules
+No other adjustments. In particular, do not raise severity because you are unsure.
 
-1. **Start with the table default** for the ASVS chapter
-2. **Evaluate actual impact** based on:
-   - Data sensitivity (PII, financial, auth credentials)
-   - Ease of exploitation (requires auth? network access? user interaction?)
-   - Business criticality (user-facing? admin? internal tool?)
-3. **Override only with evidence**: If impact differs from default, document why in the finding
-4. **When in doubt, escalate**: Prefer higher severity if uncertain
+## Setting severity for other findings
 
-## Examples
+Pick the default from the first match below, then apply steps 2–4 above.
 
-### Using Default Severity
-
-```
-Finding: Missing CSRF protection in user profile update
-Chapter: V3 Session Management
-Default: High
-Assessment: Standard web form, requires authenticated user → Keep High
-```
-
-### Overriding to Higher Severity
-
-```
-Finding: Session cookies without httpOnly flag
-Chapter: V3 Session Management
-Default: High
-Assessment: Trivial XSS → session hijacking, user accounts fully compromised → Override to Critical
-Evidence: Tested with XSS payload, successfully extracted admin session token
-```
-
-### Overriding to Lower Severity
-
-```
-Finding: Weak password policy (min 6 chars)
-Chapter: V2 Authentication
-Default: Critical
-Assessment: Non-critical "remember this device" token, not primary auth → Override to Medium
-Evidence: Only affects optional convenience feature, primary login requires strong policy
-```
+1. One of these common cases:
+   - A tracked secret file, or a hard-coded secret that grants access to production systems: High.
+   - Unsafe deserialization of input the user controls: Critical.
+   - Debug mode or detailed error pages enabled in production configuration: Medium.
+   - Password storage with a fast or unsalted hash (MD5, SHA-1, SHA-256 without a password hashing function): High.
+2. The default of the most similar of the 70 items.
+3. The level whose meaning above fits best.

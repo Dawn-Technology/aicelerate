@@ -3,7 +3,7 @@ name: resolve-pr-feedback
 description: Use when asked to resolve, address, fix, or reply to review feedback on a GitHub Pull Request or GitLab Merge Request, including review comments, unresolved threads, requested changes, or "apply the review comments" requests.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.1.0
+  version: 1.3.0
   dependencies:
     - code-review
     - write-commit-message
@@ -340,9 +340,11 @@ review_context:
 
 Store the result as `self_review_result`:
 
+- An incomplete review blocks the push. Require `summary.review_complete: true` before interpreting empty totals as a clean self-review.
 - Every `security-violation` and `request-for-change` finding blocks the push. Fix, re-run Step 7, and self-review again — at most twice. If a finding survives that, revert the item it belongs to, move that item to `needs-clarification`, and push the rest. Never push a change your own review still calls broken.
 - `optional` findings do not block. List them in the report and leave them.
-- If `chunking_required` is `true`, process every chunk in order, without asking even when `confirm_scope` is `true`, and combine the results without reclassifying them, then apply this gate.
+- If `clarification_question` is present, supply the missing input from the worktree and invoke `code-review` again. If you cannot, the push stays blocked; report the question.
+- If `chunking_required` is `true`, execute the core's [chunked review protocol](../code-review/SKILL.md#chunked-review-protocol), including context handoff and final integration. Full-scope self-review is already authorized, so do not ask for size confirmation even when `confirm_scope` is `true`. Apply this gate only to the integrated result; do not aggregate or reclassify findings here.
 
 Then check what `code-review` cannot, because it reviews the code and not the mandate:
 

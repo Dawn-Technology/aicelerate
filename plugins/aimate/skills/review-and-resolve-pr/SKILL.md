@@ -3,7 +3,7 @@ name: review-and-resolve-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request and act on the result in one autonomous pass, including "review and fix this PR", "review this MR and resolve the feedback", "close the review loop on this PR", or any request that pairs reviewing a PR/MR with applying the findings. Reviews the PR/MR, posts every finding as an inline comment, resolves those comments into pushed code and per-thread replies, and reports the addressed findings.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.1.0
+  version: 1.2.0
   dependencies:
     - review-pr
     - resolve-pr-feedback
@@ -129,7 +129,7 @@ Four overrides apply, and no others:
 
 - **Step 6's hard stop is satisfied.** `review-pr` ends its turn after presenting findings because it does not know what the user wants done with them. Here the user said, on invocation: post them all as inline comments. Still produce the Step 6 report in full — Step 4 of this skill is built from it — then continue into Step 7-A in the same turn instead of stopping.
 - **Step 7-A is the chosen action, and the only one.** Post every finding returned by `code-review`, at every severity, using the `comment_bodies` entries verbatim. Do not run 7-B or 7-C: approving a PR/MR this run is about to change is prohibited, and marking it changes-requested leaves a state only the reviewer can clear, on a review the same run is already clearing itself.
-- **Chunking does not pause.** Where `review-pr` asks the user once whether to narrow a very large review, do not ask: process every chunk in order and combine the results as its Step 5 describes. Publish only after the last chunk is reviewed, so the comment set is complete and ordered.
+- **Chunking does not pause for size confirmation.** Full-scope review is already authorized: process every chunk and the core's final integration as `review-pr` Step 5 describes. Publish only the integrated result, so cross-file concerns are checked and duplicate findings are reconciled before posting.
 - **Step 8 runs before Step 3 of this skill, not after it.** `{review_wt}` must be removed while the tree is still unmodified. Do not let a read-only worktree sit on disk through a write phase.
 
 Record from this step:
