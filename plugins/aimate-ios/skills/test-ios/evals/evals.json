@@ -1,0 +1,23 @@
+{
+  "skill_name": "test-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In ~/Documents/git/knmi-app-ios (branch develop), run the tests affected by the latest commit.",
+      "expected_output": "Maps the changed file (Widgets/ForecastWidget/LocationQuery.swift) to its target and searches for tests that cover it. When no test covers it, says so instead of running unrelated tests as if they verified the change, builds the affected scheme to at least prove it compiles, and offers the full suite. Reports every route in tooling.md order with its exact state, and names the scheme, test plan, and destination used. Edits no source files.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "In ~/Documents/git/npo-start-ios (branch develop), run the unit tests.",
+      "expected_output": "Reads AGENTS.md and uses its xcodebuild command, scheme, and test plan first; reports where AGENTS.md disagrees with this machine (simulator name, Xcode path) and the substitution used. Reports passed, failed, and skipped counts, names each failing test with its assertion message and file:line, and separates failures that also occur on the unchanged base or are known flaky from new ones, or says it could not tell. Reuses existing DerivedData unless Xcode is building the same project. Edits no source files.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "In ~/Documents/git/thuisarts-ios (branch bugfix/TAA-0002-broken-searchbar), run the tests.",
+      "expected_output": "Reads .github/copilot-instructions.md, finds that the project has no test targets (confirmed from the scheme or project), and says so without inventing results. Offers or runs the build command from the instructions as the only available verification and reports it as a build, not as tests. Edits no source files.",
+      "files": []
+    }
+  ]
+}
