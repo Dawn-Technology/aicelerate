@@ -1,15 +1,92 @@
 # Release notes
 
-## 3.9.0
+## 4.7.0 (2026-10-29)
 
 - `write-plan` repurposed to an estimation step over a prepared ticket: input is the brief that prepare-ticket produces (or an equivalent ticket with acceptance criteria), output is sized tasks to discuss the approach, take into refinement, or estimate from. The skill no longer does its own discovery or design-tree resolution, and is optional in the build loop. The plan eval case and grader changed with it in the same commits.
 
-## 3.8.0
+## 4.6.0 (2026-10-29)
 
 - Test and eval suite for the plugin itself, in `tests/` and `evals/`: structural and routing checks that block every PR in CI, headless smoke tests for Claude Code and the Copilot CLI, promise-and-fire evals on both hosts' real routers, and behavioral evals that grade real agent runs against the numbered requirements in `evals/rubrics/requirements.md` with hidden acceptance tests and a no-plugin control. Reports land as CI artifacts; result folders are gitignored. See `tests/README.md` and `evals/README.md`.
 
 - New skill `split-spec`: split a spec, feature or epic into vertical, independently deliverable tickets — size gate first (small work stays one ticket), a demo line per ticket, acceptance criteria that fail on the current code, blockers as tracker links, a numbered list for approval before full tickets, and explicit handling for layered, oversized and vague input. Fills the measured gap where "break this work down into tickets" fired no skill at all.
 - `prepare-ticket`: description now names natural readiness phrasings and applies when the ticket is pasted inline, aimed at hosts whose routers did not fire it.
+
+## 4.5.0 (2026-10-28)
+
+`asvs-audit` (3.0.0) now checks every finding against the code before it reaches the report, and gives the same statuses when run twice on the same commit.
+
+- **Correct ASVS 5.0 mapping.** Severity defaults, framework defaults and examples used ASVS 4.0 chapter numbers, so most severities and framework passes landed on the wrong requirements. They are now keyed to the 70 ASVS 5.0 item IDs.
+- **Verification pass.** The coordinator re-reads every cited line and rejects failures that are not in production code, not reachable, already protected elsewhere, or belong to another requirement. Rejected candidates are listed in the report.
+- **Fixed decision rules.** A new [requirements guide](skills/asvs-audit/references/requirements-guide.md) gives each item when it applies, what passes and fails, what to search, and a default severity. NEEDS_REVIEW is limited to four reasons where the evidence is outside the repository, and it no longer raises the compliance score.
+- **More complete results.** The audit maps entry points before evaluating, includes monorepo `packages/` folders, lists every failing location instead of one, reports security issues outside the 70 items, and runs the package manager's dependency audit without installing anything. Every advisory is reported; V15.2.1 fails only when an advisory is older than the project's documented fix time frame.
+- **Simpler worker setup.** Two workers on different models, or one when the host offers only one, with a defined output format. Workers write their results to a file instead of the conversation and report `unknown` rather than guess the model they ran on.
+- **Survives context resets on large repositories.** The audit keeps the project profile, worker results and finished verdicts in a private folder outside the repository, resumes from the first unfinished item after a reset, and builds the report there before copying it to `docs/` in one step. The folder is deleted once the report is published.
+- **Bundled bookkeeping helpers.** One Python command fingerprints the current file scope, with or without Git. Another assembles the report from verified verdicts and checks all 70 items, references, counts and scores before writing it. Naming now specifies the actual TOML, .NET and Go fields without guessing template names or reusing earlier report names. A vulnerability affecting several requirements gets one detailed finding and references from the other failing items.
+- **Clearer evidence rules.** A quoted line must show the operation and the value the finding depends on, not just a function name. Overlapping locations are merged only when they describe the same vulnerability. A candidate moved to another requirement is counted where it lands, not as a false positive. MD5 or SHA-1 checking a TLS download against a digest pinned in the repository is Low instead of High.
+
+### Breaking changes
+
+- The report layout changed: findings list all locations, and new sections cover other findings, items needing review, an evidence appendix with every search, and rejected candidates. Partial reports are no longer written; a report always covers all 70 items. The compliance score now counts NEEDS_REVIEW items as not passed and shows the best case separately.
+- `references/evidence-patterns.md` is replaced by [audit-rules.md](skills/asvs-audit/references/audit-rules.md).
+- "pentest" is no longer a trigger phrase; the skill does not test a running application.
+
+## 4.4.0 (2026-10-25)
+
+`implement-ticket` no longer mistakes an unfinished code review for a clean one, and the `code-review` description now names all three skills that call it.
+
+- **`implement-ticket` (1.3.0)** counts a review pass only when the report says the review is complete. The review subagent returns any clarification question instead of trying to ask it. An incomplete pass is retried once, with the missing input when it asked for one. The retry counts toward the three-pass limit. If it is still incomplete, it is listed in the final report as unresolved with its gaps, and the Stage 7 gate accepts that outcome.
+- **`code-review` (2.2.1)** lists the pre-push self-review in `resolve-pr-feedback` next to `review-pr` and `review-local` as its callers. The review rules are unchanged.
+
+## 4.3.0 (2026-10-24)
+
+Code reviews now flag comments that repeat what the code already says or paper over hard-to-read logic, so code stays self-explanatory and free of comment noise that goes stale.
+
+- **`code-review` (2.2.0)** requires code to be readable on its own and flags comments in the submitted scope that narrate behavior or compensate for unclear code, directing the author to clarify the code and remove the comment.
+- **`code-review` (2.2.0)** keeps comments only when the code could reasonably be misread or needs extra *why* context, and explicitly exempts valid tooling or type-checker directives, required public API contract docs, and untouched comments that were not made stale by the change.
+- The [review scenarios](skills/code-review/evals/scenarios.json) grew to 15 with `ban-redundant-what-comments`.
+
+## 4.2.0 (2026-10-20)
+
+Code reviews are easier for an agent to follow, report every supported finding, and keep unverified concerns visible without turning them into findings. The review rules themselves are unchanged; each one is now stated once, in one place.
+
+- **`code-review` (2.1.0)** is restructured so a normal review no longer reads past the large-review rules. The finding standard, severities, and residual gaps are each defined once, and chunk and integration passes are described as changes to the normal steps. The `report` field always uses the chat format, chunk groups have a defined order, and the eval guide moved to [evals/README.md](skills/code-review/evals/README.md).
+- **`code-review` (2.1.0)** reports every distinct finding with no cap per category, and lets maintainability, style, and documentation findings require changes when their consequences justify it. An unverified security concern is a residual gap, never an `optional` finding, and residual gaps always appear in the report. Comment bodies carry no separate severity label.
+- **`code-review` (2.1.0)** returns a new `clarification_question` when a review cannot start without more input. **`review-pr` (5.5.0)** and **`review-local` (1.3.0)** ask the user that question and run the review again; **`resolve-pr-feedback` (1.3.0)** fills the gap from the worktree or keeps the push blocked.
+- A failed chunk no longer lets the successful chunks be integrated or published. **`review-pr` (5.5.0)** requires a complete review before any publication, approval, or request-changes action, and posts residual gaps in a labelled review summary rather than as inline findings.
+- The [review scenarios](skills/code-review/evals/scenarios.json) grew to 14, adding uncapped maintainability findings, security uncertainty alongside a real defect, a failed chunk, and the clarification response.
+
+### Migration from 4.1
+
+- `confirm_scope` is now true whenever a change exceeds 5,000 counted lines. Custom callers decide whether full scope is already authorized before asking, as the [chunked review protocol](skills/code-review/SKILL.md#chunked-review-protocol) describes.
+- Custom callers should handle `clarification_question`: ask the user, then invoke the review again with the answer.
+
+## 4.1.0 (2026-10-20)
+
+`prepare-ticket` (3.0.0) now aims to turn a ticket into an intent-driven specification: why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer.
+
+Improved design-tree handling follows answers into dependent decisions instead of stopping after one round of questions. Agreed decisions improve the specification, unresolved choices stay visible, and a final handoff challenge checks for materially different interpretations before declaring it ready.
+
+## 4.0.0
+
+Reviews now focus on whether a change delivers the requested behavior safely and keeps the next change manageable. Findings need evidence, a concrete consequence, and the smallest safe direction; unclear code should be improved rather than explained through more comments. Incomplete reviews can no longer look clean merely because their finding totals are zero.
+
+- **`code-review` (2.0.0)** replaces the education goal with actionable feedback, applies one evidence and severity standard across review areas, and checks intended behavior and existing regression coverage. Necessary contract documentation and concise external rationale remain valid; style preferences, speculative abstractions, and missing new test files are not findings by themselves.
+- **`code-review` (2.0.0)** also owns a shared chunked review protocol. Chunks pass along contract facts and unresolved cross-file concerns, then a final integration step verifies coverage, checks affected producers and consumers, reconciles conflicting claims, merges duplicate causes, and rebuilds totals and rendered output. The 1,500-line chunking and 5,000-line size-confirmation thresholds are unchanged.
+- **`review-pr` (5.4.0)**, **`review-local` (1.2.0)**, **`resolve-pr-feedback` (1.2.0)**, and **`review-and-resolve-pr` (1.2.0)** use that protocol instead of concatenating chunk reports. Incomplete reviews cannot authorize publication or pass the pre-push self-review gate. Existing provider permissions and the autonomous loop's standing authorization remain unchanged.
+- Added [11 fixed review scenarios](skills/code-review/evals/scenarios.json) for comparing skill revisions, including convention departures, necessary rationale, existing test coverage, duplicate cross-chunk findings, and incomplete review states. Comparisons are a skill-maintenance activity, not an additional step in every review.
+
+### Breaking changes
+
+- `inline-comments` now returns the complete structured review result, not a result containing only `comment_bodies`.
+- `summary.review_complete` is required. It is false for preflight, per-chunk results, and incomplete coverage; only a completed normal review or an integrated agreed scope returns true.
+- Chunked callers must pass `review_context.chunk_context` and run final integration before consuming the result as a completed review. Per-chunk results include `summary.cross_file_context` for the handoff.
+
+### Migration from 3.x
+
+1. Update the plugin as a whole so the core and its callers use the same contract. The bundled workflows reference sibling skills inside the plugin; copying one skill alone does not install its dependencies.
+2. In custom inline callers, read comment text from the returned result's `comment_bodies` map and retain the rest of the result.
+3. Replace custom chunk concatenation with the [shared chunked review protocol](skills/code-review/SKILL.md#chunked-review-protocol). Use the integrated findings, totals, report, and comment bodies rather than raw chunk output.
+4. Require `summary.review_complete: true` before publication, approval, request-changes actions, or a successful self-review gate. Missing or false completion state is not a clean review.
 
 ## 3.7.0
 

@@ -3,7 +3,7 @@ name: implement-ticket
 description: 'Use when asked to implement, build, or pick up a ticket end to end — a Jira work item, GitHub Issue, or GitLab Issue — including "implement ABC-123", "implement gh issue #137", "work on issue 137", or "pick up this ticket". Critiques the request against the code, builds it in a throwaway git worktree, verifies it with the repo''s own commands and a code review whose findings it resolves, opens a PR/MR, removes the worktree, and reports every deviation from the ticket.'
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 1.2.1
+  version: 1.3.0
   dependencies:
     - fetch-ticket
     - review-local
@@ -330,9 +330,14 @@ out of scope.
      lightweight tier: review quality is the point. Give it the absolute worktree path, the scope
      `git -C <worktree-path> diff <base>...HEAD`, and the plan and acceptance criteria as context. Tell it
      to run every `git` command with `git -C <worktree-path>`, and never to stop and ask about scope:
-     on a very large diff it reviews every chunk. It returns the `code-review` report:
+     on a very large diff it reviews every chunk. It cannot ask the user either, so tell it to return
+     any clarification question instead of asking it. It returns the `code-review` report:
      findings at every severity, each with `file:line` evidence. It is read-only, so it changes
-     nothing. Where the repo also owns a review agent, run that as well and resolve its findings the same way.
+     nothing. A pass counts only when the report says the review is complete. An incomplete pass, or
+     one that returns a clarification question, is not a clean pass: retry it once, with the missing
+     input when it asked for one. The retry counts toward the three passes. If it is still incomplete,
+     list it in the stage 10 report as unresolved with its gaps.
+     Where the repo also owns a review agent, run that as well and resolve its findings the same way.
   2. **Resolve.** Give every finding a resolution, whatever its severity:
      - **Fix** it. This is the default.
      - **Reject** it only with `file:line` or command output showing it does not hold, or that it lies
@@ -342,7 +347,7 @@ out of scope.
      using the stage 6 rules: work in the worktree, stage the paths, and commit through
      `write-commit-message`.
   3. **Re-run and re-review.** After the fixes, run the repo's commands again. Then repeat step 1 on
-     the fix commits only (`<noted HEAD>..HEAD`), until a pass returns no new finding. A finding you
+     the fix commits only (`<noted HEAD>..HEAD`), until a complete pass returns no new finding. A finding you
      already rejected with evidence is not new. Stop after three review passes in all. Anything still
      open goes in the stage 10 report as unresolved, with the finding as written.
 - Walk the acceptance criteria one by one and name the test or manual check that covers each.
@@ -350,7 +355,8 @@ out of scope.
 
 **Gate:** the suite (or the documented subset) has been run after the last fix, and its output is on
 screen. Every acceptance criterion maps to named evidence. Every review finding is fixed, rejected
-with evidence, or (after three passes) listed as unresolved for the report, and the fixes are committed. Every "tests pass" points to a run on screen.
+with evidence, or (after three passes) listed as unresolved for the report, and the fixes are committed.
+The last review pass was complete, or its gaps are listed as unresolved for the report. Every "tests pass" points to a run on screen.
 
 ---
 

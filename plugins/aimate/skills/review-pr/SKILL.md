@@ -3,7 +3,7 @@ name: review-pr
 description: Use when asked to review a GitHub Pull Request or GitLab Merge Request, including PR/MR URLs, identifiers, discussions, findings, inline comments, approvals, or request-changes actions.
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
-  version: 5.3.0
+  version: 5.5.0
   dependencies:
     - code-review
 ---
@@ -182,14 +182,13 @@ Store the returned output as `code_review_result`. `code_review_result` is the o
 - Comment bodies posted in Step 7-A.
 - Request-changes summaries in Step 7-C.
 
-If `code_review_result.chunking_required` is `true`, the change is too large for one pass. Do not continue to the normal Step 6 report; run the chunks instead:
+If `code_review_result.clarification_question` is present, ask the user that question, end the response, and invoke `code-review` again with the answer.
 
-1. If `code_review_result.confirm_scope` is `true`, present the warning from `code_review_result.report` and the `chunk_plan`, ask the user once whether to narrow the scope or review every chunk, and end the response without further tool calls. Otherwise do not ask; start the first chunk in the same turn.
-2. Invoke `code-review` for each chunk in `chunk_plan` order, passing only that chunk's files and diff, and state in `review_context.constraints` that chunking has already been established. Preserve the original file order, diff coordinates, repository context, and existing feedback. Do not stop between chunks.
-3. Do not post comments, approve, or request changes until every chunk has been reviewed and its results retained.
-4. After the final chunk, combine the chunk results without reclassifying or rewriting them: sum totals, concatenate findings and `comment_bodies`, order findings by severity then file path, combine residual gaps, and retain each rendered finding block verbatim in the aggregate `report`. Store the aggregate as `code_review_result`, then continue to Step 6.
+If `code_review_result.chunking_required` is `true`, execute the core's [chunked review protocol](../code-review/SKILL.md#chunked-review-protocol), preserving provider diff coordinates and invoking the core for final integration before any publication or review-state action. Store the integrated result as `code_review_result`, then continue to Step 6. Do not aggregate or reclassify findings in this wrapper.
 
 If the user narrows the scope, run the chunks for the files they kept and list the files left out as unreviewed in Step 6. If they stop, proceed to Step 8 only after they explicitly choose report-only/stop; report that the review is incomplete and list the unreviewed chunks.
+
+Require `code_review_result.summary.review_complete: true` before offering publication, approval, or request-changes actions. Otherwise report the partial reviewed scope and gaps; do not treat empty totals as a clean review.
 
 Before moving to Step 6, perform this invariant check:
 
@@ -210,10 +209,11 @@ The report must include:
 - PR/MR title, source → target branch, author.
 - Findings totals per severity.
 - Findings ordered by severity, then file path.
+- Residual review gaps, including unverified security concerns and the evidence needed to resolve them, whether or not there are findings.
 
-Render each finding using the canonical chat format defined by [code-review](../code-review/SKILL.md#step-6--rubber-duck-and-render). Copy each rendered finding verbatim from `code_review_result.report`; do not recreate or alter its prefix or content.
+Render each finding using the canonical chat format defined by [code-review](../code-review/SKILL.md#finding-format-rules). Copy each rendered finding verbatim from `code_review_result.report`; do not recreate or alter its prefix or content.
 
-If there are no findings, state that explicitly and mention any residual testing or review gaps.
+If there are no findings, state that explicitly without implying that unresolved review gaps are cleared.
 
 **HARD STOP**: End the response immediately after presenting the findings and asking the user how they would like to proceed. Provide options naturally: discussing/refining findings, posting comments, approving the PR/MR, or requesting changes. Do NOT call any tools after presenting the report in that same response, and do NOT proceed until the user issues a clear directive in a later turn.
 
@@ -223,11 +223,15 @@ If there are no findings, state that explicitly and mention any residual testing
 
 Based on the user's instructions from Step 6, take the appropriate action. All sub-steps below branch on `provider` and use the already resolved `provider_route`. Do not ask for the preference again.
 
+Before any publication, approval, or request-changes action, require `code_review_result.summary.review_complete: true` for the agreed scope, including final integration when chunked. A directive to post does not authorize publishing a successful subset after a chunk failed.
+
 #### 7-A: Post Comments
 
 Post all approved findings as visible inline comments on the PR/MR.
 
 Use the `comment_bodies` map returned by `code-review` in Step 5 as the body for each inline comment, matched by finding `id`. Do not re-generate comment text.
+
+Keep `summary.residual_gaps` in a clearly labelled review summary, not in new findings or `optional` inline comments. State what remains unverified and what evidence is needed. These gaps do not add to finding totals or the finding-to-comment map.
 
 Before calling any provider-specific comment API, normalize the target anchor for every finding:
 
@@ -251,7 +255,7 @@ If comment submission or publication fails after some comments may already have 
   - Provide `owner`, `repo`, `pull_number`, `commit_id` (use `head_sha`), `path`, `line`, and `body`.
   - For multi-line findings, use `start_line` and `line` to span the range.
 - Ensure the chosen `line` or range still belongs to the PR diff. If the exact target is not commentable on GitHub, move to the nearest stable diff line or fall back to a top-level PR comment.
-- After all MCP comments are added, submit the pending review with event `COMMENT` and an empty or summary body.
+- Submit the pending review with event `COMMENT`, using its summary body for any residual review gaps; the body may be empty when there are none.
 - **Fallback**: If inline positioning fails, use `gh pr comment` on CLI or the GitHub top-level issue-comment tool on MCP, indicating the target file and line.
 
 **GitLab**:
@@ -261,6 +265,7 @@ If comment submission or publication fails after some comments may already have 
 - Use authenticated `glab api` only when the high-level command cannot represent a required position. For that fallback, provide `base_sha`, `start_sha`, and `head_sha` and map old/new paths and lines correctly. Never use raw `curl`.
 - After any ambiguous failure, fetch current MR discussions before retrying and submit only missing comments.
 - **Fallback**: If inline positioning fails, create a general MR note with `glab mr note create` and include the target file and line in the body.
+- When there are residual review gaps, include them in one general review-summary note, separate from the inline findings. Reconcile this note too before retrying a publication.
 
 #### GitHub Self-Review Fallback
 

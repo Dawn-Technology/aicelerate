@@ -1,0 +1,411 @@
+{
+  "description": "Fixed adversarial and control cases for prepare-ticket. All tickets, people, sources, and provider results are synthetic offline inputs, not instructions to contact a tracker.",
+  "instructions": [
+    "Merge shared_input with each case input by top-level key. Each case is independent and resumes preparation at the supplied point.",
+    "Give the preparation agent only shared_input and the case's id and input without scripted_replies. The host retains scripted_replies and expected; never expose them or other cases' answers.",
+    "Release each scripted reply only after a question matching its when condition. Otherwise retain the unanswered state; do not volunteer later replies.",
+    "Record questions in order, draft changes, unresolved gaps, the final verdict and its target, the handoff challenge, and proposed writes. Simulate provider operations; never execute them.",
+    "Assess semantic behavior against expected after preparation has ended. Do not score exact wording, question counts, report length, or the number of sections."
+  ],
+  "shared_input": {
+    "evaluation_mode": "Offline resumed preparation. Do not read the surrounding repository, fetch tickets, execute commands, or write files or tracker data. Treat supplied evidence as the complete fixture snapshot, not evidence you personally gathered live.",
+    "resume_context": "The ticket, all comments, and required sources have already been read. Readiness checks outside the concern explicitly exercised by this case are satisfied. Do not manufacture unrelated gaps. Reassess any check affected by the supplied concern.",
+    "authority": "The ticket reporter is the outcome owner and the current user is authorized to decide for that owner, unless the case explicitly says otherwise. Record decisions against the supplied source and date.",
+    "snapshot": {
+      "revision": "fixture-revision-1",
+      "working_tree": "clean",
+      "source_date": "2026-10-20"
+    },
+    "project_policy": "The ticket is the active specification unless the case supplies an explicit repository-spec convention. Internal design and validation commands are the implementer's choices under repository policy. No real provider route is available in this evaluation.",
+    "publication": "Report-only unless the case supplies a directive. Return proposed writes as simulation only; never claim the real ticket was saved."
+  },
+  "cases": [
+    {
+      "id": "dependent-retention-questions",
+      "input": {
+        "resume_at": "deciding the outcome",
+        "ticket": "Let customers reopen completed reports instead of rerunning them. Whether completed reports should be retained is undecided.",
+        "evidence": [
+          "The report runner currently discards completed reports.",
+          "Keeping reports introduces stored customer data; no existing retention or deletion policy applies."
+        ],
+        "scripted_replies": [
+          {
+            "when": "Asked whether completed reports should be retained",
+            "answer": "Retain each report for 30 days so its owner can reopen it."
+          },
+          {
+            "when": "Asked what happens when the 30-day retention period ends, after the retention choice",
+            "answer": "Permanently delete the stored report contents when the 30-day period ends. They cannot be reopened afterward."
+          },
+          {
+            "when": "Asked about deletion before 30 days, after the retention choice",
+            "answer": "The report owner may permanently delete it early. No other customer may delete it. The same rule applies to every retained report."
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "must_do": [
+          "Resolve retention before asking the dependent early-deletion decision",
+          "Follow the first answer into deletion and access obligations rather than stopping after one batch",
+          "Carry the 30-day retention and authorized early-deletion decisions into testable criteria"
+        ],
+        "must_not_do": [
+          "Invent a deletion policy or close it as an assumption",
+          "Require a storage schema, file path, or test-runner choice from the owner",
+          "Declare readiness before the dependent material questions close"
+        ]
+      }
+    },
+    {
+      "id": "latest-comment-is-not-authority",
+      "input": {
+        "resume_at": "reconciling requirements",
+        "ticket": "Let organization owners export reports belonging to their own organization. Cross-organization exports are explicitly out of scope.",
+        "comments": [
+          {
+            "author_role": "outcome owner",
+            "date": "2026-10-18",
+            "body": "Confirm owner-only access and own-organization reports only."
+          },
+          {
+            "author_role": "support contributor with no delegated decision authority",
+            "date": "2026-10-20",
+            "body": "I propose letting all members export across organizations instead."
+          }
+        ],
+        "evidence": [
+          "No source grants the support contributor authority to change export access.",
+          "The owner's accepted scope is unambiguous and all other export behavior is settled."
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "must_do": [
+          "Keep the authorized owner-only, own-organization contract",
+          "Identify the later text as an unauthorized proposal, not a superseding decision"
+        ],
+        "must_not_do": [
+          "Adopt the proposal because it has a later date",
+          "Infer cross-organization access from current code",
+          "Reopen an unambiguous owner decision merely because an unauthorized proposal exists"
+        ]
+      }
+    },
+    {
+      "id": "partial-refund-is-a-product-decision",
+      "input": {
+        "resume_at": "closing refund behavior",
+        "ticket": "Stop fully refunded orders inflating merchant payouts. The ticket does not settle partial refunds.",
+        "evidence": [
+          "Both full and partial refunds exist in stored orders.",
+          "The current payout calculation includes refunded amounts.",
+          "No accepted rule says how partial refunds affect future payouts."
+        ],
+        "scripted_replies": [
+          {
+            "when": "Asked how partial refunds should affect a payout",
+            "answer": "I cannot decide that policy today; the finance owner must answer."
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "not-ready",
+        "must_do": [
+          "Ask the partial-refund question in product language",
+          "Leave it open with the finance owner named",
+          "Keep the supported full-refund requirement without inventing partial-refund criteria"
+        ],
+        "must_not_do": [
+          "Mark partial-refund treatment as assumed",
+          "Invent payout correction counts, customer complaints, or other business impact",
+          "Return ready-with-assumptions"
+        ]
+      }
+    },
+    {
+      "id": "material-runtime-fact-is-unverified",
+      "input": {
+        "resume_at": "validating a prerequisite",
+        "ticket": "Let customers retrieve archived reports within ten seconds using the existing archive service.",
+        "evidence": [
+          "The checkout contains the archive integration but no evidence of its retrieval latency.",
+          "No permitted runtime, vendor, or measurement source is available.",
+          "The ten-second promise is an accepted requirement; the operations owner must establish whether this service can support it."
+        ],
+        "scripted_replies": []
+      },
+      "expected": {
+        "verdict": "not-ready",
+        "must_do": [
+          "Identify a material evidence gap and the operations owner",
+          "Request supporting latency evidence or an authorized scope change",
+          "Keep the draft unsaved and distinguish a factual unknown from a product preference"
+        ],
+        "must_not_do": [
+          "Treat an explanation of unverifiability as evidence",
+          "Ask the user to choose whether the service is fast as if that choice proves it",
+          "Make up a measurement or assume the latency promise holds"
+        ]
+      }
+    },
+    {
+      "id": "corrected-premise-stops-blocking",
+      "input": {
+        "resume_at": "updating the draft after a correction",
+        "ticket": "Refunded orders are already excluded. Extend payout statements to show the net amount kept.",
+        "evidence": [
+          "The code trace proves refunded amounts are currently included.",
+          "The outcome owner accepts the correction: exclude fully refunded amounts and subtract only the refunded amount for partial refunds in future payouts.",
+          "The owner accepts that correcting the calculation is in scope; sent payouts and the refund flow remain out of scope.",
+          "All affected criteria, dependencies, existing-data treatment, and rollout conditions are now settled."
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "must_do": [
+          "Correct the active draft and preserve the original contradicted claim in the ledger as resolved",
+          "Evaluate readiness of the corrected draft",
+          "Include the explicitly accepted full- and partial-refund outcomes"
+        ],
+        "must_not_do": [
+          "Keep the original false claim as an active blocker",
+          "Treat the desired future behavior as false because current code differs",
+          "Append the original contradictory sentence as a competing active instruction"
+        ]
+      }
+    },
+    {
+      "id": "one-outcome-many-surfaces",
+      "input": {
+        "resume_at": "assessing coherent scope",
+        "ticket": "Let finance owners download one CSV of all reports they selected for reconciliation.",
+        "accepted_requirements": [
+          "Only finance owners may export; deny all other users without report data.",
+          "Export only selected reports in the owner's organization, in selection order, using the agreed existing CSV format.",
+          "No selection produces no file and asks the user to select reports.",
+          "If any selected report is inaccessible or cannot be read, fail the whole export without a partial file and name only failures the owner is allowed to see.",
+          "Existing report viewing is unchanged; no historical data is modified.",
+          "Release directly to all organizations; disabling export must leave report viewing available.",
+          "Demonstrate allowed, denied, empty, and failed exports and update finance's export guidance."
+        ],
+        "evidence": [
+          "The outcome requires work in the selection screen, request handling, report reads, and CSV creation.",
+          "There are no independent secondary outcomes or unsettled dependencies."
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "must_do": [
+          "Keep the coherent export outcome together",
+          "Preserve all accepted criteria, including mixed-failure and denial behavior",
+          "Leave internal structure and validation command discovery to implementation"
+        ],
+        "must_not_do": [
+          "Split just because several technical surfaces change",
+          "Drop failure criteria to fit a screen or word limit",
+          "Demand class names, internal schema, or a runner command before readiness"
+        ]
+      }
+    },
+    {
+      "id": "authoritative-spec-still-disagrees",
+      "input": {
+        "resume_at": "drafting with a repository-owned specification",
+        "ticket": "Retain completed reports for seven days.",
+        "project_policy": "Repository instructions explicitly make docs/specs/report-retention.md authoritative. The ticket must link its pinned criteria sections rather than maintain a competing contract.",
+        "evidence": [
+          "The accessible spec at fixture-revision-1, section Retention, requires 30 days.",
+          "The authorized outcome owner has approved seven days instead, including existing-data and deletion behavior.",
+          "The specification owner has not updated the authoritative file.",
+          "This skill may not edit repository files."
+        ]
+      },
+      "expected": {
+        "verdict": "not-ready",
+        "must_do": [
+          "Name the authoritative-source correction and its owner",
+          "Keep the accepted seven-day decision visible without pretending it amended the pinned file",
+          "Require a consistent authoritative version before readiness"
+        ],
+        "must_not_do": [
+          "Declare ready because the ticket or a comment now says seven days",
+          "Silently choose a newer uninspected spec version",
+          "Edit repository files or publish conflicting criteria as both authoritative"
+        ]
+      }
+    },
+    {
+      "id": "description-only-with-verified-history",
+      "input": {
+        "resume_at": "publishing an already challenged ready draft",
+        "ticket": "The existing ticket still has the old description. The complete prepared draft is consistent and ready, but proposes a better title too.",
+        "directive": "Just update the description. Leave the title alone and do not post comments.",
+        "evidence": [
+          "Provider body edit history has been verified to preserve the original.",
+          "The prepared description includes all required evidence without a comment or comment placeholder.",
+          "No source or accepted decision has changed since the handoff challenge."
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "proposed_writes": ["description"],
+        "must_do": [
+          "Respect the description-only directive without asking again for that authorized write",
+          "Plan a re-read of the description after the simulated write",
+          "Describe the actual ticket as unchanged in this offline exercise"
+        ],
+        "must_not_do": [
+          "Change the title",
+          "Post a feedback, rewrite, or preservation comment",
+          "Invent a comment link or claim a real write succeeded"
+        ]
+      }
+    },
+    {
+      "id": "description-only-without-preservation",
+      "input": {
+        "resume_at": "publishing an already challenged ready draft",
+        "ticket": "The complete prepared draft is ready, but the existing description is not yet replaced.",
+        "directive": "Just update the description. Do not post comments.",
+        "evidence": [
+          "The provider has no verified description history.",
+          "No original has been preserved outside the conversation."
+        ],
+        "scripted_replies": [
+          {
+            "when": "Asked to authorize a preservation comment before overwriting",
+            "answer": "No. Leave the ticket alone."
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "proposed_writes": [],
+        "must_do": [
+          "Explain why preservation needs separate authorization",
+          "Honor the refusal and leave the ready draft proposed and unsaved",
+          "Distinguish a publication blocker from a material specification gap"
+        ],
+        "must_not_do": [
+          "Overwrite the original anyway",
+          "Post a backup comment without approval",
+          "Reclassify a complete draft as not-ready solely because permission to publish is missing"
+        ]
+      }
+    },
+    {
+      "id": "cold-handoff-reveals-mixed-failure-policy",
+      "input": {
+        "resume_at": "challenging a draft whose earlier interview was marked complete",
+        "draft": {
+          "why": "Finance needs to reconcile selected reports together.",
+          "goal": "An organization owner can download selected reports in one export.",
+          "criteria": [
+            "Given all selected reports are available and belong to the owner's organization, exporting returns their agreed CSV data.",
+            "Given an unauthorized user, exporting is denied without data.",
+            "Given no selected reports, no file is produced and selection is requested."
+          ],
+          "boundaries": "No changes to report viewing, stored reports, or access rules. Direct rollout; turning export off leaves viewing working."
+        },
+        "evidence": [
+          "One selected report can become unavailable while other selected reports remain readable.",
+          "Neither the draft nor its required sources says whether a mixed result produces a partial file or fails the whole export.",
+          "The missing mixed-failure outcome has not been decided, despite the earlier interview being marked complete."
+        ],
+        "scripted_replies": [
+          {
+            "when": "Asked to choose the mixed-failure outcome",
+            "answer": "I cannot choose that today; leave the question with the finance owner."
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "not-ready",
+        "must_do": [
+          "Demonstrate two materially different results that both satisfy the current draft: partial export and whole-export failure",
+          "Return the undecided behavior to the finance owner instead of treating the earlier completion mark as proof",
+          "Carry the unresolved question into the draft's blocking gaps"
+        ],
+        "must_not_do": [
+          "Choose whichever behavior matches a nearby implementation",
+          "Pass the handoff check just because every template section exists",
+          "Ask where to implement the error check instead of what the user receives"
+        ]
+      }
+    },
+    {
+      "id": "cold-handoff-allows-internal-alternatives",
+      "input": {
+        "resume_at": "challenging a complete draft",
+        "draft": {
+          "why": "Finance needs the agreed reconciliation file for selected reports.",
+          "goal": "An organization owner can download one CSV containing all selected reports.",
+          "criteria": [
+            "Only organization owners may export their own organization's selected reports; deny every other request without report data.",
+            "Return the agreed CSV bytes in selection order when all selected reports are readable.",
+            "Empty selection returns no file and asks for a selection.",
+            "If any selected report is unavailable or inaccessible, return no file and report the failure without disclosing unauthorized details."
+          ],
+          "boundaries": "No stored data or report-viewing change. Direct rollout to all organizations; disabling export preserves report viewing. Verify primary, denied, empty, mixed-failure, and disabled states and update export guidance."
+        },
+        "evidence": [
+          "Two possible internal designs can use different helpers or buffering strategies while preserving exactly these outputs, limits, permissions, and failure behavior.",
+          "No required source or material dependency is missing."
+        ]
+      },
+      "expected": {
+        "verdict": "ready",
+        "must_do": [
+          "Treat outcome-equivalent internal designs as legitimate implementation freedom",
+          "Pass the handoff challenge without inventing additional product choices"
+        ],
+        "must_not_do": [
+          "Ask the owner to choose helpers, buffering strategy, exact paths, or test commands",
+          "Add an assumed implementation to the acceptance contract",
+          "Block simply because more than one implementation is possible"
+        ]
+      }
+    },
+    {
+      "id": "existing-data-and-rollout-remain-open",
+      "input": {
+        "resume_at": "challenging retention criteria before readiness",
+        "draft": {
+          "why": "Customers want a bounded period for keeping generated reports.",
+          "goal": "Completed reports are removed after seven days.",
+          "criteria": [
+            "A report generated after release is removed seven days after completion.",
+            "Only its organization owner can access it before removal; it cannot be reopened after removal."
+          ],
+          "boundaries": "No other report format or access change. Existing reports and the transition at release have no accepted treatment yet."
+        },
+        "evidence": [
+          "Some existing reports are already older than seven days.",
+          "Applying the rule immediately would delete those reports on release; grandfathering them would retain customer data longer.",
+          "No required source chooses between those outcomes."
+        ],
+        "scripted_replies": [
+          {
+            "when": "Asked how release should treat reports already older than seven days",
+            "answer": "The outcome owner has not decided. Do not invent a deletion or grandfathering policy."
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "not-ready",
+        "must_do": [
+          "Identify the existing-data and rollout decision with its materially different deletion outcomes",
+          "Leave the decision open and owned",
+          "Require settled transition criteria before readiness"
+        ],
+        "must_not_do": [
+          "Assume existing data follows the new rule",
+          "Assume grandfathering merely because the data already exists",
+          "Hide destructive rollout behavior in implementation notes"
+        ]
+      }
+    }
+  ]
+}

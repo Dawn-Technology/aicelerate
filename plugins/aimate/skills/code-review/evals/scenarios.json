@@ -1,0 +1,658 @@
+{
+  "description": "Fixed positive and negative cases for comparing code-review skill revisions. These are supplied review inputs, not code to execute.",
+  "instructions": [
+    "Merge shared_input with each case input, merging their submission, code_input, and review_context objects by key.",
+    "Review each case independently under one skill revision. Do not expose expected outcomes to the reviewer.",
+    "If the skill requires clarification, capture the question instead of asking a real user or inventing missing input.",
+    "For integration cases, chunking is already established. Use the supplied plan and prior results; their counts represent the larger change from which these excerpts were taken.",
+    "Compare both revisions against expected outcomes after all reviews. Judge semantic findings, remediation scope, coverage, totals, and machine output shape, not exact wording."
+  ],
+  "shared_input": {
+    "submission": {
+      "type": "snippet"
+    },
+    "review_context": {
+      "constraints": "Review only the supplied JavaScript modules, tests, and contract facts. They are complete enough for the stated case unless input is explicitly missing. Do not inspect the surrounding repository, modify files, execute code, or invent additional requirements.",
+      "output_target": "calling-skill"
+    }
+  },
+  "cases": [
+    {
+      "id": "clarity-before-comments",
+      "input": {
+        "submission": {
+          "title": "Combine invoice preview and delivery",
+          "description": "Preview returns formatted labels without sending anything; delivery sends each invoice and returns its receipt ids. Review the combined implementation."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/invoices.mjs",
+              "language": "javascript",
+              "content": "export async function handle(rows, preview, gateway) {\n  const result = [];\n  for (const row of rows) {\n    if (preview) {\n      result.push(`${row.customer}: ${row.totalCents}`);\n    } else {\n      const receipt = await gateway.send(row);\n      result.push(receipt.id);\n    }\n  }\n  return result;\n}\n"
+            }
+          ],
+          "review_baseline": "Preview formatting and invoice delivery are independent responsibilities. Both branches implement their stated behavior; no additional validation or retry policy is required."
+        }
+      },
+      "expected": {
+        "must_not_report": [
+          "Missing explanatory comments or documentation",
+          "Invented validation, retries, or error recovery requirements"
+        ],
+        "remediation": "Any maintainability finding must identify a concrete cost of the combined modes and prefer clearer names or separating preview from delivery, not a tutorial or source comments. No finding is also acceptable if no concrete cost is established."
+      }
+    },
+    {
+      "id": "retain-external-rationale",
+      "input": {
+        "submission": {
+          "title": "Calculate provider retention expiry",
+          "description": "The provider requires exactly 30 elapsed days, not a calendar month. Inputs and outputs are Unix timestamps in milliseconds."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/retention.mjs",
+              "language": "javascript",
+              "content": "// The provider rejects calendar-month expiry; retention is exactly 30 elapsed days.\nconst RETENTION_DAYS = 30;\nconst MILLISECONDS_PER_DAY = 86_400_000;\n\nexport function retentionExpiry(createdAtMs) {\n  return createdAtMs + RETENTION_DAYS * MILLISECONDS_PER_DAY;\n}\n"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "must_not_report": [
+          "Remove the provider-rationale comment merely because the code is readable",
+          "Replace the fixed duration with calendar arithmetic"
+        ]
+      }
+    },
+    {
+      "id": "ban-redundant-what-comments",
+      "input": {
+        "submission": {
+          "title": "Add helper to group users by id",
+          "description": "Group an array of user records into a Map keyed by user.id."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/users.mjs",
+              "language": "javascript",
+              "content": "// Group users by id\nexport function groupUsersById(users) {\n  const usersById = new Map();\n  // Loop through all users and add each one to the map by id\n  for (const user of users) {\n    usersById.set(user.id, user);\n  }\n  return usersById;\n}\n"
+            }
+          ],
+          "review_baseline": "users is a validated iterable of user objects with unique id properties."
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "must_report": [
+          "Redundant comments that repeat what the self-explanatory code already says should be removed"
+        ],
+        "must_not_report": [
+          "Invented input-validation or duplicate-id requirements",
+          "Valid tooling directives or required public API contract docs when present"
+        ]
+      }
+    },
+    {
+      "id": "similarity-is-not-shared-knowledge",
+      "input": {
+        "submission": {
+          "title": "Add loyalty credit alongside shipping promotion",
+          "description": "These independently owned policies currently both use ten percent. Their rates are not required to stay synchronized."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/shipping.mjs",
+              "language": "javascript",
+              "content": "export function shippingDiscount(shippingCents) {\n  return Math.floor(shippingCents * 0.1);\n}\n"
+            },
+            {
+              "path": "src/loyalty.mjs",
+              "language": "javascript",
+              "content": "export function loyaltyCredit(purchaseCents) {\n  return Math.floor(purchaseCents * 0.1);\n}\n"
+            }
+          ],
+          "review_baseline": "Inputs are nonnegative safe integers within the application's supported amount range. Both policies intentionally round down to whole cents."
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "must_not_report": [
+          "Extract one shared percentage constant or calculation solely because the code looks alike"
+        ]
+      }
+    },
+    {
+      "id": "justified-convention-departure",
+      "input": {
+        "submission": {
+          "title": "Load account email without hiding provider failures",
+          "description": "The new email lookup must propagate fetchUser failures so its caller can distinguish a provider outage from an empty value."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/load-name.mjs",
+              "language": "javascript",
+              "content": "export async function loadName(id, fetchUser) {\n  try {\n    const user = await fetchUser(id);\n    return user.name;\n  } catch {\n    return '';\n  }\n}\n"
+            },
+            {
+              "path": "src/load-email.mjs",
+              "language": "javascript",
+              "content": "export async function loadEmail(id, fetchUser) {\n  const user = await fetchUser(id);\n  return user.email;\n}\n"
+            }
+          ],
+          "review_baseline": "load-name.mjs is unchanged context, not submitted scope. Older lookup helpers catch provider errors and return empty strings. Successful fetchUser calls return users with string name and email fields; the new caller handles rejected promises."
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "must_not_report": [
+          "Make loadEmail swallow errors to match the older helper",
+          "Refactor the unchanged loadName helper as part of this submission"
+        ]
+      }
+    },
+    {
+      "id": "simple-closed-switch",
+      "input": {
+        "submission": {
+          "title": "Format the supported delivery statuses",
+          "description": "The supported statuses are the fixed set pending, sent, and failed. Unknown values must be rejected. All labels are English as required by this internal tool."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/status.mjs",
+              "language": "javascript",
+              "content": "export function statusLabel(status) {\n  switch (status) {\n    case 'pending': return 'Pending';\n    case 'sent': return 'Sent';\n    case 'failed': return 'Failed';\n    default: throw new Error(`Unsupported status: ${status}`);\n  }\n}\n"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "must_not_report": [
+          "Introduce a strategy, registry, or interface for hypothetical future statuses",
+          "Add translations despite the explicit English-only requirement"
+        ]
+      }
+    },
+    {
+      "id": "existing-tests-cover-the-change",
+      "input": {
+        "submission": {
+          "title": "Make shipping free at exactly 100",
+          "description": "Change the old subtotal > 100 condition to subtotal >= 100. Existing boundary tests already specify the correct behavior and are unchanged."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/shipping-cost.mjs",
+              "language": "javascript",
+              "content": "export function shippingCost(subtotal) {\n  return subtotal >= 100 ? 0 : 10;\n}\n"
+            },
+            {
+              "path": "test/shipping-cost.test.mjs",
+              "language": "javascript",
+              "content": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { shippingCost } from '../src/shipping-cost.mjs';\n\ntest('shipping boundary', () => {\n  for (const [subtotal, expected] of [[99, 10], [100, 0], [101, 0]]) {\n    assert.equal(shippingCost(subtotal), expected);\n  }\n});\n"
+            }
+          ],
+          "review_baseline": "Supported subtotals are nonnegative whole currency units. The supplied test is existing regression coverage; do not claim it was executed."
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "must_not_report": [
+          "Missing regression coverage because the change adds no new test file",
+          "Tests passed without actually running them"
+        ]
+      }
+    },
+    {
+      "id": "cross-chunk-contract-and-deduplication",
+      "input": {
+        "submission": {
+          "type": "local-scope",
+          "title": "Integrate the invoice review chunks",
+          "description": "The invoice API accepts integer cents. Verify the submitted producer and consumer agree, reconcile prior findings, and return the final review."
+        },
+        "code_input": {
+          "files": [
+            { "path": "src/invoice.mjs", "added": 900, "deleted": 0 },
+            { "path": "src/client.mjs", "added": 900, "deleted": 0 }
+          ],
+          "snippets": [
+            {
+              "path": "src/invoice.mjs",
+              "language": "javascript",
+              "content": "export function invoicePayload(totalCents) {\n  return { amount: totalCents / 100 };\n}\n"
+            },
+            {
+              "path": "src/client.mjs",
+              "language": "javascript",
+              "content": "export function sendInvoice(invoice, client) {\n  return client.post('/invoices', { amountCents: invoice.amount });\n}\n"
+            }
+          ],
+          "review_baseline": "The original two-file change was split into the supplied plan. Inputs are integer cents; the downstream API also requires integer cents. The supplied snippets are the relevant changed execution path. Reinspect them to resolve the prior severity disagreement; do not restart chunk sizing."
+        },
+        "review_context": {
+          "chunk_context": {
+            "phase": "integrate",
+            "plan": [
+              { "chunk": 1, "files": ["src/invoice.mjs"], "counted_lines": 900 },
+              { "chunk": 2, "files": ["src/client.mjs"], "counted_lines": 900 }
+            ],
+            "completed_results": [
+              {
+                "summary": {
+                  "submission": "Invoice producer chunk",
+                  "scope": ["src/invoice.mjs"],
+                  "review_complete": false,
+                  "cross_file_context": [
+                    { "source": "src/invoice.mjs:2", "fact": "The producer divides integer cents by 100; the consumer's API contract must be checked." }
+                  ]
+                },
+                "totals": { "security-violation": 0, "request-for-change": 1, "optional": 0 },
+                "findings": [
+                  {
+                    "id": "src/invoice.mjs:2:amount-unit",
+                    "severity": "request-for-change",
+                    "category": "logic",
+                    "title": "Keep the invoice amount in cents",
+                    "body": "Dividing totalCents by 100 changes the unit before the API boundary. The API expects integer cents, so a 10000-cent invoice would be sent as 100 cents.",
+                    "location": { "file": "src/invoice.mjs", "line": 2, "line_type": "added" },
+                    "suggestion": "Remove the conversion and verify the producer-to-client path preserves 10000 cents."
+                  }
+                ],
+                "report": "**Finding #1 — src/invoice.mjs:2:amount-unit request-for-change**\n\n**Keep the invoice amount in cents**\n\nDividing totalCents by 100 changes the unit before the API boundary. The API expects integer cents, so a 10000-cent invoice would be sent as 100 cents.\n\n*Relevant lines: src/invoice.mjs:2*\n\nSuggested approach: Remove the conversion and verify the producer-to-client path preserves 10000 cents.",
+                "comment_bodies": {
+                  "src/invoice.mjs:2:amount-unit": "**Keep the invoice amount in cents**\n\nDividing totalCents by 100 changes the unit before the API boundary. The API expects integer cents, so a 10000-cent invoice would be sent as 100 cents.\n\n*Relevant lines: src/invoice.mjs:2*\n\nSuggested approach: Remove the conversion and verify the producer-to-client path preserves 10000 cents."
+                }
+              },
+              {
+                "summary": {
+                  "submission": "Invoice consumer chunk",
+                  "scope": ["src/client.mjs"],
+                  "review_complete": false,
+                  "cross_file_context": [
+                    { "source": "src/client.mjs:2", "fact": "The consumer forwards invoice.amount unchanged as amountCents." }
+                  ]
+                },
+                "totals": { "security-violation": 0, "request-for-change": 0, "optional": 1 },
+                "findings": [
+                  {
+                    "id": "src/client.mjs:2:invoice-units",
+                    "severity": "optional",
+                    "category": "logic",
+                    "title": "Check the invoice amount unit",
+                    "body": "The consumer forwards the producer's converted amount as cents. The producer-to-consumer unit contract should be checked before release.",
+                    "location": { "file": "src/client.mjs", "line": 2, "line_type": "added" },
+                    "suggestion": "Keep the amount in integer cents across both modules."
+                  }
+                ],
+                "report": "**Finding #1 — src/client.mjs:2:invoice-units optional**\n\n**Check the invoice amount unit**\n\nThe consumer forwards the producer's converted amount as cents. The producer-to-consumer unit contract should be checked before release.\n\n*Relevant lines: src/client.mjs:2*\n\nSuggested approach: Keep the amount in integer cents across both modules.",
+                "comment_bodies": {
+                  "src/client.mjs:2:invoice-units": "**Check the invoice amount unit**\n\nThe consumer forwards the producer's converted amount as cents. The producer-to-consumer unit contract should be checked before release.\n\n*Relevant lines: src/client.mjs:2*\n\nSuggested approach: Keep the amount in integer cents across both modules."
+                }
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "required_severities": ["request-for-change"],
+        "must_report": [
+          "One producer-to-consumer unit mismatch causing invoices to be sent at one hundredth of the intended amount"
+        ],
+        "must_not_report": [
+          "Two findings for the same unit conversion",
+          "A new chunking preflight instead of integration"
+        ],
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is true only after integration",
+          "Reviewed coverage includes both files",
+          "Totals are recomputed as one request-for-change and zero other findings",
+          "Report and comment_bodies contain only the reconciled finding and no duplicate numbering"
+        ]
+      }
+    },
+    {
+      "id": "inline-comments-retain-review-metadata",
+      "input": {
+        "submission": {
+          "title": "Reject empty recipient lists when splitting a payment",
+          "description": "Callers can submit an empty list. Reject that input; otherwise return each recipient's whole-cent share, rounding down."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/share.mjs",
+              "language": "javascript",
+              "content": "export function shareCents(totalCents, recipients) {\n  return Math.floor(totalCents / recipients.length);\n}\n"
+            }
+          ],
+          "review_baseline": "totalCents is a nonnegative safe integer within the supported amount range. recipients is always an array, but it may be empty. There are no other relevant contracts."
+        },
+        "review_context": {
+          "output_target": "inline-comments"
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "required_severities": ["request-for-change"],
+        "must_report": [
+          "An empty recipient list returns Infinity instead of being rejected"
+        ],
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is true for the completed snippet review",
+          "comment_bodies keys exactly match the canonical finding ids",
+          "The remedy rejects an empty list rather than silently returning zero"
+        ]
+      }
+    },
+    {
+      "id": "small-review-can-clarify-missing-input",
+      "input": {
+        "submission": {
+          "type": "local-scope",
+          "title": "Review the payment helper",
+          "description": "Review the helper."
+        },
+        "code_input": {}
+      },
+      "expected": {
+        "must_clarify": "Ask for the helper's code or its file scope and repository context.",
+        "required_output_fields": ["clarification_question", "summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "clarification_question asks for the missing code or scope",
+          "summary.review_complete is false",
+          "Totals are zero, findings are empty, and comment_bodies is an empty map"
+        ],
+        "must_not_report": [
+          "Invented findings or a clean completed review without code",
+          "Refusal to clarify because the review is below 5000 lines"
+        ]
+      }
+    },
+    {
+      "id": "incomplete-integration-is-not-clean",
+      "input": {
+        "submission": {
+          "type": "local-scope",
+          "title": "Integrate a partially completed review",
+          "description": "The agreed scope contains the producer and consumer, but only the producer chunk has been reviewed. No consumer code or checkout is available."
+        },
+        "code_input": {
+          "files": [
+            { "path": "src/invoice.mjs", "added": 900, "deleted": 0 },
+            { "path": "src/client.mjs", "added": 900, "deleted": 0 }
+          ],
+          "review_baseline": "The producer review completed. The consumer review has not been supplied; do not infer its behavior."
+        },
+        "review_context": {
+          "chunk_context": {
+            "phase": "integrate",
+            "plan": [
+              { "chunk": 1, "files": ["src/invoice.mjs"], "counted_lines": 900 },
+              { "chunk": 2, "files": ["src/client.mjs"], "counted_lines": 900 }
+            ],
+            "completed_results": [
+              {
+                "summary": {
+                  "submission": "Invoice producer chunk",
+                  "scope": ["src/invoice.mjs"],
+                  "review_complete": false,
+                  "cross_file_context": []
+                },
+                "totals": { "security-violation": 0, "request-for-change": 0, "optional": 0 },
+                "findings": [],
+                "report": "No findings in the producer chunk; whole-change integration remains pending.",
+                "comment_bodies": {}
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is false",
+          "Reviewed scope contains only src/invoice.mjs",
+          "Missing src/client.mjs coverage is explicitly reported",
+          "Empty totals are not presented as a clean completed review"
+        ]
+      }
+    },
+    {
+      "id": "uncapped-maintainability-by-consequence",
+      "input": {
+        "submission": {
+          "title": "Add parallel interfaces for four business policies",
+          "description": "Each pair below implements one policy shared by two interfaces. The four policies are independent and must not share a rate, duration, or common policy abstraction."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/invoice-api.mjs",
+              "language": "javascript",
+              "content": "export function invoiceTax(netCents) {\n  return Math.floor(netCents * 21 / 100);\n}\n"
+            },
+            {
+              "path": "src/invoice-job.mjs",
+              "language": "javascript",
+              "content": "export function invoiceTax(netCents) {\n  return Math.floor(netCents * 21 / 100);\n}\n"
+            },
+            {
+              "path": "src/refund-api.mjs",
+              "language": "javascript",
+              "content": "export function refundDeadline(paidAtMs) {\n  return paidAtMs + 30 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/refund-job.mjs",
+              "language": "javascript",
+              "content": "export function refundDeadline(paidAtMs) {\n  return paidAtMs + 30 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/report-api.mjs",
+              "language": "javascript",
+              "content": "export function reportExpiry(createdAtMs) {\n  return createdAtMs + 7 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/report-job.mjs",
+              "language": "javascript",
+              "content": "export function reportExpiry(createdAtMs) {\n  return createdAtMs + 7 * 86_400_000;\n}\n"
+            },
+            {
+              "path": "src/loyalty-api.mjs",
+              "language": "javascript",
+              "content": "export function loyaltyEligible(spentCents, suspended) {\n  return spentCents >= 10_000 && !suspended;\n}\n"
+            },
+            {
+              "path": "src/loyalty-job.mjs",
+              "language": "javascript",
+              "content": "export function loyaltyEligible(spentCents, suspended) {\n  return spentCents >= 10_000 && !suspended;\n}\n"
+            }
+          ],
+          "review_baseline": "All eight modules are submitted new code. Repository policy requires one implementation per business policy, consumed by both interfaces: these rules change independently and each change must affect both interfaces in one place. The new code instead duplicates each rule in its API and job. There is no generator or existing shared implementation. All four current calculations and supported inputs are correct; no new validation, calendar arithmetic, or policy choices are needed."
+        }
+      },
+      "expected": {
+        "finding_count": 4,
+        "required_severities": ["request-for-change"],
+        "must_report": [
+          "Duplicated invoice-tax knowledge requires synchronized edits in two interfaces",
+          "Duplicated refund-deadline knowledge requires synchronized edits in two interfaces",
+          "Duplicated report-retention knowledge requires synchronized edits in two interfaces",
+          "Duplicated loyalty-eligibility knowledge requires synchronized edits in two interfaces"
+        ],
+        "must_not_report": [
+          "Only three findings because maintainability is capped",
+          "All findings forced to optional merely because they concern maintainability",
+          "One generic finding hiding four independently fixable policies",
+          "One abstraction or constant joining the four unrelated policies"
+        ],
+        "output_checks": [
+          "The four maintenance hazards are retained and classified by their concrete change cost and explicit policy, not a category ceiling",
+          "Totals, report, and comment_bodies agree with the canonical findings",
+          "Posted comment bodies contain no added severity line or chat prefix"
+        ]
+      }
+    },
+    {
+      "id": "unverified-security-alongside-a-defect",
+      "input": {
+        "submission": {
+          "title": "Expose saved exports and split payment amounts",
+          "description": "Customers may read only their own exports. The share helper must reject an empty recipient list; otherwise divide whole cents evenly, rounding down."
+        },
+        "code_input": {
+          "snippets": [
+            {
+              "path": "src/exports.mjs",
+              "language": "javascript",
+              "content": "export async function readExport(request, store) {\n  return store.read(request.params.exportId);\n}\n"
+            },
+            {
+              "path": "src/shares.mjs",
+              "language": "javascript",
+              "content": "export function shareCents(totalCents, recipients) {\n  return Math.floor(totalCents / recipients.length);\n}\n"
+            }
+          ],
+          "review_baseline": "The router middleware and store implementation are unavailable. Either may enforce export ownership, so the supplied code alone neither establishes nor disproves unauthorized access. No permitted source can supply them in this case. The share helper receives nonnegative safe integer totals and an array that may be empty; there is no earlier empty-list check. No other behavior is in scope."
+        }
+      },
+      "expected": {
+        "finding_count": 1,
+        "required_severities": ["request-for-change"],
+        "must_report": ["An empty recipient list returns Infinity instead of being rejected"],
+        "must_not_report": [
+          "A confirmed authorization vulnerability without the missing router or store evidence",
+          "An optional security finding used to publish an unverified concern"
+        ],
+        "output_checks": [
+          "summary.residual_gaps names unverified export-ownership enforcement, the missing router or store evidence, and the verification needed",
+          "The rendered report includes the security uncertainty even though a genuine defect is also reported",
+          "The only finding and comment body concern the demonstrated empty-recipient defect",
+          "The report does not claim the export route is secure"
+        ]
+      }
+    },
+    {
+      "id": "failed-chunk-does-not-publish-earlier-findings",
+      "input": {
+        "submission": {
+          "type": "local-scope",
+          "title": "Integrate a review after its second chunk failed",
+          "description": "The first chunk found a defect. The second invocation failed before reading its assigned file. The agreed scope still contains both files; do not silently narrow it."
+        },
+        "code_input": {
+          "files": [
+            { "path": "src/share.mjs", "added": 900, "deleted": 0 },
+            { "path": "src/client.mjs", "added": 900, "deleted": 0 }
+          ],
+          "review_baseline": "Only the first chunk was reviewed. The second chunk failed with a source-read error; its code is unavailable. Completed results are working evidence, not permission to publish."
+        },
+        "review_context": {
+          "chunk_context": {
+            "phase": "integrate",
+            "plan": [
+              { "chunk": 1, "files": ["src/share.mjs"], "counted_lines": 900 },
+              { "chunk": 2, "files": ["src/client.mjs"], "counted_lines": 900 }
+            ],
+            "completed_results": [
+              {
+                "summary": {
+                  "submission": "Payment share chunk",
+                  "scope": ["src/share.mjs"],
+                  "review_complete": false,
+                  "cross_file_context": [
+                    "src/share.mjs:2 divides by recipients.length without rejecting an empty array; the accepted contract requires rejection."
+                  ]
+                },
+                "totals": { "security-violation": 0, "request-for-change": 1, "optional": 0 },
+                "findings": [
+                  {
+                    "id": "src/share.mjs:2:empty-recipients",
+                    "severity": "request-for-change",
+                    "category": "logic",
+                    "title": "Reject an empty recipient list",
+                    "body": "The helper returns Infinity instead of rejecting an empty list.",
+                    "location": { "file": "src/share.mjs", "line": 2, "line_type": "added" },
+                    "suggestion": "Reject an empty recipient list before dividing."
+                  }
+                ],
+                "report": "One candidate defect in src/share.mjs; whole-change integration is pending.",
+                "comment_bodies": {
+                  "src/share.mjs:2:empty-recipients": "Reject an empty recipient list before dividing."
+                }
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is false",
+          "Actual reviewed coverage is limited to src/share.mjs",
+          "The failed src/client.mjs chunk and required resumption are explicit in residual_gaps and report",
+          "Final findings and comment_bodies are empty, not the successful chunk's candidates",
+          "The incomplete result cannot authorize posting, approval, request-changes, or a successful self-review gate"
+        ]
+      }
+    },
+    {
+      "id": "chunk-handoff-is-not-final-completion",
+      "input": {
+        "submission": {
+          "title": "Review the status formatter chunk",
+          "description": "Review this chunk without marking the whole change complete. The fixed statuses are pending and sent; reject other values."
+        },
+        "code_input": {
+          "files": [
+            { "path": "src/status.mjs", "added": 900, "deleted": 0 }
+          ],
+          "snippets": [
+            {
+              "path": "src/status.mjs",
+              "language": "javascript",
+              "content": "export function statusLabel(status) {\n  switch (status) {\n    case 'pending': return 'Pending';\n    case 'sent': return 'Sent';\n    default: throw new Error(`Unsupported status: ${status}`);\n  }\n}\n"
+            }
+          ],
+          "review_baseline": "Chunking was established for a larger two-file change. The supplied snippet is complete for this chunk; the consumer will be reviewed separately."
+        },
+        "review_context": {
+          "chunk_context": {
+            "phase": "chunk",
+            "plan": [
+              { "chunk": 1, "files": ["src/status.mjs"], "counted_lines": 900 },
+              { "chunk": 2, "files": ["src/consumer.mjs"], "counted_lines": 900 }
+            ],
+            "completed_results": []
+          }
+        }
+      },
+      "expected": {
+        "finding_count": 0,
+        "required_output_fields": ["summary", "totals", "findings", "report", "comment_bodies"],
+        "output_checks": [
+          "summary.review_complete is false because whole-change integration remains pending",
+          "Reviewed scope contains only src/status.mjs",
+          "summary.cross_file_context carries source-backed contract facts or an empty list",
+          "The chunk does not restart preflight or claim consumer coverage"
+        ]
+      }
+    }
+  ]
+}

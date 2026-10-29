@@ -4,11 +4,15 @@ AI Automation Teamate.
 
 AI Acceleration supporting SDLC — reusable skills for security auditing, architecture review, repository workflows, project integration setup, and development planning.
 
+See [release notes](RELEASE_NOTES.md) for changes and migration instructions.
+
 ## Compatibility Note
 
 If you have the Superpowers plugin installed, be aware that it can sometimes interfere with skill workflows in this plugin. Superpowers includes generic skills that may trigger unexpectedly and conflict with the more specific workflow instructions used by `aimate`.
 
 If a skill behaves inconsistently, invokes the wrong workflow, or appears to ignore its instructions, first check whether Superpowers was triggered in the workflow. If it was, disable or uninstall the Superpowers plugin and then rerun the skill.
+
+Review workflows depend on other skills bundled in `aimate`. Install the plugin as a whole rather than copying a review skill on its own. These sibling-file references resolve from the referencing skill's directory, not the project's working directory, and stay inside the plugin package. Links and dependency metadata do not automatically load another skill; the workflows explicitly require loading their dependencies through the host's skill mechanism.
 
 ## Skills
 
@@ -24,11 +28,11 @@ Detects working official CLIs and existing MCP connections before asking questio
 
 ### `asvs-audit`
 
-> OWASP ASVS 5.0 Level 1 security audit with deterministic, evidence-based findings.
+> Static OWASP ASVS 5.0 Level 1 security audit with verified, evidence-based findings.
 
-Conducts systematic security audits against all 70 OWASP ASVS 5.0 Level 1 requirements. Produces structured reports with evidence-backed PASS/FAIL/N/A classifications and severity-rated findings.
+Reads the code and configuration in a repository and checks them against all 70 OWASP ASVS 5.0 Level 1 requirements. It first maps the application's entry points, authentication, data access and deployment files, then two workers on different models evaluate every requirement independently. Before anything reaches the report, the coordinator re-reads every cited line and checks that the code runs in production, is reachable, and is not already protected elsewhere; rejected candidates are listed so a reviewer can see what was ruled out. Each requirement has fixed rules for when it applies and what counts as passing, so two runs on the same commit give the same statuses. The report lists every failing location with a severity, other security issues outside the 70 requirements, and the questions a person must answer for anything the repository cannot show, such as TLS settings at the load balancer. It also runs the package manager's dependency audit, which sends package names and versions, not code, to the registry's advisory service. It does not run the application, so it is not a live penetration test.
 
-**Trigger phrases:** "security audit", "asvs audit", "vulnerability scan", "compliance review", "pentest"
+**Trigger phrases:** "security audit", "asvs audit", "vulnerability scan", "security compliance review"
 
 ---
 
@@ -46,7 +50,7 @@ Starts from the git history instead of reading files at random: a bundled script
 
 > Review a GitLab Merge Request or GitHub Pull Request and provide findings, and post structured review comments with issue explanation plus code fixes.
 
-Performs comprehensive code review — identifies bugs, logic errors, security issues, and style violations. Uses `code-review` for reusable analysis, then handles provider-specific GitHub/GitLab comments, approvals, and request-changes actions.
+Checks requested behavior, correctness, security, and concrete maintenance costs through `code-review`, then presents the findings before taking a provider-specific action. Posting comments, approving, and requesting changes require a completed review and an explicit directive; an unfinished review is not treated as clean.
 
 **Trigger phrases:** "review this MR", "review this merge request", "review the gitlab MR"
 
@@ -57,6 +61,8 @@ Performs comprehensive code review — identifies bugs, logic errors, security i
 > Resolve review feedback on a GitLab Merge Request or GitHub Pull Request — validate each comment, fix what holds up, push, and close the threads.
 
 The other half of the review loop. It reads every unresolved thread, verifies each one against the real code before changing anything, and gives every comment a verdict: accept, accept with a different fix, already addressed, reject, out of scope, or needs clarification. Work happens in an isolated git worktree, runs through the project's own build, lint, and test commands, and is self-reviewed with `code-review` before anything is pushed. Replies explain what happened per thread; only threads that were actually addressed get resolved.
+
+An incomplete self-review blocks the push even when its finding totals are zero. Large reviews must finish cross-chunk integration before the push gate is evaluated.
 
 Rejecting feedback is a first-class outcome — with evidence, not opinion. It never force-pushes, never rewrites branch history, and never approves its own work.
 
@@ -72,6 +78,8 @@ Like `write-commit-message`, it runs autonomously: it decides, acts, and reports
 
 Composes `review-pr` and `resolve-pr-feedback` and owns only the seam between them. Invoking it supplies the directive `review-pr` normally stops to ask for, so the review runs through to posting instead of ending the turn. Every finding is published at every severity before any fix is pushed, so the PR/MR record reads in the order it happened.
 
+For a chunked review, publication waits until the shared core has checked cross-file concerns and reconciled duplicate findings. The invocation supplies size confirmation, not permission to skip a chunk or its integration.
+
 The resolution half then validates each of those comments against the repository rather than trusting the review that wrote it. `reject`, `already-addressed`, and `needs-clarification` stay live outcomes on the run's own findings, and the report ends with a review-quality section listing every finding the run posted and then rejected — the one place the review gets marked against the code instead of against itself.
 
 Scope stays on the threads this run created; threads a human opened are listed as untouched. It approves nothing, requests changes on nothing, and never re-reviews the pushed result — one pass, then it reports. Use `review-pr` alone when a human should see the findings before they are posted.
@@ -84,7 +92,7 @@ Scope stays on the threads this run created; threads a human opened are listed a
 
 > Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
 
-Uses `code-review` for reusable analysis and returns structured findings without posting remote comments or changing the working tree.
+Uses `code-review` for reusable analysis and returns structured findings without posting remote comments or changing the working tree. Unreviewed parts of the agreed scope are reported as unfinished work, not a clean review.
 
 **Trigger phrases:** "review my local changes", "review this folder before commit", "review staged changes"
 
@@ -92,9 +100,17 @@ Uses `code-review` for reusable analysis and returns structured findings without
 
 ### `code-review`
 
-> Framework-agnostic reusable code review core for syntax, logic, security, style, documentation, and maintainability findings.
+> Shared, evidence-based review of intended behavior, correctness, security, and maintainability, with actionable feedback for a human or agent.
 
 Provides the shared analysis workflow, input/output interfaces, severity classification, and feedback format used by `review-pr`, `review-local`, and the pre-push self-review in `resolve-pr-feedback`.
+
+Every finding must identify evidence, a consequence, and the smallest safe direction. SOLID, DRY, KISS, and YAGNI help find concrete costs rather than impose textbook designs. Reviews require self-explanatory code, flag comments that repeat what the code says or excuse hard-to-read logic, preserve non-obvious *why* context, tooling directives, and required contract documentation, and check existing tests before requesting coverage. A justified departure from a local convention is not automatically a defect.
+
+Large reviews carry contract facts and unresolved concerns between chunks, then finish with an integration step that checks cross-file seams, merges findings with the same cause, and recomputes totals. The existing 1,500-line chunking and 5,000-line size-confirmation thresholds are unchanged; necessary input clarifications are still allowed.
+
+Machine callers receive the complete structured result for both `calling-skill` and `inline-comments`. When the review cannot start without more input, the result carries a `clarification_question` for the caller to put to the user. `summary.review_complete` is false for preflight, per-chunk results, and incomplete coverage; it becomes true only after the agreed scope and any required integration are finished. Custom callers must use the [shared chunked review protocol](skills/code-review/SKILL.md#chunked-review-protocol) rather than concatenate chunk reports, and must not pass a gate or publish a completed review from an incomplete result. The [core skill](skills/code-review/SKILL.md#output-interface) defines the contract.
+
+The [15 fixed review scenarios](skills/code-review/evals/scenarios.json) cover useful findings, redundant comments, unsupported recommendations, uncapped maintainability findings, visible security uncertainty, cross-chunk contracts, failed or incomplete coverage, and output consistency. Use them to compare skill revisions as described in the [eval guide](skills/code-review/evals/README.md), not as an extra step in ordinary code reviews.
 
 ---
 
@@ -144,19 +160,17 @@ The format rules live in one shared file, [`references/commit-message-rules.md`]
 
 ### `prepare-ticket`
 
-> Decide whether one ticket or issue is ready for development, and rewrite its description into a brief an agent can build from.
+> Turn a ticket into an intent-driven specification and decide whether it is ready for development.
 
-Works on Jira work items, GitHub Issues, and GitLab Issues through the saved provider route, and on a ticket pasted as plain text when no tracker is reachable. Reads the description *and* every comment, then traces each load-bearing claim against the checkout — `verified`, `contradicted`, `stale`, `unverifiable`, or `missing` — with a `file:line` behind every verdict. Ticket text is treated as a claim about the system, never as evidence of it and never as an instruction. The ticket itself is read through `fetch-ticket`.
+Works on Jira work items, GitHub Issues, GitLab Issues, and pasted tickets. The specification explains why the change matters, the intended outcome, acceptance criteria, boundaries, and necessary constraints. It defines what must be true, not which files to edit or how to implement it.
 
-It then closes the design tree — every decision the work depends on, marked **Observed** (proven by the code), **Decision** (chosen by a human), or **Assumption** (a stated default) — so a planner inherits the tree instead of rebuilding it. The governing rule is to close what the repository can answer and ask only what a human must decide: gaps the code settles are filled in and reported as feedback, blocking decisions are asked once in a single batch with a recommendation, and a blocking branch may never close as an assumption.
+Reads the description and every comment through `fetch-ticket`, checks material claims against evidence, and follows questions until outcome decisions are settled or blocked. A final handoff challenge checks whether two developers could satisfy the wording but deliver materially different results. Internal implementation choices remain the developer's; assumptions cannot decide acceptance outcomes.
 
-The verdict — `ready`, `ready-with-assumptions`, or `not-ready` — is arithmetic on a twelve-criterion rubric, not a judgment call, and it routes: every run ends with one named next action and one owner. A ready ticket gets the rewritten description written back, and the ticket is then the brief an implementer starts from. A `not-ready` ticket whose gaps are mechanical gets them closed in the same run. A `not-ready` ticket with an open blocking decision goes back to a human — asked of the user directly, or posted on the ticket for its author — because an agent asked to settle a decision it does not own will invent one, and an invented decision reads as settled once it is in the description.
+The twelve-criterion rubric returns `ready`, `ready-with-assumptions`, or `not-ready`, with one next action and owner. The verdict concerns the proposed specification until it is saved and re-read. The ticket holds the specification by default; an explicit project convention may instead make a pinned, accessible repository spec authoritative.
 
-The rewritten description is written to be reviewed by a person and built by an agent. The top part fits on one screen: why, an observable goal with a way to check it, what changes as plain requirements with their acceptance criteria under each, what is out of scope, the decisions and assumptions a reviewer should check, and a definition of done with the actual validation commands. The code detail an implementer needs comes after it, and the evidence behind the diagnosis goes in the ticket comment rather than the description.
+Every tracker write needs approval naming it. Description-only approval changes no title and posts no comments; overwriting also requires verified edit history or an approved preservation comment. The skill creates no repository files and never transitions, assigns, closes, or re-labels the ticket.
 
-Findings are written for a person, not a parser — a bold one-line claim, the code that contradicts it with a `file:line`, and one imperative action — grouped as **Blocking**, **Filled in for you**, and **Worth a look** so the reader knows what to do about each. The report is built for a terminal: findings first, then a one-line summary of what the rewrite changes, then the verdict and the single next action **last**, where they stay on screen instead of scrolling away. The rewritten description, the claim ledger, and the design tree stay behind an offer rather than being dumped, and a criterion that passed is never printed. It writes no file: the durable record is the ticket — the description plus one comment in the same plain format.
-
-Nothing is written to the tracker without a directive, and the ticket is never transitioned, assigned, closed, or re-labelled.
+The [12 offline scenarios and comparison procedure](skills/prepare-ticket/evals/README.md) support manual or agent-driven evaluation of skill changes, not ordinary ticket preparation. There is no executable runner or CI job.
 
 **Trigger phrases:** "is this ticket ready for development", "prepare JIRA-123", "validate JIRA-123", "check this issue before I build it", "refine this ticket"
 
@@ -339,13 +353,15 @@ See [`RELEASE_NOTES.md`](RELEASE_NOTES.md) for the full migration notes. This ch
 
 ## Spec-Driven Development Workflow
 
-`aimate` and its recommended external skills are designed to support a **spec-driven development** workflow: start with a well-defined specification, align on architecture, plan the work, then hand it off to a coding agent of your choosing. Throughout this section, "spec" refers loosely to the planning artifacts a change produces — chiefly the PRD (the what and why) and the implementation plan (the how). They share the same home and lifecycle in the repo, but they are distinct documents.
+The main workflow is **`write-prd` → `prepare-ticket` → `implement-ticket` → `review-pr`**. Use `write-prd` to kickstart larger features or applications in greenfield projects with epics and user stories. If you already have a ticket or user story, start directly with `prepare-ticket`.
+
+Planning and estimation are optional between preparation and implementation: use **`write-plan` → `estimate-time`** for an hour estimate, or **`write-plan` → `estimate-size`** to size the ticket in points using the plan.
 
 The plugin intentionally does **not** include a pre-configured coding agent. Projects vary significantly in language, tooling, and conventions. It is expected that each team brings their own coding agent and project-specific skills on top of this shared foundation.
 
-The stages below describe the recommended workflow and which skills and MCP servers to use at each step. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
+The sections below describe the main workflow and optional supporting steps. Where specs live and what happens to them after a change ships is covered in [Where specs live](#where-specs-live) at the end of this section. In short: the spec is a file in the repo and the tracker links to it, never the other way round.
 
-`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See the [aimate plugin README](plugins/aimate/README.md#mcp-servers) for routing, the per-client pattern, and migration guidance. `gh`, `glab`, and `acli` are not installed automatically; see the CLI catalog's [Install](plugins/aimate/skills/configure-mcp/references/mcp-catalog.md#github-cli) entries for each tool's official installation options.
+`aimate` does not bundle MCP connections. Run `configure-mcp` per client checkout to validate existing `gh`, `glab`, or `acli` authentication, add only the MCP connections the project needs, and save preferred and fallback routes. Skills reuse that routing policy without asking every time. See [MCP servers](#mcp-servers) for routing, the per-client pattern, and migration guidance. `gh`, `glab`, and `acli` are not installed automatically; see the CLI catalog's [Install](skills/configure-mcp/references/mcp-catalog.md#github-cli) entries for each tool's official installation options.
 
 > [!NOTE]
 > [Spec-Driven Development](https://specdriven.ai/) is a methodology not yet solidified. See [Understanding Spec-Driven Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
@@ -353,25 +369,9 @@ The stages below describe the recommended workflow and which skills and MCP serv
 
 ---
 
-### Stage 1 — Explore & Challenge
+### Stage 1 — Kickstart with a PRD (larger greenfield work)
 
-Before writing a line of spec, stress-test the problem statement and approach. Pull in existing Jira context documentation to ground the conversation.
-
-When the work arrives as a ticket rather than as a conversation, start with `prepare-ticket`: it traces the ticket's claims against the repository, closes the design tree, and decides whether the ticket is ready for development. It then acts on that verdict — writing the improved description back to the tracker, splitting a ticket that turned out to be two, or putting an open decision back in front of a human. The ready ticket is what Stage 4 plans against and what a coding agent in Stage 5 reads first.
-
-| Tool | Source | Purpose |
-| --- | --- | --- |
-| `prepare-ticket` | aimate | Prepare a Jira, GitHub, or GitLab ticket against the repository, close the design tree, and rewrite the description into an agent-ready brief |
-| `grilling` | [External](#grilling-mattpocockskills--grilling) | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
-| `estimate-size` | aimate | Size a backlog item in story points during refinement (points, not hours) |
-| Atlassian MCP | aimate (bundled) | Read existing Jira tickets for background context before defining scope |
-| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
-
----
-
-### Stage 2 — Specify
-
-Translate the problem into a structured Product Requirements Document with user stories. Commit the PRD to the repo under `docs/specs/` and link the Jira ticket to that file — do not paste the PRD into the ticket. Reference designs from Figma and link back to the originating Jira issues. Optionally create a Jira ticket based on the PRD.
+Use `write-prd` to turn a larger feature or application idea into a Product Requirements Document with epics and user stories. Commit the PRD to the repo under `docs/specs/` and link the Jira ticket to that file — do not paste the PRD into the ticket. Reference designs from Figma and link back to the originating Jira issues. Take each resulting ticket or user story through `prepare-ticket`.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
@@ -381,47 +381,59 @@ Translate the problem into a structured Product Requirements Document with user 
 
 ---
 
-### Stage 3 — Decide Architecture
+### Stage 2 — Prepare the Ticket
+
+Start here when you already have a ticket or user story. `prepare-ticket` checks the claims against the repository, resolves material outcome decisions, and rewrites the description as an **intent-driven specification**. It states why the change matters, the intended outcome, acceptance criteria, and boundaries, while leaving implementation choices to the developer. It assesses readiness and saves only approved changes; the ready specification feeds optional planning or goes directly to `implement-ticket`.
+
+| Tool | Source | Purpose |
+| --- | --- | --- |
+| `prepare-ticket` | aimate | Turn a Jira, GitHub, or GitLab ticket into an intent-driven specification and assess its readiness |
+| `grilling` | External | Relentlessly interview yourself on the problem, constraints, and assumptions until shared understanding is reached |
+| Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Read existing Jira tickets for background context before defining scope |
+
+---
+
+### Optional — Decide Architecture
 
 Document key architectural decisions as ADRs — structured enough for a coding agent to implement without follow-up questions. Store ADRs in the repo alongside the spec; unlike PRDs and plans, ADRs are durable architectural records and are not retired.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `review-architecture` | aimate | Find where the current design hurts most, from git churn, import checks and design rules, and whether the runtime and frameworks are still supported, before deciding what to change |
-| `grilling` | [External](#grilling-mattpocockskills--grilling) | Stress-test architectural options before committing |
-| `adr-writing` | [External](#adr-writing-vercelai--adr-skill) | Write Architectural Decision Records in MADR format |
+| `grilling` | External | Stress-test architectural options before committing |
+| `adr-writing` | External | Write Architectural Decision Records in MADR format |
 
 ---
 
-### Stage 4 — Plan
+### Optional — Plan & Estimate
 
-Optionally turn the prepared ticket into sized tasks: something to discuss the approach with, take into refinement, or estimate from. The plan is a reference; implement-ticket works from the prepared ticket, not from the plan. Sync the time estimate and status back to Jira when planning or sales needs it.
+Optionally turn the prepared ticket into sized tasks: something to discuss the approach with, take into refinement, or estimate from. The plan is a reference; `implement-ticket` works from the prepared ticket, not from the plan. Use `estimate-time` for an hour estimate, or `estimate-size` for the whole ticket's relative size in points using the plan as context. Sync the estimate and status back to the tracker when planning or sales needs it.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `write-plan` | aimate | Turn the prepared ticket into sized tasks to discuss or estimate from |
 | `estimate-time` | aimate | Add an hour estimate to the plan when a time forecast is needed |
-| Atlassian MCP | aimate (bundled) | Update Jira tickets with estimates and move issues into the sprint |
+| `estimate-size` | aimate | Size the whole ticket in points using the plan as context |
 | Jira via `acli` or Atlassian MCP | Project-configured via `configure-mcp` | Update Jira tickets with estimates and move issues into the sprint |
 
 ---
 
-### Stage 5 — Implement
+### Stage 3 — Implement
 
-Hand off the result of write-plan (and estimate-time, if a time forecast is needed) or the spec to your team's coding agent. This stage is intentionally left to each project team — choose the coding agent, model, and project-specific skills that fit your stack.
+Hand the prepared ticket, plus any optional plan and estimate, to `implement-ticket` or your team's coding agent. Choose the coding agent, model, and project-specific skills that fit your stack.
 
 For work tracked as a ticket — Jira, GitHub, or GitLab — `implement-ticket` covers this stage end to end: it critiques the ticket against the code, builds it in an isolated worktree, runs the project's own checks, and opens the PR/MR.
 
 | Tool | Source | Purpose |
 | --- | --- | --- |
 | `implement-ticket` | aimate | Critique a Jira, GitHub, or GitLab ticket against the code, build it in an isolated worktree, verify it, open the PR/MR, and report deviations from the ticket |
-| Context7 MCP | [Recommended MCP](#context7-upstashcontext7) | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
+| Context7 MCP | Recommended MCP | Pull in up-to-date, version-specific library docs to prevent hallucinated APIs |
 | Figma MCP | Project-configured via `configure-mcp` | Reference component specs and design tokens when generating UI code |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Create pull requests for changed code; GitLab always uses `glab` |
 
 ---
 
-### Stage 6 — Review
+### Stage 4 — Review
 
 Review the resulting code changes for correctness, quality, and security, then work the feedback back into the branch. `review-pr` and `resolve-pr-feedback` are the two halves of the same loop, and both use `glab` for GitLab and the saved `gh` or GitHub MCP route for GitHub. Run them separately when a human should read the findings before they are posted, or `review-and-resolve-pr` to close the whole loop in one autonomous pass.
 
@@ -435,7 +447,7 @@ Review the resulting code changes for correctness, quality, and security, then w
 
 ---
 
-### Stage 7 — Test & Ship
+### Supporting Tools — Test & Ship
 
 Produce a manual test guide and open the merge request. Local Git handles branch creation and push; the official `glab` CLI opens the MR.
 

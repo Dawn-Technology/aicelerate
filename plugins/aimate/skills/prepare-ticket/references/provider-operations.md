@@ -11,12 +11,41 @@ Rules that apply to every command here:
 - Replace `{key}` (Jira), `{owner}`, `{repo}`, `{issue_number}` (GitHub), and `{project_path}`, `{issue_iid}` (GitLab) with the identifiers `fetch-ticket` returned. GitLab project paths are URL-encoded in API endpoints: `group/project` becomes `group%2Fproject`.
 - `glab api` has no `--jq` flag; pipe its output to `jq` instead. The high-level `glab issue` commands do accept `--jq`.
 - Write through the same `ticket_route` `fetch-ticket` returned. Never switch routes to write.
+- Check each write against the explicit approval or standing directive, including feedback, rewrite, and preservation comments. Updating a field never implicitly authorizes a comment. Do not overwrite a description without verified edit history or an authorized preservation comment already posted; ask for missing authorization before writing.
+
+---
+
+## Approved actions
+
+Run these recipes only after the skill's [Publish approval](../SKILL.md#the-approval-question). They describe how to carry out an approved action, not permission to perform its other writes. Edit only your own comments.
+
+### Comment on the preparation
+
+Post one combined feedback and rewrite comment when those writes were approved. Lead with the verdict, next action, and owner, then the findings under the rubric's groups. Include unanswered decisions with recommendations and later costs, and evidence or prerequisite gaps with their closing action. Use tracker-shown handles only.
+
+Put detailed diagnosis, measurements, and observed supporting evidence after the findings, with `{evidence_sha}` and any relevant local-change limitation. If useful, put the ledger and tree in a collapsed details block on GitHub/GitLab; on Jira, use a labelled final section or leave them out and say they are available.
+
+When an approved rewrite also runs, post this combined comment after the field write succeeds and say what actually changed, including the old title if replaced and where the original survives. A preservation comment, when necessary and authorized, is separate and must precede the overwrite. Use [Posting a comment](#posting-a-comment).
+
+### Rewrite the title or description
+
+1. Confirm the approved field set and summarize the old/new title and sections added, changed, or removed. Preserve the original description in verified provider history or an approved, redacted preservation comment posted first. If neither is available, stop before overwriting and request the missing permission.
+2. Write only approved fields through `ticket_route`, using [Updating the title](#updating-the-title), [Updating the description](#updating-the-description), and the provider's accepted [format](#description-formatting). A not-ready description retains its banner and open gaps.
+3. Re-read the written fields and confirm content and rendering. Post a combined rewrite/feedback comment only if authorized; otherwise report the details in chat. If an authorized description update links a newly posted comment, add its actual link after posting and re-read again. Never publish a placeholder.
+
+The title stays untouched under description-only approval, even if the proposed title is better. A ready contract needs no extra document or comment. Preserve valid obligations according to the description rules, not by appending superseded instructions.
+
+### Split the ticket
+
+Propose outcome titles and one-line scopes before creating anything; map the current obligations to children and check existing links so no child duplicates known work. Confirm approval covers child creation, required links, the parent description update, and any necessary preservation comment.
+
+Create and link the children through `ticket_route`, giving each its relevant criteria and constraints. Update the preserved parent description to identify children and what stayed, without changing its status, assignee, labels, or agreed overall scope. Post a split comment only if approved. Report each created id and title, and reconcile partial writes before retrying.
 
 ---
 
 ## Posting a comment
 
-Write the body to a file first, so quoting and markdown survive the shell.
+Only post a comment when that write was authorized. Write the body to a file first, so quoting and markdown survive the shell. Apply the skill's secret-redaction rule to preservation comments as well as feedback.
 
 ### Jira
 
@@ -50,7 +79,7 @@ Verify the request-input flag against `glab api --help` before running it.
 
 ## Updating the title
 
-Written only when the title changed and the user's approval named it — normally the one rewrite approval that covers the description too. The old title goes into the comment that notes the rewrite, so it survives whatever the tracker keeps in its history.
+Written only when the title changed and the user's approval named it. Put the old title in an authorized rewrite comment when one is being posted; otherwise keep it in the report. Do not post a comment merely because the title changed.
 
 ### Jira
 
@@ -78,7 +107,9 @@ glab issue view {issue_iid} --repo {project_path} --output json --jq '.title'
 
 ## Updating the description
 
-Only with explicit approval, and only once the original description is preserved outside the conversation — provider edit history, or a comment carrying it posted before the overwrite.
+Only with explicit approval, and only once the original description is preserved outside the conversation in verified provider edit history or an explicitly authorized preservation comment posted before the overwrite. Redact secrets rather than reposting them. If neither preservation route is available or authorized, leave the field untouched and request approval for the backup; do not silently add a comment.
+
+The description must remain sufficient without an evidence comment when comments were not approved. Include only real, accessible evidence links. If an approved comment is posted after the rewrite, add its actual link only within an authorized description update, then re-read the final field.
 
 ### Jira
 
