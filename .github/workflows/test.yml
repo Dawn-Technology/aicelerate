@@ -1,0 +1,93 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      behavioral_cases:
+        description: "Behavioral runner cases to execute (case id, 'all', or empty to skip the runner)"
+        required: false
+        default: ""
+
+jobs:
+  # Free and deterministic: runs on every PR and merge, blocks on failure.
+  checks:
+    name: Structural + routing checks (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node tests/structural/validate-plugin.mjs
+      - run: node tests/triggers/run-triggers.mjs --min-rank1 90
+
+  # Token-spending but cheap: proves skills load and fire on Claude Code.
+  # Runs on merge to main and on manual dispatch, never blocks a PR.
+  smoke-claude-code:
+    name: Claude Code smoke tests
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Install aimate from this checkout
+        run: |
+          claude plugin marketplace add .
+          claude plugin install aimate@aicelerate
+      - name: Run smoke tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.EVAL_ANTHROPIC_API_KEY }}
+        run: |
+          claude --version
+          tests/claude-code/run-tests.sh --timeout 300
+      - name: Upload smoke output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-reports
+          path: evals/results/**
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # Expensive and stochastic: promise-and-fire evals (and optionally the
+  # behavioral runner) run only on manual dispatch. Reports become workflow
+  # artifacts; scores are advisory against the pinned baseline, never a gate.
+  evals:
+    name: Promise-and-fire + behavioral evals (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code CLI and aimate
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin marketplace add .
+          claude plugin install aimate@aicelerate
+      - name: Plugin evals (with/without arms)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.EVAL_ANTHROPIC_API_KEY }}
+        run: claude plugin eval ./plugins/aimate --no-publish --runs 1 --trust-plugin
+      - name: Behavioral runner (optional)
+        if: inputs.behavioral_cases != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.EVAL_ANTHROPIC_API_KEY }}
+        run: node evals/runner/run-eval.mjs ${{ inputs.behavioral_cases }} --runs 3
+      - name: Upload eval reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports
+          path: |
+            evals/results/**/report.md
+            evals/results/**/report.html
+            evals/results/**/*.json
+            plugins/aimate/evals/plugin/results/**
+          if-no-files-found: ignore
+          retention-days: 30

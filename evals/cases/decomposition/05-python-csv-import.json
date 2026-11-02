@@ -1,0 +1,25 @@
+{
+  "id": "05-python-csv-import",
+  "stack": "python",
+  "size": "medium",
+  "kind": "feature",
+  "fixture": "python-fastapi",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase, then give me the tickets.",
+  "spec": [
+    "We need bulk import of customers from CSV.",
+    "Support files up to 50,000 rows. Each row holds name, email and city.",
+    "Rows with an invalid email or a duplicate of an existing customer must be rejected.",
+    "After the import the user gets an error report listing every rejected row and the reason.",
+    "Imports must not block the API for other users."
+  ],
+  "expect": [
+    { "check": "between 2 and 5 tickets", "by": "structural", "type": "ticket_count", "min": 2, "max": 5 },
+    { "check": "every ticket says what can be demonstrated when it is done", "by": "structural", "type": "demo_line_per_ticket", "req": "R1" },
+    { "check": "no pointer to an external spec as the task body", "by": "structural", "type": "no_see_spec_reference", "req": "R2" },
+    { "check": "the first ticket imports one valid row end to end (upload through stored customer), not a layer", "by": "judge", "req": "R1" },
+    { "check": "no ticket covers only one layer (only parsing, only storage, only endpoint)", "by": "judge", "req": "R1" },
+    { "check": "each ticket is understandable without reading the others", "by": "judge", "req": "R2" }
+  ],
+  "behavioral": true
+}

@@ -1,0 +1,31 @@
+{
+  "id": "17-mobile-api-payments",
+  "stack": "ios-android-api",
+  "size": "large",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Add in-app payments to our iOS and Android apps for order checkout.",
+    "No payment provider has been chosen yet. Compliance review has not started. Design has rough sketches only."
+  ],
+  "expect": [
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "open decisions (provider choice, compliance) become questions to the requester, not build tickets that assume an answer",
+      "by": "judge",
+      "req": "R2"
+    },
+    {
+      "check": "anything decomposed anyway is a vertical, demonstrable slice that survives any provider choice",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}

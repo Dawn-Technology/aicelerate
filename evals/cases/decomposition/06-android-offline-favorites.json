@@ -1,0 +1,39 @@
+{
+  "id": "06-android-offline-favorites",
+  "stack": "android",
+  "size": "medium",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Our Android app has a favorites list that only works online. Users want to see and edit their favorites without a connection.",
+    "Changes made offline must reach the server once the connection returns. Conflicts: last write wins is acceptable for now."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket stores and shows favorites locally without sync; synchronization comes in a later ticket",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "between 2 and 4 tickets",
+      "by": "structural",
+      "type": "ticket_count",
+      "min": 2,
+      "max": 4
+    }
+  ],
+  "behavioral": false
+}

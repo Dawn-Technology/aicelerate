@@ -1,0 +1,19 @@
+{
+  "id": "d01-tiny-change-date-bug",
+  "type": "delivery",
+  "entry_state": "tiny-change",
+  "stack": "php",
+  "fixture": "php-app",
+  "acceptance": "d01",
+  "max_turns": 25,
+  "prompt": "Pick up this bug ticket:",
+  "spec": [
+    "BUG-421: Order CSV export shows dates in US format.",
+    "An order placed on 9 March 2026 appears as 03/09/2026 in the export and Dutch customers read it as 3 September.",
+    "Expected: the ordered_at column uses ISO 8601 (YYYY-MM-DD)."
+  ],
+  "expect": [
+    { "check": "the change is minimal: only the date formatting and its test expectations change, no refactors or drive-by edits", "by": "judge", "req": "R5" }
+  ],
+  "behavioral": true
+}

@@ -1,0 +1,37 @@
+{
+  "id": "07-ios-api-push",
+  "stack": "ios-api",
+  "size": "medium",
+  "kind": "feature",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Send iOS users a push notification when the status of their order changes (confirmed, shipped, delivered).",
+    "The API knows about status changes; the app is not registered for push at all yet."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "no ticket touches only the backend: every ticket ends in something visible on the device",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "the first ticket is the thinnest end-to-end slice: one status change reaches one device as a notification",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}

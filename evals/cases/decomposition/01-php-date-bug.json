@@ -1,0 +1,19 @@
+{
+  "id": "01-php-date-bug",
+  "stack": "php",
+  "size": "small",
+  "kind": "bugfix",
+  "fixture": "php-app",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase, then give me the tickets.",
+  "spec": [
+    "The dates in the order CSV export are wrong for our Dutch customers: an order placed on 9 March shows as 03/09/2026 and is read as 3 September.",
+    "The export date must be ISO 8601 (YYYY-MM-DD)."
+  ],
+  "expect": [
+    { "check": "small work stays whole: exactly one ticket, no multi-ticket plan", "by": "structural", "type": "single_ticket_or_none", "req": "R5" },
+    { "check": "no pointer to an external spec as the task body", "by": "structural", "type": "no_see_spec_reference", "req": "R2" },
+    { "check": "acceptance criteria would fail on the current code (the current format is m/d/Y)", "by": "judge", "req": "R3" }
+  ],
+  "behavioral": false
+}

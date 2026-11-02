@@ -1,5 +1,5 @@
 ---
-name: Write readme
+name: write-readme
 description: Use this skill whenever the user asks to create, write, generate, improve, or standardize a README for a codebase or repository, or mentions that a project is missing documentation. Applies to any language or stack (dotnet, Node, Python, etc). Always use this skill instead of freestyling a README structure - it enforces a consistent, company-wide layout so every project's README looks and reads the same way.
 ---
 

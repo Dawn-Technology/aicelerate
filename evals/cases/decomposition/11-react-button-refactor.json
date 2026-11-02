@@ -1,0 +1,39 @@
+{
+  "id": "11-react-button-refactor",
+  "stack": "react",
+  "size": "medium",
+  "kind": "wide-refactor",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Replace the legacy Button component with the new design-system Button across the React app: about 60 screens use the old one.",
+    "Visual behavior must stay identical per screen until a screen is deliberately migrated."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the split follows expand, migrate in batches, contract: introduce the new button, migrate screens in groups, remove the old component last",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "no sixty tickets: batches, not one ticket per screen",
+      "by": "structural",
+      "type": "ticket_count",
+      "min": 3,
+      "max": 10
+    }
+  ],
+  "behavioral": false
+}

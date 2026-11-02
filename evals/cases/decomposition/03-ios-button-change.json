@@ -1,0 +1,31 @@
+{
+  "id": "03-ios-button-change",
+  "stack": "ios",
+  "size": "small",
+  "kind": "ui",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "On the iOS app's order screen, change the confirm button: label from \"OK\" to \"Place order\" and color to our primary green. Both themes (light and dark) must keep sufficient contrast."
+  ],
+  "expect": [
+    {
+      "check": "small work stays whole: exactly one ticket, no multi-ticket plan",
+      "by": "structural",
+      "type": "single_ticket_or_none",
+      "req": "R5"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "acceptance criteria are checkable and fail on the current app (current label is OK)",
+      "by": "judge",
+      "req": "R3"
+    }
+  ],
+  "behavioral": false
+}

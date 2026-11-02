@@ -1,0 +1,40 @@
+{
+  "id": "15-python-reporting-module",
+  "stack": "python",
+  "size": "large",
+  "kind": "feature",
+  "fixture": "python-fastapi",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Build a reporting module in our Python backend with four report types: revenue, churn, usage and SLA.",
+    "Each report: filterable by period, exportable as CSV, visible in the admin UI."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket delivers one report type completely (filter, export, UI); later tickets add one report type each",
+      "by": "judge",
+      "req": "R1"
+    },
+    {
+      "check": "between 3 and 7 tickets",
+      "by": "structural",
+      "type": "ticket_count",
+      "min": 3,
+      "max": 7
+    }
+  ],
+  "behavioral": false
+}

@@ -1,0 +1,24 @@
+{
+  "id": "13-php-permissions-model",
+  "stack": "php",
+  "size": "large",
+  "kind": "change",
+  "fixture": "php-app",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase, then give me the tickets.",
+  "spec": [
+    "Current situation: users have a single role (admin, editor, reader), see src/Auth/User.php.",
+    "Wanted: permissions per action per module (for example orders.export, customers.edit), assignable per user.",
+    "Existing role behavior must keep working until the migration is complete."
+  ],
+  "expect": [
+    { "check": "between 3 and 8 tickets", "by": "structural", "type": "ticket_count", "min": 3, "max": 8 },
+    { "check": "every ticket says what can be demonstrated when it is done", "by": "structural", "type": "demo_line_per_ticket", "req": "R1" },
+    { "check": "no pointer to an external spec as the task body", "by": "structural", "type": "no_see_spec_reference", "req": "R2" },
+    { "check": "the first ticket is a preparatory refactor that keeps current behavior", "by": "judge", "req": "R1" },
+    { "check": "no ticket only changes the data model or storage with nothing demonstrable", "by": "judge", "req": "R1" },
+    { "check": "existing roles keep working until the migration completes, stated as a criterion in the tickets", "by": "judge", "req": "R3" },
+    { "check": "dependencies between tickets are explicit links or references, not prose assumptions", "by": "judge", "req": "R4" }
+  ],
+  "behavioral": true
+}

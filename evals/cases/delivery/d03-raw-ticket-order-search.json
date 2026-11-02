@@ -1,0 +1,20 @@
+{
+  "id": "d03-raw-ticket-order-search",
+  "type": "delivery",
+  "entry_state": "raw-ticket",
+  "stack": "php",
+  "fixture": "php-app",
+  "acceptance": "d03",
+  "max_turns": 40,
+  "prompt": "Pick up this ticket:",
+  "spec": [
+    "SUPP-301: Finding orders is a pain.",
+    "Support keeps complaining they can't look anything up. Can you make the orders thing searchable or something? Starting with customer name would already help. High prio according to Sandra."
+  ],
+  "expect": [
+    { "check": "assumptions and open questions are stated explicitly instead of silently invented requirements", "by": "judge", "req": "R2" },
+    { "check": "a demonstrable slice is delivered despite the vague ticket — the agent does not halt waiting for answers", "by": "judge", "req": "R1" },
+    { "check": "new behavior is covered by tests the agent added", "by": "judge", "req": "R3" }
+  ],
+  "behavioral": true
+}

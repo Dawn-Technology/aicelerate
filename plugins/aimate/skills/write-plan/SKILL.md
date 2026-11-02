@@ -19,6 +19,10 @@ Name all files, types, tests, conventions, and docs explicitly so that an engine
 
 ## 2. Workflow
 
+### Phase 0: Size gate
+
+If the whole request fits one small, focused change — roughly one concern, a handful of files, a single session — do not produce a plan document. Say the work needs no plan and return a single task with its acceptance criteria. Producing planning artifacts for work this small is a failure, not thoroughness.
+
 ### Phase 1: Discovery
 
 Build enough understanding to produce a concrete plan by resolving decisions in dependency order.
@@ -37,7 +41,7 @@ Treat this as a **full design tree** exercise. Explicitly map each branch needed
 - **Decision** — explicitly chosen by the user.
 - **Assumption** — planner default with rationale because it is non-blocking.
 
-Planning may only begin when every branch that affects architecture, contracts, task boundaries, or scope has been closed.
+Planning may only begin when every branch that affects architecture, contracts, task boundaries, or scope has been closed. A branch that cannot be closed in this session — the code is not reachable, the decision-maker is not present, the answer does not exist yet — closes as an **Assumption** with your best default and its rationale. Missing answers change the plan's content, never whether a plan is delivered.
 
 Decision areas to consider:
 
@@ -74,6 +78,8 @@ Stop discovery only when:
 Compile a single **Design Tree** summary that lists each branch, its status (**Observed**, **Decision**, or **Assumption**), and the supporting evidence or rationale.
 
 Validate the discovery output before continuing: verify that all decision areas are addressed, that nothing contradicts, and that no open question would block planning. Resolve any issues — update and / or re-ask the user — before proceeding to Phase 2.
+
+Deliver the plan in this same response, always. Questions may accompany the plan — put them under **Open questions**, with the assumption you proceeded on next to each — but they never replace it. A response that only asks questions is a failed run: you cannot know whether anyone will answer, and a plan built on stated assumptions can be corrected, while no plan helps nobody. When the codebase itself is unreachable, say so once at the top, label every file path as a placeholder, and plan against your stated stack assumption.
 
 ### Phase 2: Planning
 

@@ -1,0 +1,24 @@
+{
+  "id": "d04-greenfield-lunch-kitty",
+  "type": "delivery",
+  "entry_state": "greenfield",
+  "stack": "php",
+  "acceptance": "d04",
+  "max_turns": 40,
+  "prompt": "We have nothing yet — build this from scratch in the current empty repository:",
+  "spec": [
+    "Team lunch kitty: colleagues pay for each other's lunches and want to track who's owed what.",
+    "The one interface everyone already agreed on (scripts depend on it):",
+    "- `php kitty.php add <name> <amount>` records that <name> paid <amount> into the kitty",
+    "- `php kitty.php balance <name>` prints only that person's total paid, as a plain number",
+    "- `php kitty.php total` prints only the kitty's grand total, as a plain number",
+    "Everything else — storage, structure, validation, extra commands — is yours to design.",
+    "Include tests."
+  ],
+  "expect": [
+    { "check": "the solution stays proportional to the problem: no framework scaffolding, package managers or layers a tiny CLI does not need", "by": "judge", "req": "R5" },
+    { "check": "design choices beyond the agreed interface are stated, not buried", "by": "judge", "req": "R2" },
+    { "check": "tests exist and cover the three agreed commands", "by": "judge", "req": "R3" }
+  ],
+  "behavioral": true
+}

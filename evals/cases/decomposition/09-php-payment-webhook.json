@@ -1,0 +1,33 @@
+{
+  "id": "09-php-payment-webhook",
+  "stack": "php",
+  "size": "medium",
+  "kind": "integration",
+  "fixture": "php-app",
+  "pipeline": "decompose",
+  "prompt": "Break this work down into tickets our developers can pick up. First look at the codebase if there is one, then give me the tickets.",
+  "spec": [
+    "Our payment provider calls a webhook on payment events (paid, failed, chargeback). We must process those events: update the order status and record the event.",
+    "The provider retries failed deliveries for 24 hours. Signature verification is documented by the provider."
+  ],
+  "expect": [
+    {
+      "check": "every ticket says what can be demonstrated when it is done",
+      "by": "structural",
+      "type": "demo_line_per_ticket",
+      "req": "R1"
+    },
+    {
+      "check": "no pointer to an external spec as the task body",
+      "by": "structural",
+      "type": "no_see_spec_reference",
+      "req": "R2"
+    },
+    {
+      "check": "the first ticket receives and persists a verified event end to end; error handling and edge cases come after",
+      "by": "judge",
+      "req": "R1"
+    }
+  ],
+  "behavioral": false
+}
