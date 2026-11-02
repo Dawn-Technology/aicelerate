@@ -36,7 +36,7 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
       - name: Install aimate from this checkout
         run: |
-          claude plugin marketplace add .
+          claude plugin marketplace add ./
           claude plugin install aimate@aicelerate
       - name: Run smoke tests
         env:
@@ -68,7 +68,7 @@ jobs:
       - name: Install Claude Code CLI and aimate
         run: |
           npm install -g @anthropic-ai/claude-code
-          claude plugin marketplace add .
+          claude plugin marketplace add ./
           claude plugin install aimate@aicelerate
       - name: Plugin evals (with/without arms)
         env:
