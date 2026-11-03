@@ -1,6 +1,6 @@
 # Tests
 
-Automated checks for the aicelerate marketplace and the aimate plugin. The suite is tiered by cost: structural checks are free and deterministic and run in CI on every pull request; host smoke tests call a real agent CLI and run on demand or on release branches.
+Automated checks for the aicelerate marketplace and the aimate plugin. The suite is tiered by cost: structural checks are free and deterministic and run in CI on every pull request; host smoke tests and evals call a real agent CLI and run locally, since CI has no authenticated agent access.
 
 ## Layout
 
@@ -36,12 +36,9 @@ flowchart LR
     push[dev machine: git push] -->|pre-push hook| L1["layer 1: structural + routing (free, seconds)"]
     pr[every pull request] --> L1
     merge[merge to main] --> L1
-    merge --> smoke["layer 2: Claude Code smoke"]
-    disp[manual dispatch] --> smoke
-    disp --> evals["layer 2+3: plugin evals, behavioral runner"]
-    local[dev machine: Copilot CLI] --> cop["layer 2: Copilot smoke + routing"]
-    smoke --> art[reports as workflow artifacts]
-    evals --> art
+    local[dev machine: Claude Code] --> smoke["layer 2: Claude Code smoke"]
+    local --> evals["layer 2+3: plugin evals, behavioral runner"]
+    localcop[dev machine: Copilot CLI] --> cop["layer 2: Copilot smoke + routing"]
 ```
 
 ## What you need for which layer
@@ -62,13 +59,13 @@ Enable the layer-1 hook once; it runs the free checks on every push, in seconds:
 git config core.hooksPath tests/hooks
 ```
 
-When your change touches a skill or its description, also run the paid checks it affects and paste the result in the PR: `claude plugin eval ./plugins/aimate --case <the relevant case>` for firing and promise, `tests/copilot-cli/test-routing.sh` when routing matters on Copilot, and the behavioral cases your change claims to improve (`node evals/runner/run-eval.mjs <case-id>`). CI re-runs what it can; the Copilot results only you can produce.
+When your change touches a skill or its description, also run the paid checks it affects and paste the result in the PR: `claude plugin eval ./plugins/aimate --case <the relevant case>` for firing and promise, `tests/copilot-cli/test-routing.sh` when routing matters on Copilot, and the behavioral cases your change claims to improve (`node evals/runner/run-eval.mjs <case-id>`). CI re-runs only the free layer; every paid result only you can produce.
 
 ## When what runs (CI)
 
-`.github/workflows/test.yml` runs three jobs. On every pull request and merge to main, the free deterministic checks (structural + routing) run and block on failure. On merge to main and on manual dispatch, the Claude Code smoke tests run (they need the `EVAL_ANTHROPIC_API_KEY` repository secret). On manual dispatch only, the `evals` job runs the promise-and-fire plugin evals and, when the `behavioral_cases` input is set (a case id or `all`), the behavioral runner at 3 runs per case. Reports from the paid jobs upload as workflow artifacts with 30 days retention (markdown and the per-run JSONs) and are never committed. Result folders are gitignored locally too. Eval scores are advisory against the pinned baseline, never a merge gate; the reasoning is in `evals/README.md`.
+`.github/workflows/test.yml` runs one job: on every pull request and merge to main, the free deterministic checks (structural + routing) run and block on failure.
 
-Copilot CLI tests run locally and per release for now: the Copilot CLI needs an interactively authenticated GitHub account with a Copilot entitlement, which a CI runner does not have by default. If a service account with Copilot access becomes available, the same scripts run unchanged.
+The paid layers run locally, not in CI, because the runners have no authenticated agent access: there is no Anthropic API key for this repo (the Claude Code smoke tests and the eval runner both drive `claude` for real), and the Copilot CLI needs an interactively authenticated GitHub account with a Copilot entitlement. If a key or a Copilot service account becomes available, the same scripts run unchanged in a workflow. Result folders are gitignored; eval scores are advisory against the pinned baseline, never a merge gate — the reasoning is in `evals/README.md`.
 
 ## Trigger and routing checks
 
@@ -97,7 +94,7 @@ Requires the `claude` CLI on PATH with the aimate plugin installed; without it t
 - `test-skills-load.sh` asks a headless session to list aimate skills and asserts the core skill names appear.
 - `test-skill-fires.sh` sends one natural developer prompt per core skill and asserts from the `stream-json` trace that the matching skill was invoked. Routing is stochastic, so each prompt gets up to `RUNS` attempts (default 3) and passes on any fire; this proves a skill can fire, not that it fires reliably.
 
-In CI these run on merge to main and on manual dispatch (see `.github/workflows/test.yml`). The runner installs the Claude Code CLI, installs aimate from the checkout so the version under review is what gets tested, and needs the `EVAL_ANTHROPIC_API_KEY` repository secret.
+These run locally only (see "When what runs (CI)" above). Install aimate from your checkout first (`claude plugin marketplace add ./ && claude plugin install aimate@aicelerate`) so the version under review is what gets tested.
 
 ## Copilot
 
