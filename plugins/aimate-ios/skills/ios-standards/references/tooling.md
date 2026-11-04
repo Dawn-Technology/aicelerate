@@ -16,24 +16,21 @@ Build or test commands given in any project instruction file (see `precedence.md
 
 Otherwise:
 
-1. Xcode MCP (`xcrun mcpbridge`) when Xcode is open with the project: `BuildProject`, `GetBuildLog`, `XcodeListNavigatorIssues`, `XcodeRefreshCodeIssuesInFile`, `GetTestList`, `RunSomeTests`, `RunAllTests`, and `RenderPreview`. It uses the active scheme and test plan; report which ones.
-2. `MobileBuildMCP` when installed: builds and tests without Xcode open, and simulator control.
-3. `xcodebuild` and `xcrun simctl`.
-4. Static inspection, naming what was not run.
+1. Xcode MCP (`xcrun mcpbridge`, Xcode 27 or later): `BuildProject`, `GetBuildLog`, `XcodeRefreshCodeIssuesInFile`, `GetTestList`, `RunSomeTests`, `RunAllTests`, and `RenderPreview`. It uses the active scheme, test plan, and run destination; report which ones.
+2. `xcodebuild` and `xcrun simctl`.
+3. Static inspection, naming what was not run.
 
-Before using Xcode MCP, call `XcodeListWindows` and confirm that an open workspace belongs to the reviewed repository. When Xcode is not running, exposes no tools, or has only other projects open, report Xcode MCP as `unavailable` with the reason and use the next route. Never build or test another project.
+Before using Xcode MCP, call `XcodeListWorkspaces` and use the workspace that belongs to the reviewed repository. When Xcode is running but the project is not open, open it with `XcodeOpenWorkspace` and close it with `XcodeCloseWorkspace` at the end of the run. When Xcode is not running or exposes no tools, report Xcode MCP as `unavailable` with the reason and use the next route. Never build or test another project.
 
-To use `MobileBuildMCP`, first call `session_set_defaults` with the project or workspace, the app scheme whose test plan contains the affected tests, and a simulator; then call `build_sim` and `test_sim`, passing `-only-testing:<Target>/<Class>/<test>` in `extraArgs`. Tests in a local Swift package usually run through the app scheme's test plan; a test missing from the scheme list does not make this route unavailable until the app scheme has been tried.
+Select the scheme, test plan, and run destination with `XcodeSwitchScheme`, `XcodeSwitchTestPlan`, and `XcodeSwitchRunDestination` when the active ones do not fit the task. These change what the developer sees in Xcode, so note the original values and switch back at the end of the run.
 
-`MobileBuildMCP` keeps its own DerivedData and test products per project under `~/Library/Developer/MobileBuildMCP/workspaces/`, so its first run is a full build and the storage can reach tens of gigabytes. Do not purge it during a run; the developer cleans it with `mobilebuildmcp purge`. Developers easily miss this extra cache, so after any run that used `MobileBuildMCP`, measure the project's workspace (`du -sh ~/Library/Developer/MobileBuildMCP/workspaces/<project>-*`) and state its size in the report. When it is larger than 10 GB, add a reminder that it can be cleaned, with the commands from the plugin README ("Optional Capability Providers"). Because it resolves packages in that separate workspace, private packages fetched over SSH can fail with "Repository not found"; report that as `unavailable` and use the next route.
-
-When Xcode MCP builds but tests return no results, the active run destination may not be a simulator. Report that and use the next route for tests.
+When Xcode MCP builds but tests return no results, the active run destination may not be a simulator. Switch it to a simulator, or report that and use the next route for tests.
 
 For `xcodebuild`, reuse the project's existing DerivedData when Xcode is not building, so the run is incremental and already-fetched private packages are reused. Use a separate `-derivedDataPath` only when Xcode is building the same project; create it with a unique name (`mktemp -d`), delete only that folder after the run, and never delete a folder this run did not create. When the change does not touch `Package.resolved` or `Package.swift`, add `-skipPackageUpdates -disableAutomaticPackageResolution` so the run does not refetch packages; a fresh package fetch can fail on private SSH repositories this machine cannot read.
 
 Pass `-collect-test-diagnostics never` to test runs: after a failure, the default diagnostics collection can wait 10 minutes for the simulator, and failure details come from the result bundle instead. Pass `-resultBundlePath` with a unique temporary path and read counts and failures with `xcrun xcresulttool get test-results summary --path <bundle> --compact` (`tests` and `test-details` for more). Delete the bundle afterwards unless the user wants it.
 
-Read-only skills use only Xcode MCP tools that read, build, test, report diagnostics, render previews, or search documentation. They never call `XcodeWrite`, `XcodeUpdate`, `XcodeMV`, `XcodeRM`, or `XcodeMakeDir`.
+Read-only skills use only Xcode MCP tools that read, select a scheme, test plan, or run destination, build, test, run the app, report diagnostics, render previews, or search documentation. They never call `XcodeWrite`, `XcodeUpdate`, `XcodeMV`, `XcodeRM`, or `XcodeMakeDir`.
 
 ## Reporting
 

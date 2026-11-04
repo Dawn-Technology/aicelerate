@@ -1,12 +1,12 @@
 ---
 name: test-ios
-description: Use when the user asks to run iOS tests, such as the tests affected by a change, a named test, class, target, or test plan, or the full suite, on a simulator. Builds and runs tests through Xcode MCP, MobileBuildMCP, or xcodebuild and reports results; never edits source or test files.
+description: Use when the user asks to run iOS tests, such as the tests affected by a change, a named test, class, target, or test plan, or the full suite, on a simulator. Builds and runs tests through Xcode MCP or xcodebuild and reports results; never edits source or test files.
 metadata:
   author: "Dawn Technology"
-  version: 0.1.0
+  version: 0.2.0
   role: "simulator-test-runner"
   writes_source: "false"
-  external_dependencies: "optional"
+  external_dependencies: "none"
 ---
 
 # Test iOS
@@ -20,7 +20,7 @@ Always read these shared references before running anything:
 - [`../ios-standards/references/precedence.md`](../ios-standards/references/precedence.md)
 - [`../ios-standards/references/tooling.md`](../ios-standards/references/tooling.md)
 
-Read [`../ios-standards/references/testing.md`](../ios-standards/references/testing.md) when reporting missing coverage, and [`../ios-standards/references/capability-providers.md`](../ios-standards/references/capability-providers.md) before using `MobileBuildMCP`.
+Read [`../ios-standards/references/testing.md`](../ios-standards/references/testing.md) when reporting missing coverage.
 
 If a reference cannot be read, retry with another file-reading tool. If it still fails, name it in the report and do not apply its rules from memory.
 
