@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Tier 1 structural validation for the aicelerate marketplace and the aimate plugin.
+// Tier 1 structural validation for the aicelerate marketplace and every plugin it lists.
 // Deterministic and dependency-free; runs in CI and blocks merge.
 //
-// Checks:
-//   1. marketplace.json parses, every plugin source path exists, versions match plugin.json
-//   2. plugin.json parses and its version matches the latest RELEASE_NOTES.md entry
+// Checks (2-5 run once per plugin in marketplace.json, using its source path):
+//   1. marketplace.json parses, every plugin source path exists, no tracked symlinks,
+//      .claude-plugin/marketplace.json is identical to marketplace.json
+//   2. <source>/plugin.json parses, <source>/.claude-plugin/plugin.json is identical to it,
+//      and its version matches the marketplace entry and the latest RELEASE_NOTES.md entry
 //   3. every skill directory has a SKILL.md with frontmatter name + description,
 //      and the frontmatter name matches the directory name
 //   4. every relative markdown link in a skill's SKILL.md and references/ resolves
@@ -53,6 +55,15 @@ function parseFrontmatter(text, relPath) {
   return fields;
 }
 
+function checkMirror(mirror, source) {
+  const abs = join(repoRoot, mirror);
+  if (!existsSync(abs)) fail(`${mirror}: file missing (the Claude Code CLI reads from here)`);
+  else if (!existsSync(join(repoRoot, source))) fail(`${source}: file missing`);
+  else if (readFileSync(abs, "utf8") !== readFileSync(join(repoRoot, source), "utf8")) {
+    fail(`${mirror}: differs from ${source} — keep both identical`);
+  }
+}
+
 // --- 1. marketplace.json ---
 const marketplace = readJson("marketplace.json");
 const pluginEntries = marketplace?.plugins ?? [];
@@ -77,43 +88,11 @@ try {
 } catch {
   /* not a git checkout (e.g. exported archive): the mirror checks below still apply */
 }
-for (const [mirror, source] of [
-  [".claude-plugin/marketplace.json", "marketplace.json"],
-  ["plugins/aimate/.claude-plugin/plugin.json", "plugins/aimate/plugin.json"],
-]) {
-  const abs = join(repoRoot, mirror);
-  if (!existsSync(abs)) fail(`${mirror}: file missing (the Claude Code CLI reads from here)`);
-  else if (readFileSync(abs, "utf8") !== readFileSync(join(repoRoot, source), "utf8")) {
-    fail(`${mirror}: differs from ${source} — keep both identical`);
-  }
+for (const [mirror, source] of [[".claude-plugin/marketplace.json", "marketplace.json"]]) {
+  checkMirror(mirror, source);
 }
 
-// --- 2. plugin.json vs marketplace.json vs RELEASE_NOTES.md ---
-const pluginJson = readJson("plugins/aimate/plugin.json");
-if (pluginJson) {
-  const marketEntry = pluginEntries.find((p) => p.name === "aimate");
-  if (marketEntry && marketEntry.version !== pluginJson.version) {
-    fail(`version mismatch: marketplace.json has ${marketEntry.version}, plugin.json has ${pluginJson.version}`);
-  }
-  const notesPath = join(repoRoot, "plugins/aimate/RELEASE_NOTES.md");
-  if (!existsSync(notesPath)) {
-    fail("plugins/aimate/RELEASE_NOTES.md: file missing");
-  } else {
-    const latest = readFileSync(notesPath, "utf8").match(/^## (\d+\.\d+\.\d+)/m)?.[1];
-    if (!latest) {
-      fail("RELEASE_NOTES.md: no '## x.y.z' version heading found");
-    } else if (latest !== pluginJson.version) {
-      fail(`version mismatch: RELEASE_NOTES.md latest is ${latest}, plugin.json has ${pluginJson.version}`);
-    }
-  }
-}
-
-// --- 3, 4, 5. skills ---
-const skillsRoot = join(repoRoot, "plugins/aimate/skills");
-const skillDirs = existsSync(skillsRoot)
-  ? readdirSync(skillsRoot).filter((d) => statSync(join(skillsRoot, d)).isDirectory())
-  : (fail("plugins/aimate/skills: directory missing"), []);
-
+// --- per plugin: 2. manifest mirror and versions, 3-5. skills ---
 function checkLinks(absFile, relFile) {
   const text = readFileSync(absFile, "utf8");
   // [label](target) — skip images' size suffixes, absolute URLs, anchors, mailto
@@ -129,27 +108,59 @@ function checkLinks(absFile, relFile) {
   }
 }
 
-for (const dir of skillDirs) {
-  const rel = `plugins/aimate/skills/${dir}`;
-  const skillFile = join(skillsRoot, dir, "SKILL.md");
-  if (!existsSync(skillFile)) {
-    fail(`${rel}: SKILL.md missing`);
-    continue;
+const summary = [];
+for (const entry of pluginEntries) {
+  const root = entry.source?.replace(/^\.\//, "").replace(/\/$/, "");
+  if (!root || !existsSync(join(repoRoot, root))) continue; // already reported in check 1
+  const name = entry.name;
+
+  checkMirror(`${root}/.claude-plugin/plugin.json`, `${root}/plugin.json`);
+  const pluginJson = readJson(`${root}/plugin.json`);
+  if (pluginJson) {
+    if (entry.version !== pluginJson.version) {
+      fail(`${root}/plugin.json: version mismatch: marketplace.json has ${entry.version}, plugin.json has ${pluginJson.version}`);
+    }
+    const notesPath = join(repoRoot, root, "RELEASE_NOTES.md");
+    if (!existsSync(notesPath)) {
+      fail(`${root}/RELEASE_NOTES.md: file missing`);
+    } else {
+      const latest = readFileSync(notesPath, "utf8").match(/^## (\d+\.\d+\.\d+)/m)?.[1];
+      if (!latest) {
+        fail(`${root}/RELEASE_NOTES.md: no '## x.y.z' version heading found`);
+      } else if (latest !== pluginJson.version) {
+        fail(`${root}/RELEASE_NOTES.md: version mismatch: latest is ${latest}, plugin.json has ${pluginJson.version}`);
+      }
+    }
   }
-  const text = readFileSync(skillFile, "utf8");
-  const fm = parseFrontmatter(text, `${rel}/SKILL.md`);
-  if (!fm.name) fail(`${rel}/SKILL.md: frontmatter missing "name"`);
-  else if (fm.name !== dir) fail(`${rel}/SKILL.md: frontmatter name "${fm.name}" != directory "${dir}"`);
-  if (!fm.description) fail(`${rel}/SKILL.md: frontmatter missing "description"`);
 
-  const lines = text.split("\n").length;
-  if (lines > LINE_BUDGET) fail(`${rel}/SKILL.md: ${lines} lines exceeds budget of ${LINE_BUDGET}`);
+  const skillsRoot = join(repoRoot, root, "skills");
+  const skillDirs = existsSync(skillsRoot)
+    ? readdirSync(skillsRoot).filter((d) => statSync(join(skillsRoot, d)).isDirectory())
+    : (fail(`${root}/skills: directory missing`), []);
+  summary.push(`${name}: ${skillDirs.length} skills`);
 
-  checkLinks(skillFile, `${rel}/SKILL.md`);
-  const refsDir = join(skillsRoot, dir, "references");
-  if (existsSync(refsDir)) {
-    for (const f of readdirSync(refsDir).filter((f) => f.endsWith(".md"))) {
-      checkLinks(join(refsDir, f), `${rel}/references/${f}`);
+  for (const dir of skillDirs) {
+    const rel = `${root}/skills/${dir}`;
+    const skillFile = join(skillsRoot, dir, "SKILL.md");
+    if (!existsSync(skillFile)) {
+      fail(`${rel}: SKILL.md missing`);
+      continue;
+    }
+    const text = readFileSync(skillFile, "utf8");
+    const fm = parseFrontmatter(text, `${rel}/SKILL.md`);
+    if (!fm.name) fail(`${rel}/SKILL.md: frontmatter missing "name"`);
+    else if (fm.name !== dir) fail(`${rel}/SKILL.md: frontmatter name "${fm.name}" != directory "${dir}"`);
+    if (!fm.description) fail(`${rel}/SKILL.md: frontmatter missing "description"`);
+
+    const lines = text.split("\n").length;
+    if (lines > LINE_BUDGET) fail(`${rel}/SKILL.md: ${lines} lines exceeds budget of ${LINE_BUDGET}`);
+
+    checkLinks(skillFile, `${rel}/SKILL.md`);
+    const refsDir = join(skillsRoot, dir, "references");
+    if (existsSync(refsDir)) {
+      for (const f of readdirSync(refsDir).filter((f) => f.endsWith(".md"))) {
+        checkLinks(join(refsDir, f), `${rel}/references/${f}`);
+      }
     }
   }
 }
@@ -160,4 +171,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  • ${f}`);
   process.exit(1);
 }
-console.log(`OK — ${skillDirs.length} skills validated, versions consistent, links resolve, all within ${LINE_BUDGET}-line budget.`);
+console.log(`OK — ${summary.join("; ")}; versions consistent, links resolve, all within ${LINE_BUDGET}-line budget.`);

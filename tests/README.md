@@ -1,6 +1,6 @@
 # Tests
 
-Automated checks for the aicelerate marketplace and the aimate plugin. The suite is tiered by cost: structural checks are free and deterministic and run in CI on every pull request; host smoke tests and evals call a real agent CLI and run locally, since CI has no authenticated agent access.
+Automated checks for the aicelerate marketplace and every plugin it lists. The suite is tiered by cost: structural checks are free and deterministic and run in CI on every pull request; host smoke tests and evals call a real agent CLI and run locally, since CI has no authenticated agent access.
 
 ## Layout
 
@@ -19,15 +19,15 @@ tests/
 node tests/structural/validate-plugin.mjs
 ```
 
-Validates, with no dependencies and no network:
+Validates, with no dependencies and no network, every plugin listed in `marketplace.json` (the checks below run once per plugin, using its `source` path):
 
 - `marketplace.json` parses and every plugin `source` path exists.
-- `plugins/aimate/plugin.json` parses, and its `version` matches both the marketplace entry and the newest `## x.y.z` heading in `RELEASE_NOTES.md`.
-- Every directory under `plugins/aimate/skills/` contains a `SKILL.md` whose frontmatter has `name` and `description`, with `name` equal to the directory name.
+- `<source>/plugin.json` parses and is byte-identical to `<source>/.claude-plugin/plugin.json`, and its `version` matches both the marketplace entry and the newest `## x.y.z` heading in `<source>/RELEASE_NOTES.md`.
+- Every directory under `<source>/skills/` contains a `SKILL.md` whose frontmatter has `name` and `description`, with `name` equal to the directory name.
 - Every relative markdown link in a `SKILL.md` or its `references/` resolves to an existing file. Bare `…` targets are treated as placeholders in example content and skipped.
 - No `SKILL.md` exceeds the line budget (500 lines, set at the top of the script).
 
-Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. A failure here means the plugin is broken as shipped. Fix the finding, don't loosen the check.
+Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. Failure messages name the file, so it is clear which plugin failed. A failure here means the plugin is broken as shipped. Fix the finding, don't loosen the check.
 
 ## When which check runs
 
@@ -75,7 +75,10 @@ node tests/triggers/run-triggers.mjs --min-rank1 90  # enforce the rank-1 floor 
 node tests/triggers/run-triggers.mjs --verbose       # top-3 ranking per prompt
 ```
 
-`tests/triggers/prompts.json` holds, per skill, positive prompts (things a developer actually types that must route to the skill) and negative prompts (adjacent requests that must not). The checker ranks each prompt against every skill description with stemmed TF-IDF over unigrams and bigrams, cosine-normalized so long descriptions carry no advantage, and also flags any two descriptions similar enough to misroute (allow-list intentional pairs under `collision_allow`).
+`tests/triggers/prompts.json` holds, per skill, positive prompts (things a developer actually types that must route to the skill) and negative prompts (adjacent requests that must not). The checker covers every plugin in `marketplace.json` and ranks each prompt against skill descriptions with stemmed TF-IDF over unigrams and bigrams, cosine-normalized so long descriptions carry no advantage, and also flags any two descriptions similar enough to misroute (allow-list intentional pairs under `collision_allow`). Skill names are unique across plugins, so one `prompts.json` serves all of them; each prompt is mapped to the plugin whose `skills/` folder contains its skill, and a prompt for a skill in no plugin fails. Two passes run:
+
+- Pass 1, per plugin: prompts rank only against that plugin's own skills. Positive prompts must rank #1, negative prompts must not, the `--min-rank1` floor applies per plugin, and the collision check runs within the plugin.
+- Pass 2, all plugins together: every prompt ranks against all skills of all plugins. It fails only when the #1 skill belongs to a different plugin than the expected skill (a cross-plugin takeover); swaps within one plugin are not failures here, since adding skills shifts the TF-IDF weights. The collision check also runs across plugins.
 
 This is a lexical approximation of routing: it catches a description missing the vocabulary users type, and an over-broad description that outranks the right skill. It cannot judge semantics; prompts that need semantic routing, non-English phrasings for example, go under `tier3_only` and are exercised by the behavioral tier instead. A failure here usually means the description needs fixing, not the eval.
 
