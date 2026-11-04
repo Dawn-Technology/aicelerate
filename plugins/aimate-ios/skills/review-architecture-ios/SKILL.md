@@ -1,6 +1,6 @@
 ---
 name: review-architecture-ios
-description: Use when the user asks for an architecture or design-quality review, technical debt assessment, hot spot analysis, or refactoring priorities for an iOS project. The iOS companion of aimate's review-architecture: same method and report, with Swift module-graph analysis, iOS platform and SwiftPM dependency checks, and TCA and MVVM + Coordinators rules. Read-only on source; writes one untracked report to docs/.
+description: Use when the user asks for an architecture or design-quality review of an iOS, Swift, or Xcode project, where an iOS codebase is hardest to change, iOS hot spots, or refactoring priorities for an iOS app. The iOS companion of aimate's review-architecture: same method and report, with Swift module-graph analysis, iOS platform and SwiftPM dependency checks, and TCA and MVVM + Coordinators rules. Read-only on source; writes one untracked report to docs/.
 argument-hint: "Optional: path or module to limit the review to, a history window such as 6 months, and known pain points or upcoming work"
 metadata:
   author: "Dawn Technology"
