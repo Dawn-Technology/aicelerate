@@ -1,6 +1,6 @@
 ---
 name: fix-localization-ios
-description: Use when the user asks to check or fix localization across a whole iOS app, such as missing or wrong translations, text that bypasses localization, wrong-bundle lookups, plurals, and date or number formatting. Scans first and presents what it will fix; changes code and string catalogs only after the developer approves, on a new branch, without committing. Stopping after the scan gives a localization audit. For localization review of a single change, use review-ios instead.
+description: Use when the user asks to check or fix localization across a whole iOS app, such as missing or wrong translations, hard-coded text that is not localized, wrong-bundle lookups, plurals, and date or number formatting. Scans first and presents what it will fix; changes code and string catalogs only after the developer approves, on a new branch, without committing. Stopping after the scan gives a localization audit. For localization review of a single change, use review-ios instead.
 metadata:
   author: "Dawn Technology"
   version: 0.2.2

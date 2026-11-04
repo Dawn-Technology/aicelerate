@@ -1,6 +1,6 @@
 ---
 name: security-audit-ios
-description: Use when the user asks for a security audit of a whole iOS project or app, for example when taking over a legacy project or before a release. Read-only static audit of every area in the company security reference, with reachability-checked findings in the shared review format. For security review of a single change, use review-ios instead.
+description: Use when the user asks for a security audit of a whole iOS app or Swift project, for example when taking over a legacy iOS project or before an App Store release. Read-only static audit per Xcode target of secrets, Keychain use, client-only checks, App Transport Security, deep links and web views, analytics, debug features, privacy manifests, SwiftPM dependencies, and CI, with reachability-checked findings in the shared review format. For security review of a single change, use review-ios instead.
 metadata:
   author: "Dawn Technology"
   version: 0.1.0
