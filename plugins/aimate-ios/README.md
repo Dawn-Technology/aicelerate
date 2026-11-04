@@ -42,7 +42,6 @@ Install or symlink the individual skill folders into the host's Agent Skills dir
 | --- | --- | --- |
 | `review-ios` | Review a change with iOS depth, next to the generic review | Nothing |
 | `test-ios` | Run the tests affected by a change, or named tests, on a simulator | Nothing |
-| `drive-ios` | Reproduce a QA ticket, validate a flow, or capture screenshots on a simulator | Simulator state only |
 | `security-audit-ios` | Audit a whole project for security problems | Nothing |
 | `fix-localization-ios` | Find and fix localization problems | Code and string catalogs, after confirmation |
 | `raise-minimum-ios` | Raise the minimum iOS version and remove code for older versions | Code and project files, after confirmation |
@@ -71,15 +70,9 @@ Generic `aimate` review skills never call `review-ios`, so teams that do not bui
 
 ### `test-ios`
 
-Builds and runs tests on a simulator and reports what ran: the tests affected by a change, a named test, class, target, or test plan, or the full suite. It uses the project's own build and test commands first, then Xcode MCP, `MobileBuildMCP`, or `xcodebuild`. When no test covers a change, it says so and builds the affected scheme instead. It never edits source or test files and never fixes failing tests.
+Builds and runs tests on a simulator and reports what ran: the tests affected by a change, a named test, class, target, or test plan, or the full suite. It uses the project's own build and test commands first, then Xcode MCP or `xcodebuild`. When no test covers a change, it says so and builds the affected scheme instead. It never edits source or test files and never fixes failing tests.
 
 Ask for it by name, for example "run test-ios for the tests affected by my last commit".
-
-### `drive-ios`
-
-Operates the app on a simulator towards a goal and reports the steps with evidence: `reproduce` a QA ticket or crash, `validate` that a flow works, or `capture` screenshots of screens. It builds the app, reaches screens through deep links or `MobileBuildMCP` UI automation, collects screenshots, crash reports, and logs, and restores the simulator afterwards. It never edits source. Physical devices and live client demos are not supported yet.
-
-Ask for it by name and paste the ticket, for example "use drive-ios to reproduce this QA ticket: …".
 
 ### `security-audit-ios`
 
@@ -121,7 +114,7 @@ Internal company-policy foundation used by the user-facing iOS skills. It is not
 
 ## Xcode Tools
 
-When Xcode is open with the project, the skills use Xcode's built-in MCP tools first for builds, tests, compiler diagnostics, previews, and documentation search. Add `xcrun mcpbridge` as a stdio MCP server in your agent host, for example:
+The skills work through Xcode itself, and need Xcode 27 or later running. They use Xcode's built-in MCP tools for builds, tests, compiler diagnostics, previews, and documentation search. To operate the app on a simulator, for example to reproduce a QA ticket, ask the agent in Xcode 27 directly; no plugin skill is needed. When the project is not open yet, the skills open it in Xcode, and they switch the scheme, test plan, or run destination back when they changed it. Without Xcode they fall back to `xcodebuild` for builds and tests. Add `xcrun mcpbridge` as a stdio MCP server in your agent host, for example:
 
 ```bash
 claude mcp add xcode -- xcrun mcpbridge
@@ -131,42 +124,7 @@ Xcode may ask you to allow the agent's connection. The skills use Xcode MCP only
 
 ## Optional Capability Providers
 
-By default the `MobileBuildMCP` server only exposes its build and simulator tools. `drive-ios` also needs UI automation and debugging, so enable those workflows when adding the server:
-
-```bash
-claude mcp add -s user mobilebuildmcp \
-  -e MOBILEBUILDMCP_SENTRY_DISABLED=true \
-  -e MOBILEBUILDMCP_ENABLED_WORKFLOWS=simulator,ui-automation,debugging \
-  -- mobilebuildmcp mcp
-```
-
-For OpenCode, add the same under `mcp` in `opencode.json`:
-
-```json
-"mobilebuildmcp": {
-  "type": "local",
-  "command": ["mobilebuildmcp", "mcp"],
-  "environment": {
-    "MOBILEBUILDMCP_SENTRY_DISABLED": "true",
-    "MOBILEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging"
-  }
-}
-```
-
-Without UI automation, `drive-ios` stops and says so instead of taking another route through the app.
-
-See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers improve depth or execute builds and automation; their absence never prevents static review. When using `MobileBuildMCP` on client work, set `MOBILEBUILDMCP_SENTRY_DISABLED=true` to turn off its error telemetry.
-
-`MobileBuildMCP` keeps a separate build cache and test products per project under `~/Library/Developer/MobileBuildMCP/workspaces/`. The first review of a project is a full build, and one project can take tens of gigabytes (about 18 GB for a mid-sized TCA app). The skills report this cache's size after every run that used `MobileBuildMCP` and remind you to clean it when it is larger than 10 GB. Check and clean it from the project directory:
-
-```bash
-mobilebuildmcp purge --scope workspace --report
-mobilebuildmcp purge --scope workspace --workspace-key <key> --classes derivedData,logs,resultBundles,testProducts,stateTransients --delete --confirm delete-mobilebuildmcp-storage
-```
-
-Because `MobileBuildMCP` resolves packages in that separate workspace, projects with private packages fetched over SSH may fail to resolve there ("Repository not found"). The skills then fall back to `xcodebuild`.
-
-The `<key>` is the folder name shown by `--report`. `--classes all` keeps the build cache; list `derivedData` explicitly to remove it as well.
+See the [`capability providers` reference](skills/ios-standards/references/capability-providers.md). Optional providers add review depth; their absence never prevents static review.
 
 Projects should record approved providers and project-specific architecture or toolchain rules in `AGENTS.md`. Explicit project policy and actual Xcode settings outrank company defaults.
 

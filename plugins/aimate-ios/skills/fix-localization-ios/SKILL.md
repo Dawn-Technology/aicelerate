@@ -3,7 +3,7 @@ name: fix-localization-ios
 description: Use when the user asks to check or fix localization across a whole iOS app, such as missing or wrong translations, text that bypasses localization, wrong-bundle lookups, plurals, and date or number formatting. Scans first and presents what it will fix; changes code and string catalogs only after the developer approves, on a new branch, without committing. Stopping after the scan gives a localization audit. For localization review of a single change, use review-ios instead.
 metadata:
   author: "Dawn Technology"
-  version: 0.2.1
+  version: 0.2.2
   role: "localization-fix"
   writes_source: "true"
   external_dependencies: "none"
@@ -89,7 +89,7 @@ End with:
 - `Changes`: per category, every approved item with its status (fixed, fixed after reconciliation, or not fixed), with files.
 - `Needs review`: every translation written by the agent, per language, for a translator.
 - `Not changed`: every approved item that is still not fixed, with the reason, the suggested fix, and what is needed to apply it; then the findings left out of the plan and any questions still open.
-- `Verification`: build and test results, catalog checks, and what was not verified (layout, truncation, VoiceOver); suggest `drive-ios` with a `capture` per language for a visual check.
+- `Verification`: build and test results, catalog checks, and what was not verified (layout, truncation, VoiceOver); suggest checking each language on a simulator through Xcode.
 - `Git`: the branch, that nothing is committed, and the changed-file count.
 
 ## Final Check
