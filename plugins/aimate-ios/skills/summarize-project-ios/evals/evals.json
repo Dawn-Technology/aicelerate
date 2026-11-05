@@ -1,0 +1,23 @@
+{
+  "skill_name": "summarize-project-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Summarize the iOS project in ~/Documents/git/knmi-app-ios (current checkout): give an overview for a developer joining, the gotchas, and where the issues and complexities are.",
+      "expected_output": "Known gotchas to find: no project instruction files (README is the main doc); the KMP framework from the knmi-shared submodule needs a JDK and Gradle (ci_post_clone.sh downloads one); FEEDBACK_SECRET is injected into Info.plist by CI; Debug builds talk to the production backend unless the hidden server switch is used; dependencies pinned to branches of personal forks; multi-platform targets (iOS, watchOS, tvOS, macOS) plus widget, CellWarn, and LegacyIntents extensions. Reads project instructions first and reports where they disagree with the project or this machine. Produces an onboarding part (what the app is, targets, architecture, modules, dependencies, environments, how to build and test, where things live) and an assessment part (risks, debt, complexity hotspots from size and git history, effort drivers), each claim with file or command evidence. Separates verified facts from inferences, stays static (no build, test, or file writes), and points to security-audit-ios, fix-localization-ios, or test-ios where it sees reasons instead of repeating them.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Summarize the iOS project in ~/Documents/git/npo-start-ios (current checkout): give an overview for a developer joining, the gotchas, and where the issues and complexities are.",
+      "expected_output": "Known gotchas to find: private SSH package npo-ios-utilities that needs GitHub access; xcconfig files are gitignored and injected by CI, so a fresh clone needs them; AGENTS.md names Xcode_26.2.app and an 'NPO Start iPhone 17 Pro' simulator that may not exist and a deployment target that differs from the project; .github/copilot-instructions.md and .agents skills symlinks are broken; SwiftGen L10n must be regenerated with scripts/generate_resources.sh; iOS and tvOS apps plus RichPush extension; CI release workflows with secrets. Reads project instructions first and reports where they disagree with the project or this machine. Produces an onboarding part (what the app is, targets, architecture, modules, dependencies, environments, how to build and test, where things live) and an assessment part (risks, debt, complexity hotspots from size and git history, effort drivers), each claim with file or command evidence. Separates verified facts from inferences, stays static (no build, test, or file writes), and points to security-audit-ios, fix-localization-ios, or test-ios where it sees reasons instead of repeating them.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Summarize the iOS project in ~/Documents/git/thuisarts-ios (current checkout): give an overview for a developer joining, the gotchas, and where the issues and complexities are.",
+      "expected_output": "Known gotchas to find: only .github/copilot-instructions.md; all test targets are commented out; LocalProperties.env with the API key is written by CI (ci_post_clone.sh) and is empty in git; the Firebase config copy script compares configuration names that never match; the Debug scheme archives with the Debug configuration; two Package.resolved files that disagree; ATS disabled app-wide; TCA in one large local package. Reads project instructions first and reports where they disagree with the project or this machine. Produces an onboarding part (what the app is, targets, architecture, modules, dependencies, environments, how to build and test, where things live) and an assessment part (risks, debt, complexity hotspots from size and git history, effort drivers), each claim with file or command evidence. Separates verified facts from inferences, stays static (no build, test, or file writes), and points to security-audit-ios, fix-localization-ios, or test-ios where it sees reasons instead of repeating them.",
+      "files": []
+    }
+  ]
+}
