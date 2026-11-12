@@ -115,6 +115,8 @@ def main():
     print(f"Session {args.session}, {args.since or 'start'} to {result['until']}")
     print(f"{'part':<10} {'model':<28} {'input':>12} {'cache write':>12} {'cache read':>14} {'output':>10}")
     for part in ("main", "subagents"):
+        if not result[part]:
+            print(f"{part:<10} none")
         for name, model in sorted(result[part].items()):
             print(f"{part:<10} {name:<28} {model['input_tokens']:>12,} {model['cache_creation_input_tokens']:>12,} "
                   f"{model['cache_read_input_tokens']:>14,} {model['output_tokens']:>10,}")

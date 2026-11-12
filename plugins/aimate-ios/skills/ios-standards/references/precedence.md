@@ -9,7 +9,7 @@ Apply rules in this order:
 5. Company iOS policy.
 6. General Apple-platform guidance.
 
-Project instructions are every instruction file the repository keeps for agents: `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, and `.github/instructions/*.instructions.md`. Teams may use any of them; they rank together. When they contradict each other, report the contradiction and follow the more specific one.
+Project instructions are every instruction file the repository keeps for agents: `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, and `.github/instructions/*.instructions.md`. Teams may use any of them; they rank together. When they contradict each other, report the contradiction and follow the more specific one. When none exists, read `README.md` and `CONTRIBUTING.md` (and docs they link to) for build, test, localization, and architecture rules, and say that those were the only source.
 
 An older local convention does not automatically beat a current explicit decision. Resolve contradictions by evidence and scope.
 
