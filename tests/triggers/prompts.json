@@ -268,7 +268,8 @@
     "security-audit-ios": {
       "positive": [
         "run a security audit on this iOS app",
-        "audit this Swift project for Keychain and transport security issues"
+        "audit this Swift project for Keychain and transport security issues",
+        "check this iOS app against OWASP MASVS"
       ],
       "negative": [
         "do an iOS review of my SwiftUI changes"
