@@ -275,6 +275,16 @@
         "do an iOS review of my SwiftUI changes"
       ]
     },
+    "migrate-swiftui-ios": {
+      "positive": [
+        "convert this UIKit app to SwiftUI",
+        "make a plan to migrate our UIKit screens to SwiftUI",
+        "rewrite these view controllers and storyboards in SwiftUI"
+      ],
+      "negative": [
+        "raise the minimum iOS version of this app to iOS 18"
+      ]
+    },
     "accessibility-audit-ios": {
       "positive": [
         "run an accessibility audit on this iOS app",

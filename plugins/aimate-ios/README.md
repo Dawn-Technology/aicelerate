@@ -46,6 +46,7 @@ Install or symlink the individual skill folders into the host's Agent Skills dir
 | `accessibility-audit-ios` | Validate a whole app's accessibility against WCAG 2.2 A and AA | One report file in `docs/`; a temporary UI test only after confirmation |
 | `fix-localization-ios` | Find and fix localization problems | Code and string catalogs, after confirmation |
 | `raise-minimum-ios` | Raise the minimum iOS version and remove code for older versions | Code and project files, after confirmation |
+| `migrate-swiftui-ios` | Convert UIKit screens to SwiftUI, with a time and token estimate | A plan in `docs/`; code and project files after approval |
 | `review-architecture-ios` | Review architecture and design quality, with a refactoring roadmap | One report file in `docs/` |
 | `summarize-project-ios` | Get an overview, gotchas, and risks of a project | Nothing |
 
@@ -102,6 +103,12 @@ Raises the app's minimum iOS version, for example from iOS 16 to 18, and removes
 3. **Execute**: on a new branch, never committing. It builds and runs the tests before changing anything, builds after each step, and compares tests and warnings afterwards. Targets already above the new minimum and other platforms are left alone; when the build needs a change outside the confirmed steps, it stops and asks.
 
 Ask for it by name, for example "use raise-minimum-ios to raise this app to iOS 18".
+
+### `migrate-swiftui-ios`
+
+Converts a UIKit app, or most of its screens, to SwiftUI. It scans the project with a bundled script (view controllers with a complexity class, storyboard scenes and XIBs, UIKit-only APIs such as maps, cameras, and custom layouts, existing SwiftUI, and the app lifecycle) and writes a plan to `docs/`: per screen a decision (convert, convert with a wrapper, keep UIKit, or remove), the order of batches, and an estimate of agent time, developer review time, and tokens. It then goes through the plan with the developer to agree what is feasible, including whether to convert navigation and the app lifecycle and whether it may commit per batch. After approval it converts on a new branch, screen by screen, keeping each converted screen inside the existing navigation, keeping accessibility identifiers and localization keys, and building and testing after every batch. After a pilot batch it measures the real tokens and time, corrects the estimate, and asks to continue. It ends with what was converted, what was not and why, and the tokens used: in Claude Code read from the session transcript by a bundled script, on other hosts from the host's own usage view. It never pushes.
+
+Ask for it by name, for example "run migrate-swiftui-ios on this project".
 
 ### `review-architecture-ios`
 
