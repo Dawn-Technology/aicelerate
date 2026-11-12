@@ -275,6 +275,16 @@
         "do an iOS review of my SwiftUI changes"
       ]
     },
+    "accessibility-audit-ios": {
+      "positive": [
+        "run an accessibility audit on this iOS app",
+        "check this iOS app against WCAG 2.2 AA",
+        "validate VoiceOver and Dynamic Type support across this Swift app"
+      ],
+      "negative": [
+        "do an iOS review of my SwiftUI changes"
+      ]
+    },
     "summarize-project-ios": {
       "positive": [
         "give me an overview of this iOS project",
