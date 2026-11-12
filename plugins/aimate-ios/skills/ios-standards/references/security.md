@@ -1,0 +1,51 @@
+# iOS Security
+
+Read when the change touches secrets, authentication, biometrics, cryptography, networking configuration, logging, deep links, web content, file storage, analytics, entitlements, the privacy manifest, or CI, and for a whole-project security audit.
+
+In a change review, check only what the change touches. Report what an attacker or another app can actually reach; a pattern alone is not a finding. Confirm version-sensitive API facts with `apple-docs.md`.
+
+## Severity
+
+| Label | When |
+| --- | --- |
+| `security-violation` | A secret or personal data is exposed, or a protection can be bypassed, on a path the change introduces or makes reachable. |
+| `request-for-change` | Protection is weakened or incomplete without a demonstrated exposure, such as an app-wide transport exception or a keychain item without an explicit accessibility class. |
+| `optional` | Defense in depth with bounded value. |
+
+## Checks
+
+A check marked "at profile L2" or "profile R" applies only when that profile applies to the project (see [`masvs-mastg.md`](masvs-mastg.md)); all other checks apply to every app.
+
+| Area | MASVS | Check |
+| --- | --- | --- |
+| Secret storage | STORAGE-1, CRYPTO-2 | Tokens, passwords, API keys, private keys, and session identifiers live in the Keychain, never in `UserDefaults`, `@AppStorage`, plists, `.xcconfig`, source, files, Core Data, SwiftData, or archives. Secrets in the app bundle are readable by anyone with the IPA; treat them as public. |
+| Keychain calls | STORAGE-1 | Every `SecItemAdd`, `SecItemCopyMatching`, `SecItemUpdate`, and `SecItemDelete` result is checked, including `errSecDuplicateItem`, `errSecItemNotFound`, and `errSecInteractionNotAllowed` (device locked). Updates use add-or-update, not delete-then-add. |
+| Keychain accessibility | STORAGE-1, STORAGE-2 | New items set `kSecAttrAccessible` or `kSecAttrAccessControl` explicitly. Prefer a `ThisDeviceOnly` class for tokens that must not move to backups or other devices. `kSecAttrAccessibleAlways` and `kSecAttrAccessibleAlwaysThisDeviceOnly` are deprecated. Background work that reads an item needs an `AfterFirstUnlock` class. |
+| Biometrics | AUTH-2, AUTH-3 | A biometric check that only returns a Boolean (`LAContext.evaluatePolicy`) does not protect a secret that is readable without it. Protect the secret with `SecAccessControl` (`.biometryCurrentSet` or `.userPresence`) so reading the keychain item triggers authentication. Handle enrollment changes, lockout, and the passcode fallback deliberately. |
+| Logout and reinstall | AUTH-1, STORAGE-2 | Logout removes tokens and user data from the Keychain and caches. Keychain items survive app deletion; a fresh install must not silently reuse an old session. |
+| Logging | STORAGE-2 | Secrets and personal data are never logged unredacted. With `Logger`/`os_log`, the system redacts interpolated strings and objects unless they are marked `privacy: .public`; integers, floating-point values, and Booleans are public by default (Apple, "Generating log messages from your code"). So `privacy: .public` on a token, email, identifier, or request body is an exposure, while an interpolated string without a privacy modifier is not a finding. `print` and `NSLog` output is not redacted. Crash and analytics reports must not carry secrets. |
+| Transport | NETWORK-1, NETWORK-2 | `NSAllowsArbitraryLoads` and related ATS exceptions are scoped to named domains in `NSExceptionDomains`, justified, and limited to the build configurations that need them (for example a staging Info.plist or `.xcconfig`). No hard-coded `http://` URLs for app traffic, and no TLS minimum below 1.2 in ATS, `URLSessionConfiguration`, or Network.framework. Custom `URLSessionDelegate` and `WKNavigationDelegate` trust handling never accepts every certificate. Pinning, when used, pins the SPKI or CA (preferably through `NSPinnedDomains`) and has a rotation plan; MASVS-NETWORK-2 requires it at profile L2. |
+| Cryptography | CRYPTO-1, CRYPTO-2 | Prefer CryptoKit. No hardcoded keys, no nonce reuse with the same key, no raw key-agreement output used as a key (derive with HKDF), and no `Insecure.MD5`/`Insecure.SHA1` for security purposes. Custom encryption names who owns the key, where it is stored, and how it rotates. |
+| Deep links and URL schemes | PLATFORM-1, CODE-4 | Parameters from universal links, custom URL schemes, push payloads, widgets, and App Intents are untrusted input. Validate them before navigation, authentication, payments, or loading web content. Custom URL schemes can be claimed by other apps; never pass tokens through them. |
+| Web content | PLATFORM-2 | `WKWebView` loads only expected origins. `WKScriptMessageHandler` checks `frame.isMainFrame` and the origin before acting, and never exposes tokens or privileged actions to arbitrary pages. Use `ASWebAuthenticationSession`, not a web view, for third-party sign-in. |
+| Data at rest | STORAGE-1, STORAGE-2 | Files with personal data use an explicit `FileProtectionType` (`.complete` unless background access needs a weaker class), and sensitive files that must not leave the device set `isExcludedFromBackup`. Shared locations (app group containers, `Documents` exposed through file sharing, the Files app) never hold secrets or unencrypted personal data. Caches and screenshots in the app switcher do not hold secrets. |
+| Client-only enforcement | AUTH-1, AUTH-3 | A PIN, parental lock, paywall, feature flag, or role check that only the app enforces is bypassable. When the server sends the secret (such as the PIN) to the client or trusts a client-chosen identifier, the check belongs on the server, with attempt limits. |
+| App lock | AUTH-2, PLATFORM-3 | An app-level biometric or passcode lock also applies when the app returns from the background, and hides content in the app-switcher snapshot. At profile L2, an app that stores sensitive data checks that the device has a passcode set (`LAContext.canEvaluatePolicy(.deviceOwnerAuthentication…)`) and reacts deliberately when it has not. |
+| Server-supplied links and content | CODE-4 | URLs from APIs, CMS content, push payloads, or remote config are opened only after a scheme and host check; downloaded files and databases are checked for status and type before use. Remote config that changes security- or safety-relevant behavior is signed or otherwise authenticated. |
+| Analytics and third-party SDKs | PRIVACY-1, PRIVACY-2, PRIVACY-3 | Free text (searches, names), health data, precise location, and full URLs with query strings are not sent to analytics or crash reporting without consent where required. Stable identifiers shared across SDKs and the backend are deliberate. |
+| Debug and internal features | CODE-4, RESILIENCE-3 | Server switchers, mock data, hidden menus, verbose network logging, and environment dumps are compiled out of release builds (`#if DEBUG` or a build setting), not hidden behind a runtime gesture or flag. |
+| Privacy manifest and entitlements | PRIVACY-1, PRIVACY-3 | Each target's `PrivacyInfo.xcprivacy` declares its required-reason APIs, tracking domains, and collected data types, including data collected through SDKs. Entitlements, keychain access groups, and app groups are needed and use the full team prefix. |
+| Pasteboard and keyboards | PLATFORM-1, PLATFORM-3, STORAGE-2 | Secrets and personal data are not written to `UIPasteboard.general`; when the app copies sensitive values, it uses `setItems(_:options:)` with `.localOnly` and an `.expirationDate`, or clears them after use. Password, PIN, and card fields set `isSecureTextEntry` and a matching `textContentType`, so they are hidden and not cached by the keyboard. Apps that handle sensitive input restrict third-party keyboards (`application(_:shouldAllowExtensionPointIdentifier:)` returning false for `.keyboard`); a custom keyboard extension in the project does not request `RequestsOpenAccess` without need. |
+| Untrusted data parsing | CODE-4 | Data from the network, files, the pasteboard, or other apps is decoded with `Codable` or `NSKeyedUnarchiver` with `requiresSecureCoding` and an explicit class list (`unarchivedObject(ofClasses:from:)`), never with `unarchiveObject(with:)` or `NSCoding` without secure coding. |
+| App updates and platform version | CODE-1, CODE-2 | The deployment target is a supported iOS version (see `legacy-projects.md`). At profile L2, the app can force an update when a version has a security problem, for example a server-provided minimum version checked at launch that blocks use until the update is installed. |
+| Build hardening | CODE-3, CODE-4, RESILIENCE-3 | Release configurations keep Xcode's defaults: position-independent code, stack protection, and ARC for Objective-C (`CLANG_ENABLE_OBJC_ARC`), no `-fno-stack-protector` or `-fno-objc-arc` flags, and debug symbols stripped from the shipped binary (dSYMs uploaded separately). |
+| Anti-tampering (profile R only) | RESILIENCE-1 to RESILIENCE-4 | Only when the project's instructions ask for resilience: jailbreak, debugger, and hook detection, integrity checks on stored data, and obfuscation of security-relevant code, each with a deliberate response. These raise the cost of an attack; they never replace a server-side check. Do not report their absence otherwise. |
+| Dependencies and CI | CODE-3 | Packages from personal forks or tracking branches are deliberate and pinned in `Package.resolved`, and no pinned version has a known advisory. CI does not run untrusted branch code with signing or release secrets, does not interpolate PR titles or other user input into shell scripts, and pins third-party actions; downloads are verified. Report CI findings separately from app findings. |
+
+## OWASP MASVS
+
+The MASVS column names the OWASP MASVS 2.1 controls each area covers. A whole-project audit also checks the MASTG iOS tests for those controls; [`masvs-mastg.md`](masvs-mastg.md) lists them with their profiles and says which profiles apply to a project. In a change review, the MASVS IDs are only labels for findings.
+
+## Not In Scope
+
+Server-side authorization, backend secret management, App Store submission, and penetration testing. When a client finding depends on server behavior, state the assumption and mark it unverified.

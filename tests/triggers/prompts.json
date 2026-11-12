@@ -215,6 +215,100 @@
       "negative": [
         "break down this ticket into an implementation plan"
       ]
+    },
+    "review-ios": {
+      "positive": [
+        "do an iOS review of my SwiftUI changes",
+        "review this Swift change for iOS concurrency and lifecycle problems",
+        "check my Xcode changes for Apple API availability issues"
+      ],
+      "negative": [
+        "run a security audit on this iOS app"
+      ]
+    },
+    "test-ios": {
+      "positive": [
+        "run the iOS tests affected by my last commit",
+        "run the XCTest suite for this Xcode scheme on a simulator",
+        "run this Swift Testing test plan on the iPhone simulator"
+      ],
+      "negative": [
+        "do an iOS review of my SwiftUI changes"
+      ]
+    },
+    "fix-localization-ios": {
+      "positive": [
+        "fix the missing translations in this iOS app",
+        "check the string catalogs of this iOS app for localization problems",
+        "find hard-coded text in the iOS app that is not localized"
+      ],
+      "negative": [
+        "review this Swift change for iOS concurrency and lifecycle problems"
+      ]
+    },
+    "raise-minimum-ios": {
+      "positive": [
+        "raise the minimum iOS version of this app to iOS 18",
+        "bump the iOS deployment target from 16 to 17 and remove the old availability checks"
+      ],
+      "negative": [
+        "do an architecture review of this iOS app"
+      ]
+    },
+    "review-architecture-ios": {
+      "positive": [
+        "do an architecture review of this iOS app",
+        "review the TCA architecture of this Swift project",
+        "where is this iOS codebase hardest to change?"
+      ],
+      "negative": [
+        "run a security audit on this iOS app"
+      ]
+    },
+    "security-audit-ios": {
+      "positive": [
+        "run a security audit on this iOS app",
+        "audit this Swift project for Keychain and transport security issues",
+        "check this iOS app against OWASP MASVS"
+      ],
+      "negative": [
+        "do an iOS review of my SwiftUI changes"
+      ]
+    },
+    "migrate-swiftui-ios": {
+      "positive": [
+        "convert this UIKit app to SwiftUI",
+        "make a plan to migrate our UIKit screens to SwiftUI",
+        "rewrite these view controllers and storyboards in SwiftUI"
+      ],
+      "negative": [
+        "raise the minimum iOS version of this app to iOS 18"
+      ]
+    },
+    "accessibility-audit-ios": {
+      "positive": [
+        "run an accessibility audit on this iOS app",
+        "check this iOS app against WCAG 2.2 AA",
+        "validate VoiceOver and Dynamic Type support across this Swift app"
+      ],
+      "negative": [
+        "do an iOS review of my SwiftUI changes"
+      ]
+    },
+    "summarize-project-ios": {
+      "positive": [
+        "give me an overview of this iOS project",
+        "I'm joining this iOS app, summarize its structure and how to get it running"
+      ],
+      "negative": [
+        "do an architecture review of this iOS app"
+      ]
+    },
+    "ios-standards": {
+      "positive": [],
+      "negative": [
+        "do an iOS review of my SwiftUI changes"
+      ]
     }
   },
   "collision_allow": [
