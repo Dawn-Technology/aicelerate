@@ -1,0 +1,23 @@
+{
+  "skill_name": "migrate-swiftui-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make a plan to convert the iOS app in ~/Documents/git/multibel-ios (current checkout) from UIKit to SwiftUI. Stop after the plan.",
+      "expected_output": "Runs uikit_inventory.py and ios_platform.py, maps navigation (coordinators, storyboards), and presents a plan with a decision per screen (convert, convert with wrapper, keep UIKit, remove) and reasons: maps and the chat screen with a video player and keyboard handling need wrappers or a keep decision, and the 938-line base view controller is handled before the screens that inherit from it. Orders foundation, leaf screens, then optional navigation and lifecycle. Gives agent time, developer time, and tokens as ranges, with a pilot batch first. Writes the plan to docs/ untracked, changes nothing else, marks the token start, and asks the feasibility questions instead of starting.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Convert the UIKit screens of ~/Documents/git/arsenal-app-ios (current checkout) to SwiftUI. I approve the pilot batch you propose; stop after the pilot.",
+      "expected_output": "After the plan and feasibility questions, requires a clean tree, creates a branch, builds and runs tests as a baseline, converts one or two S or M screens hosted in UIHostingController in the existing navigation, keeps accessibility identifiers and localization keys, handles the XIB and project-file change as agreed, builds and runs the covering tests, measures the pilot's tokens with token_usage.py, recalculates the estimate for the rest, and stops to ask. Commits only if allowed and never pushes.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How many tokens would it cost to convert ~/Documents/git/thuisarts-ios to SwiftUI?",
+      "expected_output": "Recognizes the app is already mostly SwiftUI: reports the few remaining UIKit controllers and storyboards with their decisions and a small estimate range, rather than a full migration plan with inflated numbers. Changes nothing.",
+      "files": []
+    }
+  ]
+}
