@@ -215,6 +215,21 @@
       "negative": [
         "break down this ticket into an implementation plan"
       ]
+    },
+    "fix-ci": {
+      "positive": [
+        "fix the CI on PR 123",
+        "the pipeline is red on merge request 42, can you get it passing?",
+        "keep an eye on this PR and fix the failing checks until it is green",
+        "lint and type checks are failing on https://github.com/acme/shop/pull/88, sort it out",
+        "update my PR with the latest from main and sort out the merge conflicts",
+        "this MR has conflicts with the target branch, can you update it?"
+      ],
+      "negative": [
+        "review this PR and post findings",
+        "address the review comments on my PR",
+        "run the tests locally and tell me what fails"
+      ]
     }
   },
   "collision_allow": [

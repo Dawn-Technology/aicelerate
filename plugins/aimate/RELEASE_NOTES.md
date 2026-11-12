@@ -1,5 +1,10 @@
 # Release notes
 
+## 4.8.0 (2026-11-11)
+
+- New skill `fix-ci`: give it a PR/MR number or URL and it watches the CI, and when it is red makes small fixes that never change behavior (formatting, lint autofixes, type and API updates), reviews them with `review-local`, commits, pushes, and watches again until green. A partly applied version bump is completed (the other pins of that package move to the version the PR/MR itself chose, the lockfile is regenerated; a major move only when the PR/MR itself crossed that major) and reported in the chat. Changes that would alter behavior, test expectations, or lint, type, coverage, or CI settings are refused and reported instead. It stops when two rounds in a row make no progress, and reruns infrastructure failures once. Waiting is done by `scripts/wait-for-ci.sh`, one script for GitHub and GitLab. Every run first brings the branch up to date with its target by merging it in, resolving conflicts only when nothing has to be chosen (keep both sides, regenerate a lockfile), reviewing the resolutions with `review-local`, and ending the run with a report when a conflict needs a decision.
+- `prepare-ticket`: description names "challenge this ticket against the codebase", which the routing check had left tied with the deprecated `validate-ticket`.
+
 ## 4.7.0 (2026-10-29)
 
 - `write-plan` repurposed to an estimation step over a prepared ticket: input is the brief that prepare-ticket produces (or an equivalent ticket with acceptance criteria), output is sized tasks to discuss the approach, take into refinement, or estimate from. The skill no longer does its own discovery or design-tree resolution, and is optional in the build loop. The plan eval case and grader changed with it in the same commits.

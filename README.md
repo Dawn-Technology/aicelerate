@@ -46,6 +46,7 @@ implement-ticket reviews its own work before the PR opens. These run on the open
 - `review-pr` — a second look, findings as inline comments
 - `resolve-pr-feedback` — turns review threads (from a colleague or an agent) into pushed fixes and per-thread replies
 - `review-and-resolve-pr` — both in one autonomous pass
+- `fix-ci` — watches the PR's CI and, when it is red, pushes small fixes that never change behavior, until it is green; first brings the branch up to date with its target, resolving mechanical conflicts
 
 ## Checks, at any point
 

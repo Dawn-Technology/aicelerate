@@ -88,6 +88,22 @@ Scope stays on the threads this run created; threads a human opened are listed a
 
 ---
 
+### `fix-ci`
+
+> Get a red GitHub PR or GitLab MR to green with small fixes that never change what the code does, and bring it up to date with its target branch.
+
+Takes a PR/MR number or URL. After bringing the branch up to date (below), it waits for CI. When CI is red it reads the failing logs and fixes what is housekeeping: formatting and lint autofixes, type updates, calls to a renamed or deprecated API. It never changes logic, test expectations, lint or type strictness, or the CI setup, and it never silences a checker. It never changes a dependency version, with one exception: when a bump (usually Dependabot's) landed only partly and the pins of one package disagree, it moves the remaining pins to the version the PR/MR itself chose, regenerates the lockfile, and lists every moved pin in its final report. Patch and minor moves are fine; a major move only when the PR/MR itself crossed that major. A failure that only a behavior change could fix is not touched; it is reported, because the CI may have found a real defect.
+
+Every round's changes go through `review-local` before they are committed, then are pushed to the PR/MR branch, and CI is watched again. It keeps going until the PR/MR is green. A round makes progress when a failure it targeted is gone and nothing fixed earlier came back. After two rounds in a row with no progress it stops instead of trying a third time, and reports what is still failing and why. A failure that looks like infrastructure (a lost runner, a timeout) is rerun once, not "fixed".
+
+Every run starts by bringing the branch up to date with its target, before CI is looked at. It merges the target in (never a rebase, so no force-push) and resolves a conflict only when nothing has to be chosen: both sides added different things, a formatting difference, a lockfile regenerated from the merged manifest. If one side's change would have to be dropped or reinterpreted, it aborts the whole merge, pushes nothing, and lists the conflicting files. An unresolvable conflict ends the run, because CI on a conflicting branch cannot be trusted. Resolutions are reviewed with `review-local` against each side of the merge before they are pushed. A branch that is already current is left alone, and the update runs again if the target moves and CI cannot start.
+
+Work happens in a throwaway worktree. Waiting is done by a bundled script (`scripts/wait-for-ci.sh`, needs `jq` and `gh` or `glab`) that blocks with a deadline and prints one verdict for both providers. It never force-pushes, merges the PR/MR itself, approves, or touches review threads. For a fork head it runs no local build or test and lets CI verify.
+
+**Trigger phrases:** "fix the CI on this PR", "the pipeline is red on MR 42", "make the checks pass", "keep this PR green", "update this PR from main", "resolve the merge conflicts on this MR"
+
+---
+
 ### `review-local`
 
 > Review local code before committing for a user-defined scope such as files, folders, uncommitted changes, staged changes, commits, patches, or snippets.
@@ -442,6 +458,7 @@ Review the resulting code changes for correctness, quality, and security, then w
 | `review-pr` | aimate | Comprehensive MR/PR review with inline comments and code fix suggestions through the saved provider route |
 | `resolve-pr-feedback` | aimate | Validate the review threads, fix what holds up in an isolated worktree, run the project's quality gates, self-review, push, and reply per thread |
 | `review-and-resolve-pr` | aimate | Both halves in one pass — review, publish every finding as an inline comment, then fix, push, reply per thread, and report the addressed findings |
+| `fix-ci` | aimate | Bring the PR/MR up to date with its target, then watch CI and push behavior-neutral fixes until it is green |
 | `asvs-audit` | aimate | OWASP ASVS 5.0 Level 1 security audit with evidence-backed findings; also the place to check known vulnerabilities that `review-architecture` leaves out |
 | `glab`, `gh`, or GitHub MCP | Project-configured via `configure-mcp` | Fetch the diff, read existing comments, and post structured review comments |
 
