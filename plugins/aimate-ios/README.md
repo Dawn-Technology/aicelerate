@@ -42,7 +42,7 @@ Install or symlink the individual skill folders into the host's Agent Skills dir
 | --- | --- | --- |
 | `review-ios` | Review a change with iOS depth, next to the generic review | Nothing |
 | `test-ios` | Run the tests affected by a change, or named tests, on a simulator | Nothing |
-| `security-audit-ios` | Audit a whole project for security problems | Nothing |
+| `security-audit-ios` | Audit a whole project for security problems against OWASP MASVS | Nothing |
 | `fix-localization-ios` | Find and fix localization problems | Code and string catalogs, after confirmation |
 | `raise-minimum-ios` | Raise the minimum iOS version and remove code for older versions | Code and project files, after confirmation |
 | `review-architecture-ios` | Review architecture and design quality, with a refactoring roadmap | One report file in `docs/` |
@@ -76,7 +76,7 @@ Ask for it by name, for example "run test-ios for the tests affected by my last 
 
 ### `security-audit-ios`
 
-Read-only security audit of a whole iOS project, for example when taking over a legacy project or before a release. It checks every area in the company security reference (secrets, Keychain, client-only checks, transport, deep links and web content, analytics, debug features, privacy manifests, dependencies, and CI) per target, traces each hit to who can reach it, and reports with the same severity labels and output shape as `review-ios`. It never edits, builds, or runs anything and redacts secret values. For security review of a single change, `review-ios` already includes a Security module.
+Read-only security audit of a whole iOS project, for example when taking over a legacy project or before a release. It checks every area in the company security reference (secrets, Keychain, client-only checks, transport, deep links and web content, pasteboard and keyboards, analytics, debug features, privacy manifests, dependencies, and CI) per target, plus the OWASP MASTG iOS tests that can be checked from source. It decides which MAS profiles apply (L1 and privacy always, L2 when the app handles sensitive data such as accounts, payments, or health data, resilience only when the project asks for it) and reports a status per OWASP MASVS 2.1 control. It traces each hit to who can reach it and reports with the same severity labels and output shape as `review-ios`, with the MASVS control and MASTG test on every finding. MASTG tests that need a running app or the built IPA are listed as not checked. The only outside call is an optional advisory lookup of the pinned package versions, made only when allowed. It never edits, builds, or runs anything and redacts secret values. For security review of a single change, `review-ios` already includes a Security module.
 
 Ask for it by name, for example "run security-audit-ios on this project".
 
