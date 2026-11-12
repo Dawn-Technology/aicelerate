@@ -23,46 +23,57 @@ Always read:
 - [`../ios-standards/references/tooling.md`](../ios-standards/references/tooling.md) for builds and tests.
 - [`../ios-standards/references/legacy-projects.md`](../ios-standards/references/legacy-projects.md)
 
-Read [`../ios-standards/references/tca.md`](../ios-standards/references/tca.md) when the project uses TCA, [`../ios-standards/references/accessibility.md`](../ios-standards/references/accessibility.md) and [`../ios-standards/references/localization.md`](../ios-standards/references/localization.md) when converting screens, [`../ios-standards/references/testing.md`](../ios-standards/references/testing.md) when tests change, and [`../ios-standards/references/apple-docs.md`](../ios-standards/references/apple-docs.md) before a version-sensitive API claim.
+Read [`../ios-standards/references/tca.md`](../ios-standards/references/tca.md) when the project uses TCA, [`../ios-standards/references/accessibility.md`](../ios-standards/references/accessibility.md) and [`../ios-standards/references/localization.md`](../ios-standards/references/localization.md) before phase 4 (and `localization.md` in phase 1 when the app switches language at runtime), [`../ios-standards/references/testing.md`](../ios-standards/references/testing.md) when tests change, and [`../ios-standards/references/apple-docs.md`](../ios-standards/references/apple-docs.md) before a version-sensitive API claim.
 
 If a reference cannot be read, retry with another file-reading tool. If it still fails, name it and do not apply its rules from memory.
+
+The scan also uses `ios_platform.py` from the sibling skill `review-architecture-ios`; install the plugin's `skills` folder as a whole so it is there.
 
 ## Token Measurement
 
 Measure tokens from the start of phase 1, so the report can compare the estimate with what the work used.
 
-- In Claude Code, run `python3 <skill-dir>/scripts/token_usage.py now` at the start and save the timestamp. Later, `python3 <skill-dir>/scripts/token_usage.py sum --since <timestamp>` totals the session's main conversation and its subagents per model. Mark the start of phase 4 the same way.
+- In Claude Code, run `python3 <skill-dir>/scripts/token_usage.py now` at the start and record the timestamp in the plan file's `Token measurement` section. Later, `python3 <skill-dir>/scripts/token_usage.py sum --since <timestamp>` totals the session's main conversation and its subagents per model. Mark the start of phase 4 the same way.
 - On another host, or when the script exits with status 2, ask the developer to read the host's usage or cost view at the start and at the end, and use their numbers. If no counter exists, say the actual usage is unknown. Never invent a number.
 - A conversion that continues in a new session needs a new mark per session; add the sessions together in the report.
 
 ## Phase 1: Scan (read-only)
 
-1. Check every project-instruction location in `precedence.md` with a file listing and read what exists: architecture, navigation, design system, UI test conventions, and any rules about SwiftUI.
-2. Run `python3 <skill-dir>/scripts/uikit_inventory.py --repo <repo>` (add `--json` for the plan's data). It lists view controllers with a complexity class, UIKit views and cells, storyboard and XIB scenes, UIKit-only APIs per file, existing SwiftUI and bridging code, and the app lifecycle. Add `--exclude` for vendored code the project keeps in the repository.
+1. Check every project-instruction location in `precedence.md` with a file listing and read what exists: architecture, navigation, design system, UI test conventions, and any rules about SwiftUI. Record the checked-out branch, whether the working tree is clean, and the integration branch (`git symbolic-ref refs/remotes/origin/HEAD`); a feature or work-in-progress branch is not a base for the migration unless the developer says so.
+2. Run `python3 <skill-dir>/scripts/uikit_inventory.py --repo <repo>` (add `--json` for the plan's data). It reads Xcode project membership, so files that no target uses (orphans, duplicate copies) are listed separately and left out of the counts. It lists:
+   - screens with a complexity class (rules in its output and in the guide), counting the class body plus the root view and cells only that screen uses; the storyboards that hold each one and the files that reference it (in `--json`); and controllers that are possibly unreferenced;
+   - UIKit controllers that only host SwiftUI (`already SwiftUI`), and containers such as tab bar controllers (navigation work, not screens);
+   - per screen, whether it has a view model, presenter, or store, or is `MVC`, and how many accessibility identifiers it sets; and the number of UI test files;
+   - base classes with their number of subclasses, which are foundation work, not screens;
+   - UIKit views and cells, and which are shared by three or more files;
+   - storyboard scenes and segues per storyboard, XIBs, UIKit-only APIs per file, dependencies, existing SwiftUI and bridging code, coordinators marked as `navigation` or `service`, and the app lifecycle.
+
+   It skips `ThirdParty`, `ThirdParties`, `Vendor`, and `External` folders and says so; add `--exclude` for other vendored source. Use the script's classes; when reading the code shows a class is clearly wrong, change it in the plan and say why.
 3. Run `xcrun python3 <skill-dir>/../review-architecture-ios/scripts/ios_platform.py --repo <repo>` for the deployment targets, and check them against the Deployment Target table in the guide.
 4. Map the navigation: how each screen is presented (coordinator, segue, push from another controller, tab, deep link), and which screens are leaves.
-5. Read each screen's controller, view model, and storyboard scene or XIB enough to confirm the inventory's class and to choose a decision from the guide (`convert`, `convert with wrapper`, `keep UIKit`, `remove`). Find shared UIKit components and styles used by several screens.
-6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which UI and snapshot tests cover each screen. Do not build yet; the baseline build runs in phase 4.
+5. Read each screen's controller, view model, and storyboard scene or XIB enough to confirm the inventory's class and to choose a decision from the guide (`convert`, `convert with wrapper`, `keep UIKit`, `remove`, `already SwiftUI`). Before `remove`, check how the screen is presented, including helpers in its own file that other files call. List shared presentation helpers (sheets, toasts, loaders presented through `UIViewController` extensions) and how converted views reach them. For every base class, list what it provides to its subclasses (overlays, keyboard handling, permission or session checks) and how converted screens keep that behavior (see Base Classes in the guide). Note UIKit-only dependencies in the inventory's list (keyboard managers, pickers, activity indicators) and their SwiftUI replacement or wrapper.
+6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which tests cover each screen: UI tests that use the screen's accessibility identifiers or navigate to it, snapshot tests named after it, and unit tests of its view model. Write `none` when nothing covers it. Do not build yet; the baseline build runs in phase 4.
 
 ## Phase 2: Plan
 
-Present the plan and stop. Write it also to `<repo-root>/docs/<project-name>-swiftui-migration-plan-<YYYY-MM-DD>.md`, untracked, so a later session can continue from it. Open with a summary a developer can decide from, at most about ten lines:
+Write the plan to `<repo-root>/docs/<project-name>-swiftui-migration-plan-<YYYY-MM-DD>.md`, untracked, so a later session can continue from it. In chat, show the plan's summary and its path, then go straight to the phase 3 questions in the same reply. Open the plan with a summary a developer can decide from, at most about fifteen short lines; put detail in the sections below:
 
-- what the app has: screens by class, storyboard scenes and XIBs, shared components, and the deployment target;
+- what the app has: screens by class, storyboard scenes and XIBs, shared components, and the deployment target. When reading the code changed some of the script's classes, give the corrected numbers and say how many changed; the estimate uses the corrected classes;
 - the recommended scope: how many screens to convert, wrap, keep, or remove;
 - the estimate for that scope as ranges: agent time, developer review and testing time, and tokens (all types and output);
 - decisions the developer must make first.
 
 Then the details:
 
-- `Screens`: one row per screen, ordered as the guide's strategy converts them: name, files, class, decision with its reason, wrappers needed, tests that cover it, agent time, tokens, and developer time.
+- `Screens`: one row per screen, ordered as the guide's strategy converts them: name, files, class, decision with its reason, wrappers needed, tests that cover it, agent time in minutes, tokens in millions (all types), output tokens in thousands, and developer time in hours. Mark MVC screens, which need a view model first. Screens in the same batch with the same class, decision, and test coverage may share one row that names them all. Give totals per batch.
 - `Foundation`: shared styles and components to convert first.
 - `Navigation and lifecycle`: what stays UIKit, and the optional steps to convert coordinators and the app lifecycle, each with its estimate.
-- `Batches`: groups of screens converted and built together, in order. The first batch is a pilot of one or two typical S or M screens.
-- `Risks`: deployment-target limits, UIKit-only APIs, Rx or other binding frameworks, project-file changes, visual differences, and screens without tests.
+- `Batches`: groups of screens converted and built together, in the guide's strategy order: the pilot (one or two typical S or M leaf screens with only the foundation they need), the rest of the foundation, then the screens.
+- `Risks`: build prerequisites (private packages, project build scripts), deployment-target limits, UIKit-only APIs, Rx or other binding frameworks, project-file changes, visual differences, and screens without tests.
 - `Estimate`: totals per part and in all, as ranges from the guide's Estimates table, saying that the pilot will correct them.
 - `Verification`: builds and tests per batch, and what needs manual checking.
 - `Branch`: the branch to create, for example `feature/swiftui-migration`, from the project's integration branch.
+- `Token measurement`: the start timestamp, and later the phase 4 mark and the totals.
 
 ## Phase 3: Agree What Is Feasible
 
@@ -81,7 +92,7 @@ Update the plan file with the answers. Do nothing until the developer approves t
 ## Phase 4: Convert (after approval)
 
 1. Require a clean working tree, apart from the untracked plan; if it is not clean, stop and say so. Create the branch from the confirmed base. Never push.
-2. Mark the token start of this phase. Build the affected schemes and run the test plans with the `tooling.md` route, and save the results as the baseline, so later failures can be attributed.
+2. Mark the token start of this phase. Build the affected schemes for a simulator and run the test plans with the `tooling.md` route (see Simulator Builds and Signing there: missing certificates or profiles do not block a simulator build, and tracked files that build scripts rewrite are restored), and save the results as the baseline, so later failures can be attributed.
 3. Convert in the approved batch order, following the guide's Mapping and Must Stay the Same sections. Per screen: write the SwiftUI view, connect it to the existing view model, host it where the controller was presented, keep accessibility identifiers and localization keys, and remove the old controller, scene, or XIB only when nothing else uses them.
 4. After every batch: build, run the tests that cover the batch, fix failures the conversion caused, and update the plan file's progress. Commit locally only when the developer allowed it, with a message naming the screens.
 5. After the pilot batch: measure its tokens and time, recalculate the estimate for the remaining batches with the measured numbers, show both, and ask the developer to continue, adjust, or stop.

@@ -30,6 +30,15 @@ Localization problems are never `security-violation`. Text that only appears in 
 | Extensions and widgets | Each extension, widget, and intent target has translations for every supported language; notification texts built in extensions are checked like app text. |
 | Catalog hygiene | Stale (`extractionState: stale`) and unused keys, duplicate keys in `.strings` (the last value wins), empty values, keys built at runtime that extraction cannot see, and consistent terminology and tone (for example formal "u" against informal "je"). |
 
+## Runtime Language Switching
+
+Some apps let users pick a language inside the app instead of following the system (for example with Localize-Swift, a custom bundle, or `AppleLanguages` written at runtime). Then:
+
+- Keep the app's lookup. Text resolved through it (`"key".localized()`, a custom `Bundle`) must stay that way; switching to `Text("key")`, `LocalizedStringKey`, or `String(localized:)` looks up the system language and ignores the in-app choice.
+- A resolved `String` passed to SwiftUI `Text` is shown verbatim, so views must re-render when the language changes: observe the app's language-change notification (or the library's), for example through an observable language setting, and rebuild the text.
+- UIKit screens usually refresh in a notification handler or by recreating the root view controller; a converted SwiftUI screen needs the same trigger.
+- Check that system texts (permission alerts, `InfoPlist.strings`) still follow the system language, and say so in a report.
+
 ## Not In Scope
 
 Server-delivered content, text inside images and animations, translation quality beyond obvious errors, and on-screen layout such as truncation. A static review cannot see layout; say so in the report.
