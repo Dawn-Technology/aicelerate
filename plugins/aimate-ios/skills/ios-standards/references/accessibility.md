@@ -7,7 +7,7 @@ Read when a change touches user interface, text styles, colors, images, controls
 Validate against **WCAG 2.2 Level A and AA**, applied to native screens as the W3C note [Guidance on Applying WCAG 2.2 to Mobile Applications (WCAG2Mobile)](https://www.w3.org/TR/wcag2mobile-22/) describes. Sources: [WCAG 2.2](https://www.w3.org/TR/WCAG22/), WCAG2Mobile (Group Draft Note, 6 May 2025; informative, several mobile sections still placeholders), and [WCAG 2.1](https://www.w3.org/TR/WCAG21/). Level AAA is out of scope.
 
 - The unit of evaluation is a **screen** (a view the user navigates to, a sheet, an alert, or a full-screen state). Criteria about a "set of web pages" apply to the set of screens in the app.
-- The column `2.1` marks the criteria of WCAG 2.1 AA. EN 301 549, which the European Accessibility Act and Dutch government rules use for apps, requires WCAG 2.1 AA. Report a failure on such a criterion as part of that legal baseline; whether the law applies to a project is for the team to confirm, not for the audit to decide.
+- The column `In 2.1 AA` says whether a criterion is part of WCAG 2.1 AA (`yes`) or was added in WCAG 2.2 (`new in 2.2`). EN 301 549, which the European Accessibility Act and Dutch government rules use for apps, requires WCAG 2.1 AA. Report a failure on such a criterion as part of that legal baseline; whether the law applies to a project is for the team to confirm, not for the audit to decide.
 - Content inside a `WKWebView` or `SFSafariViewController` is web content: WCAG 2.2 for the web applies to it as written. Name those screens and their URLs in the report; the native checks below do not cover them.
 - 4.1.1 Parsing is obsolete in WCAG 2.2 and is not checked.
 
@@ -29,9 +29,9 @@ Accessibility problems are never `security-violation`. Previews, debug menus com
 
 ## Criteria
 
-| SC | Level | 2.1 | iOS check | Checked by |
+| SC | Level | In 2.1 AA | iOS check | Checked by |
 | --- | --- | --- | --- | --- |
-| 1.1.1 Non-text Content | A | yes | Meaningful images and icon-only buttons have an `accessibilityLabel` (a `Label` or `Button` with text, `.accessibilityLabel`, or `accessibilityLabel` in UIKit and Interface Builder). Decorative images are hidden: `Image(decorative:)`, `.accessibilityHidden(true)`, or `isAccessibilityElement = false`. An SF Symbol name or file name is not a label. | source, audit:sufficientElementDescription, audit:elementDetection |
+| 1.1.1 Non-text Content | A | yes | Meaningful images and icon-only buttons have an `accessibilityLabel` (a `Label` or `Button` with text, `.accessibilityLabel`, or `accessibilityLabel` in UIKit and Interface Builder). Decorative images are hidden: `Image(decorative:)`, `.accessibilityHidden(true)`, or `isAccessibilityElement = false`. `Image("name")` without a label is read by its asset name (and SF Symbols by a generated description), so an icon-only button built that way is a finding unless the asset name is a meaningful word in the app's language. | source, audit:sufficientElementDescription, audit:elementDetection |
 | 1.2.1 Audio-only and Video-only (Prerecorded) | A | yes | Prerecorded audio-only or video-only content has a text or audio alternative. | manual |
 | 1.2.2 Captions (Prerecorded) | A | yes | The player shows caption tracks: `AVPlayerViewController` or a custom player that exposes the legible `AVMediaSelectionGroup` and respects `MACaptionAppearance`. A custom player without a captions control is a finding when the content has captions. | source, manual |
 | 1.2.3 Audio Description or Media Alternative (Prerecorded) | A | yes | Audio description tracks, when the content has them, can be selected in the player. | source, manual |
@@ -45,7 +45,7 @@ Accessibility problems are never `security-violation`. Previews, debug menus com
 | 1.4.1 Use of Color | A | yes | Color is not the only way to show state, errors, links, or chart series; add text, an icon, or a shape, and honor `accessibilityDifferentiateWithoutColor`. | source, manual |
 | 1.4.2 Audio Control | A | yes | Audio that plays automatically for more than 3 seconds can be paused or stopped, or its volume set separately. | source |
 | 1.4.3 Contrast (Minimum) | AA | yes | Text contrast is at least 4.5:1, or 3:1 for large text, in light and dark appearance. WCAG's large text (18 pt, or 14 pt bold) is measured in print points; in iOS points, which match CSS pixels, that is about 24 pt, or 19 pt bold. Check named colors in asset catalogs and design tokens against the backgrounds they are used on. | source, audit:contrast |
-| 1.4.4 Resize Text | AA | yes | Text scales with Dynamic Type: text styles (`.font(.body)`, `UIFont.preferredFont(forTextStyle:)`), custom fonts through `Font.custom(_:size:relativeTo:)` or `UIFontMetrics`, `adjustsFontForContentSizeCategory = true` in UIKit, and sizes from `@ScaledMetric`. Fixed sizes (`.font(.system(size:))`, `UIFont.systemFont(ofSize:)`) and caps such as `.dynamicTypeSize(...DynamicTypeSize.large)` without a reason are findings. | source, audit:dynamicType, audit:textClipped |
+| 1.4.4 Resize Text | AA | yes | Text scales with Dynamic Type: text styles (`.font(.body)`, `UIFont.preferredFont(forTextStyle:)`), custom fonts through `Font.custom(_:size:relativeTo:)` or `UIFontMetrics`, `adjustsFontForContentSizeCategory = true` in UIKit, and sizes from `@ScaledMetric`. Fixed sizes that do not scale (`.font(.system(size:))`, `Font.custom(_:fixedSize:)`, `UIFont.systemFont(ofSize:)` or `UIFont(name:size:)` without `UIFontMetrics`) and caps such as `.dynamicTypeSize(...DynamicTypeSize.large)` without a reason are findings. `Font.custom(_:size:)` does scale (relative to body). An in-app text size setting does not replace Dynamic Type: it passes only when it follows the system setting or multiplies scaled fonts; when that cannot be seen in source, use `needs check`. | source, audit:dynamicType, audit:textClipped |
 | 1.4.5 Images of Text | AA | yes | Text is rendered as text, not baked into images (banners, buttons, onboarding art), except logos. | source, manual |
 | 1.4.10 Reflow | AA | yes | At accessibility text sizes, content stays readable without clipping or two-way scrolling: no fixed heights around text, `lineLimit(1)` only where truncation is acceptable, scroll views for long content, and layouts that switch axis for `dynamicTypeSize.isAccessibilitySize` (or `ViewThatFits`). | source, audit:textClipped |
 | 1.4.11 Non-text Contrast | AA | yes | Control boundaries, icons that carry meaning, focus indicators, and chart elements have at least 3:1 contrast against adjacent colors. | source, audit:contrast, manual |
@@ -64,28 +64,40 @@ Accessibility problems are never `security-violation`. Previews, debug menus com
 | 2.4.5 Multiple Ways | AA | yes | For an app's set of screens: content-heavy apps offer more than one way to find a screen (navigation and search, for example). Usually met or not applicable; say which. | source, manual |
 | 2.4.6 Headings and Labels | AA | yes | Headings and accessibility labels describe the topic or purpose; no labels such as "button", "image", or duplicates for different actions. | source, audit:sufficientElementDescription |
 | 2.4.7 Focus Visible | AA | yes | Keyboard focus is visible; custom controls do not remove the focus effect (`.focusEffectDisabled()`) without their own indicator. | source, manual |
-| 2.4.11 Focus Not Obscured (Minimum) | AA | 2.2 | The focused element is not fully hidden by sticky headers, bottom bars, banners, or the on-screen keyboard (keyboard avoidance, `safeAreaInset`). | manual |
+| 2.4.11 Focus Not Obscured (Minimum) | AA | new in 2.2 | The focused element is not fully hidden by sticky headers, bottom bars, banners, or the on-screen keyboard (keyboard avoidance, `safeAreaInset`). | manual |
 | 2.5.1 Pointer Gestures | A | yes | Multi-finger and path-based gestures (pinch, rotate, custom swipe or drawing paths) have a single-tap alternative or an `accessibilityAction`. Standard `swipeActions` are exposed to VoiceOver and pass. | source |
 | 2.5.2 Pointer Cancellation | A | yes | Actions run on touch up, not touch down: no `UIControl.Event.touchDown` actions, and no `DragGesture(minimumDistance: 0)` or zero-duration long press used as a button. | source |
 | 2.5.3 Label in Name | A | yes | The accessibility label contains the visible text, so Voice Control can activate it by what is on screen; add `accessibilityInputLabels` for icon-only controls. | source |
 | 2.5.4 Motion Actuation | A | yes | Shake (`motionEnded`) or tilt (Core Motion) actions have an on-screen alternative and can be turned off. | source |
-| 2.5.7 Dragging Movements | AA | 2.2 | Dragging (reordering with `onMove` or `.draggable`, custom sliders, bottom sheets) has a tap alternative, such as edit buttons, `accessibilityAdjustableAction`, or detents with buttons. | source |
-| 2.5.8 Target Size (Minimum) | AA | 2.2 | Touch targets are at least 24 × 24 pt or spaced so a 24 pt circle around each does not overlap another target. Apple's guideline of 44 × 44 pt is best practice: below 24 pt is `request-for-change`, between 24 and 44 pt is `optional`. Check `.frame`, `contentShape`, and small custom buttons. | source, audit:hitRegion |
+| 2.5.7 Dragging Movements | AA | new in 2.2 | Dragging (reordering with `onMove` or `.draggable`, custom sliders, bottom sheets) has a tap alternative, such as edit buttons, `accessibilityAdjustableAction`, or detents with buttons. | source |
+| 2.5.8 Target Size (Minimum) | AA | new in 2.2 | Touch targets are at least 24 × 24 pt or spaced so a 24 pt circle around each does not overlap another target. Apple's guideline of 44 × 44 pt is best practice: below 24 pt is `request-for-change`, between 24 and 44 pt is `optional`. Check `.frame`, `contentShape`, and small custom buttons. | source, audit:hitRegion |
 | 3.1.1 Language of Page | A | yes | The app's language matches its content: `CFBundleDevelopmentRegion` and the localizations shipped (see `localization.md`). | source |
 | 3.1.2 Language of Parts | AA | yes | Text in another language than the surrounding UI (English terms in a Dutch app, names of foreign programs) sets `accessibilityLanguage` or an `AttributedString` language attribute so VoiceOver pronounces it correctly. | source, manual |
 | 3.2.1 On Focus | A | yes | Moving focus to a field or control does not navigate, submit, or open something by itself. | source, manual |
 | 3.2.2 On Input | A | yes | Changing a picker, toggle, segmented control, or text field does not navigate or submit unexpectedly without warning. | source, manual |
 | 3.2.3 Consistent Navigation | AA | yes | Navigation that repeats across screens (tab bar, menu, toolbar) keeps the same relative order. | source |
 | 3.2.4 Consistent Identification | AA | yes | The same function has the same label and icon on every screen. | source |
-| 3.2.6 Consistent Help | A | 2.2 | When help or contact options exist on several screens, they are in the same relative place. | source |
+| 3.2.6 Consistent Help | A | new in 2.2 | When help or contact options exist on several screens, they are in the same relative place. | source |
 | 3.3.1 Error Identification | A | yes | Input errors are described in text and announced (`AccessibilityNotification.Announcement`, `UIAccessibility.post(notification: .announcement, …)`), not only shown with a red border. | source |
 | 3.3.2 Labels or Instructions | A | yes | Fields have a visible label or instruction; a placeholder alone disappears when typing and is a finding for required or formatted input. | source |
 | 3.3.3 Error Suggestion | AA | yes | Error messages say how to fix the input when that is known. | source |
 | 3.3.4 Error Prevention (Legal, Financial, Data) | AA | yes | Purchases, payments, legal agreements, and deleting data or accounts can be reviewed, confirmed, or undone. | source |
-| 3.3.7 Redundant Entry | A | 2.2 | Information already entered in the same flow is filled in or selectable, not asked again. | source, manual |
-| 3.3.8 Accessible Authentication (Minimum) | AA | 2.2 | Sign-in needs no cognitive test without an alternative: paste is not blocked in password and code fields, password managers and AutoFill work (`textContentType` `.username`, `.password`, `.newPassword`, `.oneTimeCode`), and passkeys or Sign in with Apple are allowed where offered. Puzzle CAPTCHAs need an alternative. | source |
+| 3.3.7 Redundant Entry | A | new in 2.2 | Information already entered in the same flow is filled in or selectable, not asked again. | source, manual |
+| 3.3.8 Accessible Authentication (Minimum) | AA | new in 2.2 | Sign-in needs no cognitive test without an alternative: paste is not blocked in password and code fields, password managers and AutoFill work (`textContentType` `.username`, `.password`, `.newPassword`, `.oneTimeCode`), and passkeys or Sign in with Apple are allowed where offered. Puzzle CAPTCHAs need an alternative. | source |
 | 4.1.2 Name, Role, Value | A | yes | Custom controls expose a label, the right traits (button, selected, toggle, adjustable), a value (`accessibilityValue`), and actions (`accessibilityAdjustableAction`, `accessibilityAction`); state changes update them. | source, audit:trait, audit:elementDetection |
 | 4.1.3 Status Messages | AA | yes | Status messages that do not move focus (toasts, "saved", loading finished, result counts, errors) are announced with an accessibility announcement. | source |
+
+## Resolving Colors and Content
+
+- **Text color**: in SwiftUI the color modifier closest to the text wins. A custom text-style modifier that sets a color inside its body wins over a `.foregroundStyle` applied after it; a `.foregroundStyle` applied to the `Text` itself wins over one on a parent stack. In UIKit, the last `textColor` set in code wins over the storyboard or XIB value. When the winning color cannot be determined from source, use `needs check` for contrast and name the candidates.
+- **Content from a CMS or server** (alt texts, link texts, headings, video captions): judge only what the app controls, such as whether it passes the alt text to `accessibilityLabel`, keeps links focusable, and maps headings to the header trait. A failure in that app code is a `fail`. Whether editors fill in good text cannot be seen in source: give the criterion `needs check` when the app code is right, and say it depends on editorial content.
+
+## Common False Positives
+
+- An `Image` or icon inside a `Button` or `Label` that also has text: the text is the label.
+- `.font(.system(size:))` on a view inside `.dynamicTypeSize` or scaled with `@ScaledMetric`; check what actually reaches the text.
+- `onTapGesture` on a view that also has `.accessibilityAddTraits(.isButton)` and an `accessibilityAction` or label: it works for VoiceOver, though `Button` is still better for Voice Control and keyboards (`optional`).
+- Default-hidden system views (navigation bar backgrounds, separators) and decorative images already marked hidden.
 
 ## Platform Settings
 

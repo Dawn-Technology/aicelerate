@@ -26,27 +26,36 @@ If a reference cannot be read, retry with another file-reading tool. If it still
 
 ## Part 1: Static Scan (read-only)
 
-Do not edit, stage, commit, branch, build, or run anything in this part. The only file written is the report.
+Do not edit, stage, commit, branch, or build in this part, and do not run the app. Read-only commands are allowed (`git ls-files`, `git grep`, `git status`, `xcrun simctl list`), and so are the bundled scripts in `scripts/`. The only file written is the report.
 
 ### 1. Baseline
 
 Check every project-instruction location listed in `precedence.md` with a file listing and read each file that exists; note accessibility rules, a target level (for example WCAG 2.1 AA or an accessibility statement), accepted exceptions, design tokens, and UI test conventions.
 
-List the app targets and extensions with their UI frameworks (SwiftUI, UIKit, storyboards and XIBs, mixed), deployment targets, supported orientations, and localizations.
+List the app targets and extensions with their UI frameworks (SwiftUI, UIKit, storyboards and XIBs, mixed), deployment targets, supported orientations, and localizations. Also note what the thorough check in Part 3 would need, so Part 2 can name it: whether a UI test target exists, and whether an iOS 17 or later simulator runtime is installed (`xcrun simctl list runtimes`).
 
 ### 2. Screen Inventory
 
-List the screens: SwiftUI views used as navigation destinations, tabs, sheets, and full-screen covers; `UIViewController` subclasses and storyboard scenes; alerts and custom overlays. Group them by feature with their main file. Mark screens that show web content (`WKWebView`, `SFSafariViewController`), media playback, forms, sign-in, payments, and onboarding, and note which are behind login or feature flags. When there are many screens, cover shared components (buttons, cells, text styles, colors) once and then each screen's own code.
+List the screens: SwiftUI views used as navigation destinations, tabs, sheets, and full-screen covers; `UIViewController` subclasses and storyboard scenes; alerts and custom overlays. Group them by feature with their main file. Mark screens that show web content (`WKWebView`, `SFSafariViewController`), media playback, forms, sign-in, payments, and onboarding, and note which are behind a gate: login, biometrics, a feature flag or remote config, consent, or an offline or error state.
 
 ### 3. Check Every Criterion
 
-Work through every row of the `accessibility.md` Criteria table and the Platform Settings section. Use the search hints there, then read the code around each hit. Search tracked sources, storyboards and XIBs, asset catalogs, and Info.plists (`git ls-files`, then `git grep`), not build output or third-party packages. Record the searches used as evidence.
+Work through every row of the `accessibility.md` Criteria table and the Platform Settings section. The report's `Criteria` table has a row for each criterion in that table and no others; a finding may name several of those criteria. Search tracked sources, storyboards and XIBs, asset catalogs, and Info.plists, not build output or third-party packages, and record the searches used as evidence.
 
-For contrast, resolve named colors from asset catalogs and design tokens in light and dark appearance, and compute the ratio only for foreground and background pairs you can show are used together; otherwise mark contrast for the audit or a tester.
+Work search-first, so a large app stays manageable:
+
+1. Run the search hints in `accessibility.md` over the whole app and group the hits by screen and by shared component.
+2. Read the shared components (buttons, rows, cells, text styles, colors, navigation bars) once; a problem in one affects every screen that uses it.
+3. Read each screen's own code around the hits. When the app has many screens, read every screen with hits and a sample of at least one screen per feature without hits; list the screens read and not read in `Method and limits`.
+4. When the host can run subagents, split the work by feature or by criterion group, give each the same references, and merge their results into one row per criterion.
+
+When source cannot settle a criterion (rendered contrast, clipping, real VoiceOver order, behavior on older iOS versions), give it `needs check` and say what to check; do not guess a `pass` or a `fail`.
+
+For contrast, run `python3 <skill-dir>/scripts/color_contrast.py --repo <repo> --list` to resolve asset-catalog colors in light and dark appearance, then `--pair <foreground> <background>` for pairs you can show are used together (name the file and line). Name colors by their folder path (`Foreground/Base`) when a short name is ambiguous, and give a hex color used only in one appearance as `#light/#dark`. Work out which color reaches the text with Resolving Colors and Content in `accessibility.md`. A pair taken from design tokens without a confirmed use is an assumption: say so and give it `needs check`, not `fail`.
 
 ### 4. Trace Before Classifying
 
-For each hit, establish the screen, whether it is reachable in release builds, and which users it affects (VoiceOver, Voice Control, Switch Control, Full Keyboard Access, large text, low vision, limited dexterity). Drop false positives, such as an `Image` inside a `Button` that has a text label, a fixed font size scaled with `@ScaledMetric` or `UIFontMetrics`, or a decorative image already hidden. Classify with the `accessibility.md` severity table.
+For each hit, establish the screen, whether it is reachable in release builds, and which users it affects (VoiceOver, Voice Control, Switch Control, Full Keyboard Access, large text, low vision, limited dexterity). Drop false positives, such as an `Image` inside a `Button` that has a text label, a font that scales (`Font.custom(_:size:)`, text styles, `@ScaledMetric`, `UIFontMetrics`), or a decorative image already hidden. See the false-positive notes in `accessibility.md`. Classify with the `accessibility.md` severity table.
 
 Give every criterion one status:
 
@@ -61,14 +70,16 @@ Give every criterion one status:
 
 Write the report once to `<repo-root>/docs/<project-name>-accessibility-audit-<YYYY-MM-DD>.md` (add `-2`, `-3` instead of overwriting) and leave it untracked. Sections:
 
-- `Summary`: the standard (WCAG 2.2 A and AA, interpreted for screens per WCAG2Mobile), counts of `fail`, `needs check`, and `pass`, how many failures are in the WCAG 2.1 AA baseline, and the three findings that affect users most.
+- `Summary`: the standard (WCAG 2.2 A and AA, interpreted for screens per WCAG2Mobile), the counts of `fail`, `needs check`, `pass`, and `not applicable` as `check_report.py` prints them, how many failures are in the WCAG 2.1 AA baseline, and the three findings that affect users most.
 - `Baseline`: instruction files read and rules applied, targets, UI frameworks, orientations, localizations, and the references read.
 - `Screens`: the inventory, with web-content screens named as needing a web WCAG check.
-- `Criteria`: one row per WCAG criterion: level, in WCAG 2.1 AA (yes or 2.2 only), status, and the findings or the evidence for the status.
+- `Criteria`: one table with exactly one row per criterion in `accessibility.md`, in its order, with the columns `SC | Level | In 2.1 AA | Status | Evidence`. The SC cell starts with the number (for example `1.4.4 Resize Text`), and the Status cell holds one of `fail`, `needs check`, `pass`, `not applicable`. Do not group criteria in one row or list them in prose.
 - `Findings`: grouped by screen, each with severity, WCAG criterion, `file:line`, who is affected and how, and a fix direction.
 - `Platform settings`: which iOS accessibility settings the app respects, as input for the App Store's Accessibility Nutrition Labels.
 - `Needs a tester`: every `manual` item, written as a short test step (for example "VoiceOver: open Settings, check focus moves into the sheet").
 - `Method and limits`: the searches, what static inspection cannot show (rendered contrast, clipping, real VoiceOver behavior), and that this is not a formal conformance claim.
+
+Before replying, run `python3 <skill-dir>/scripts/check_report.py --report <report path>`. It checks that every criterion appears once with one status and prints the counts for the summary. Fix the report until it passes.
 
 When another skill calls this one, also return the YAML shape from [`../review-ios/SKILL.md`](../review-ios/SKILL.md) section "6. Return Compatible Output": `category: documentation` for missing labels and text, `maintainability` otherwise, the WCAG criterion in each `title` (for example `[WCAG 1.4.4]`), and "whole-app accessibility audit" in `summary.scope`.
 
@@ -78,10 +89,10 @@ In the chat reply, give the report path, the summary, and the top three findings
 
 - It adds one temporary XCUITest file that opens the main screens and runs `performAccessibilityAudit()` on each, at the default and the largest accessibility text size, in light and dark appearance.
 - It confirms contrast, missing labels and traits, clipped text, Dynamic Type support, and small hit areas, which the static scan can only suspect.
-- It needs a UI test target, a simulator with iOS 17 or later, and a way to reach the screens (existing UI test helpers, launch arguments, or a test account the project already uses). Name what is missing.
+- It needs a UI test target, a simulator with iOS 17 or later, and a way to reach the screens (existing UI test helpers, launch arguments, or a test account the project already uses). Name what Part 1 found missing, for example "there is no UI test target: you would need to add one in Xcode first", so the developer can decide with that in mind.
 - It works on a new branch, builds, and runs only these tests; nothing is committed.
 
-Stop and wait for the answer. Without a yes, the audit ends with the static report.
+Stop and wait for the answer; on hosts where asking ends your turn, end it. Without a yes, the audit ends with the static report.
 
 ## Part 3: Thorough Check (after the developer agrees)
 
@@ -98,7 +109,7 @@ Stop and wait for the answer. Without a yes, the audit ends with the static repo
 Before returning, confirm:
 
 - project instructions were checked with a file listing, and the screen inventory names web-content screens;
-- every WCAG 2.2 A and AA criterion in `accessibility.md` has one status, with evidence, and failures in the WCAG 2.1 AA baseline are marked;
+- `check_report.py` passes: every criterion in `accessibility.md` has exactly one row and one status, with evidence, no other criteria are listed, and the summary counts are the ones it printed; failures in the WCAG 2.1 AA baseline are marked;
 - every finding has `file:line` or audit evidence, a screen, the affected users, and a severity from `accessibility.md`;
 - `manual` items are listed for a tester and none is marked `pass` from source alone;
 - in Part 1 only the report was written; the thorough check ran only after the developer agreed, on a new branch, with nothing committed and the simulator appearance restored.
