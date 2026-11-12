@@ -42,6 +42,7 @@ Read these when the change or project involves them:
 - [`../ios-standards/references/testing.md`](../ios-standards/references/testing.md) when tests change or changed behavior lacks tests;
 - [`../ios-standards/references/legacy-projects.md`](../ios-standards/references/legacy-projects.md) when the project uses an older or mixed architecture, UI framework, or test framework;
 - [`../ios-standards/references/security.md`](../ios-standards/references/security.md) when the change touches secrets, authentication, biometrics, cryptography, networking configuration, logging, deep links, web content, file storage, analytics, entitlements, the privacy manifest, or CI;
+- [`../ios-standards/references/accessibility.md`](../ios-standards/references/accessibility.md) when the change touches user interface, text styles, colors, images, controls, gestures, media, forms, or navigation;
 - [`../ios-standards/references/localization.md`](../ios-standards/references/localization.md) when the change adds or changes user-facing text, string catalogs or `.strings` files, date, number, or unit formatting, or Info.plist texts;
 - [`../ios-standards/references/apple-docs.md`](../ios-standards/references/apple-docs.md) before making an availability, deprecation, or other version-sensitive Apple API claim;
 - [`../ios-standards/references/capability-providers.md`](../ios-standards/references/capability-providers.md) before using or reporting optional providers.
@@ -79,7 +80,7 @@ Check only modules engaged by the change:
 | SwiftUI | state ownership, identity, update loops, bindings, navigation, lifecycle, adaptive layout, previews |
 | UIKit | lifecycle ordering, containment, reuse, bindings, main-thread UI work, interoperability |
 | Architecture | explicit dependencies and effects, state ownership, test seams, consistency with scoped project pattern |
-| Accessibility | meaningful labels/actions, traits, focus, Dynamic Type, contrast, motion alternatives, touch targets |
+| Accessibility | the `accessibility.md` criteria the change touches: labels and traits, Dynamic Type and clipping, contrast, touch targets, focus, gestures and motion alternatives, forms and sign-in, status announcements; put the WCAG criterion in the title (for example `[WCAG 2.5.8]`) |
 | Localization | new text localized for every supported language, keys matching the bundle's catalog, plurals, concatenation, locale-aware formatting; checks and severities in `localization.md` |
 | Compatibility | availability against the real deployment target and resolved dependency versions |
 | Tests | observable behavior, deterministic async control, failure/cancellation/order cases, suitable framework and naming |

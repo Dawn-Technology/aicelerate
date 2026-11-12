@@ -20,6 +20,7 @@ This internal foundation contains only company-owned policy. Load the references
 | Project that imports `ComposableArchitecture` | `references/tca.md` |
 | Secrets, Keychain, biometrics, logging, transport, deep links, web content, or other security-sensitive change | `references/security.md` |
 | Whole-project security audit against OWASP MASVS and the MASTG iOS tests | `references/masvs-mastg.md` |
+| User interface, controls, text styles, colors, gestures, media, or forms, and whole-app accessibility audits against WCAG | `references/accessibility.md` |
 | User-facing text, string catalogs, plurals, or locale-aware formatting | `references/localization.md` |
 | Apple API availability, deprecation, or documentation | `references/apple-docs.md` |
 | Existing UIKit, SwiftUI, XCTest, or mixed codebase | `references/legacy-projects.md` |
