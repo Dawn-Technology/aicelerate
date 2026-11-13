@@ -1,9 +1,9 @@
 ---
 name: test-pr-e2e
-description: Test a PR or MR like a human QA engineer using Playwright MCP. Analyzes the diff (or diffs, for a multi-service/microservice feature spanning several PRs) to generate a scenario list (Phase 1), then executes each scenario live in a browser with inline logging and screenshots (Phase 2). Use when asked to "test this PR with Playwright", "browser-test this MR", "QA this PR", "QA this PR automatically", "run Playwright on this branch", "run browser tests on this PR", or "test this feature across these PRs/services".
+description: Test a PR or MR like a human QA engineer using Playwright MCP or playwright-cli. Analyzes the diff (or diffs, for a multi-service/microservice feature spanning several PRs) to generate a scenario list (Phase 1), then executes each scenario live in a browser with inline logging and screenshots (Phase 2). Use when asked to "test this PR with Playwright", "browser-test this MR", "QA this PR", "QA this PR automatically", "run Playwright on this branch", "run browser tests on this PR", or "test this feature across these PRs/services".
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
-  version: 1.0.0
+  version: 1.2.0
   dependencies:
     - review-pr
     - test-pr-guide
@@ -12,23 +12,32 @@ metadata:
 
 # test-pr-e2e
 
-Test a PR or MR like a human QA engineer using the Playwright MCP. Two phases: static analysis generates a scenario list you can edit, then live browser execution runs each scenario and reports inline.
+Test a PR or MR like a human QA engineer using the Playwright MCP or `playwright-cli`. Two phases: static analysis generates a scenario list you can edit, then live browser execution runs each scenario and reports inline.
 
 Supports both a **single PR/branch** and a **multi-service feature** — a feature split across several PRs in different repos (e.g. a microservice architecture where a frontend PR, an API PR, and an auth-service PR must all be running together to test the full flow).
 
 ---
 
-## Step 0 — Verify Playwright MCP
+## Step 0 — Choose the Browser Backend
 
-Before any other action, verify Playwright MCP is installed by checking the current session's available tools for one matching Microsoft's official `@playwright/mcp` tool family. Do NOT require an exact match on the bare name `browser_navigate` — different agent runtimes expose MCP tools under different naming conventions. Some runtimes (e.g. GitHub Copilot CLI) namespace tool names with the MCP server name, e.g. `playwright-client-browser_navigate` instead of `browser_navigate`. Treat the check as satisfied if any available tool name **ends with** `browser_navigate` (and, ideally, sibling tools like `browser_click` and `browser_snapshot` also exist under the same prefix). If a tool-search capability is available, use it to search by suffix rather than relying on an exact string match.
+Two backends drive the browser, and Step 0 picks one as `backend`, used for the whole run:
+
+1. **`mcp`** — Microsoft's `@playwright/mcp` server, when its tools are in the session (check below). Preferred when both are present, because it needs no shell access.
+2. **`cli`** — Microsoft's `playwright-cli` (`@playwright/cli`), when MCP is missing and `command -v playwright-cli` succeeds in a shell the agent can run.
+
+The rest of this skill names the MCP tools. With `backend = cli`, read [references/playwright-cli.md](references/playwright-cli.md) before Phase 2 and run the CLI command it maps each tool to; every other rule stays the same. Log the choice: `🧭 Browser backend: Playwright MCP` or `🧭 Browser backend: playwright-cli`.
+
+**MCP check.** Verify Playwright MCP is installed by checking the current session's available tools for one matching Microsoft's official `@playwright/mcp` tool family. Do NOT require an exact match on the bare name `browser_navigate` — different agent runtimes expose MCP tools under different naming conventions. Some runtimes (e.g. GitHub Copilot CLI) namespace tool names with the MCP server name, e.g. `playwright-client-browser_navigate` instead of `browser_navigate`. Treat the check as satisfied if any available tool name **ends with** `browser_navigate` (and, ideally, sibling tools like `browser_click` and `browser_snapshot` also exist under the same prefix). If a tool-search capability is available, use it to search by suffix rather than relying on an exact string match.
 
 This skill requires Microsoft's official `@playwright/mcp` package (`browser_*` tools, accessibility-snapshot based). It is NOT compatible with other Playwright MCP servers — in particular `@executeautomation/playwright-mcp-server` (`playwright_*` tools, raw HTML/text based) — if that server is installed instead, it must be replaced.
 
-**If no tool matching `browser_navigate` (exact or suffix) is available — hard stop:**
+**If no tool matching `browser_navigate` (exact or suffix) is available and `playwright-cli` is not on the PATH either — hard stop:**
 
-> ❌ **Playwright MCP not installed.**
+> ❌ **No Playwright backend found.** Install one of the two:
 >
-> Run the `configure-mcp` skill and select **Playwright** when asked which additional integrations this project needs — it adds the correctly pinned `@playwright/mcp` server with no further setup.
+> **playwright-cli** (for agents with shell access): `npm install -g @playwright/cli`, then re-run this skill.
+>
+> **Playwright MCP:** run the `configure-mcp` skill and select **Playwright** when asked which additional integrations this project needs — it adds the correctly pinned `@playwright/mcp` server with no further setup.
 >
 > If you need to add it manually instead, add an MCP server entry that runs `npx -y @playwright/mcp@0.0.79` (use this exact pinned version — do not use `latest` or an unpinned version, since a newer major/minor release could change the tool surface this skill relies on) over stdio, with `tools: ["*"]`. Consult your agent's MCP configuration mechanism (config file or `mcp add`-style command) for the exact syntax, since this varies by runtime and version — do not guess at a specific file path here.
 >
@@ -149,7 +158,10 @@ Before I start, I need a few things:
 4. **[Multi-service mode only] Backend service URLs?** For each non-UI service (e.g. `auth-service`), give a reachable health-check URL (e.g. `http://localhost:4001/health`) so I can confirm it's running before testing. Reply `skip` for a service to skip its reachability check (scenarios depending on it will still run, but failures may be harder to diagnose).
 5. **Stop on first failure?** Reply: `yes` (default) / `no` (run all scenarios and report all failures at end).
 6. **Viewport?** Reply: `desktop` (default, 1280×800) / `mobile` (390×844, iPhone 14) / `both` (run each scenario twice).
+7. **[playwright-cli only] Recording?** Reply: `video` (default) / `trace` / `both` / `none`. Recorded per scenario; kept for failures only.
 ```
+
+Ask question 7 only when `backend = cli`. With `backend = mcp` the run is unchanged: no question, no recording.
 
 **Wait for the user's reply. Do NOT start Phase 2 until all answers are received.**
 
@@ -160,6 +172,7 @@ Parse the response:
 - `service_urls`: (multi-service mode only) map of `service label → health-check URL` (or `"skip"`)
 - `fail_fast`: `true` (default) / `false`
 - `viewport`: `desktop` (default) / `mobile` / `both`
+- `recording`: (`backend = cli` only) `video` (default) / `trace` / `both` / `none`
 
 **[Multi-service mode only] Pre-flight environment check:**
 
@@ -180,6 +193,8 @@ For each scenario where `testable = true` AND `id` not in `skip_ids`, in order:
 
 ### Step 5 — Session Initialization (once per run)
 
+With `backend = cli`, open the run's own browser session first: `playwright-cli -s=test-pr-e2e open` (see [the CLI reference](references/playwright-cli.md#session)).
+
 Before the first scenario, navigate to `entry_url` via `browser_navigate` and store the resulting session state (cookies, localStorage) for reuse. This avoids re-authenticating on every scenario. In multi-service mode, all browser interaction still goes through `entry_url` only — backend services in `service_urls` are never navigated to directly by the user flow, only checked for reachability in Step 4.
 
 If `viewport = "mobile"` or `viewport = "both"`, call `browser_resize` with `width: 390, height: 844` (iPhone 14) before this first navigation. `browser_resize` is a core `@playwright/mcp` tool and always available — no capability check or fallback is needed.
@@ -196,6 +211,8 @@ If a login wall is detected (see below), ask the user for credentials **once** a
 
 Log: `▶ Running [id]: [name]`
 
+**Recording (`backend = cli` and `recording` not `none`):** start it before the scenario's opening navigation and stop it when the scenario ends, using the commands in [the CLI reference](references/playwright-cli.md#recording). Name files `[id]-[viewport].webm` so a `both` run keeps its two passes apart. On pass, delete the recording unless `screenshot_pref = "all"`; on failure, keep it and record its path.
+
 **Console/network isolation between scenarios:**
 
 `browser_console_messages` and `browser_network_requests` both auto-scope to activity **since the last navigation**, so no manual buffer reset is needed. To guarantee a clean window per scenario, every scenario must begin with an explicit `browser_navigate` to its `route` (falling back to `entry_url` if `route` is empty) before executing its steps — this is also how "Clean state check" and viewport switching below hook in.
@@ -203,6 +220,8 @@ Log: `▶ Running [id]: [name]`
 **Clean state check:**
 
 If `requires_clean_state = true` for this scenario, wipe the session before the scenario's opening navigation:
+
+With `backend = cli`, run `cookie-clear`, `localstorage-clear` and `sessionstorage-clear`: they are always available and clear HttpOnly cookies too, so skip the fallback below. With `backend = mcp`:
 
 1. Check whether the current MCP session exposes `browser_cookie_clear`, `browser_localstorage_clear`, and `browser_sessionstorage_clear` (these tools only exist when the server is configured with `--caps=storage`; the `configure-mcp` bundled template does not enable this by default). If all three are available, call them — this clears cookies (including HttpOnly ones) and both storage areas at the browser-context level, with no caveats.
 2. If they are not available, fall back to `browser_evaluate`:
@@ -229,7 +248,7 @@ Before the scenario's opening navigation, set the viewport for the pass being ru
 
 `browser_resize` is a core `@playwright/mcp` tool and always available — no capability check or fallback is needed.
 
-**Execute steps via Playwright MCP:**
+**Execute steps via Playwright MCP** (with `backend = cli`, use the CLI command [the reference](references/playwright-cli.md#tool-mapping) maps each tool to)**:**
 
 Use these tools to interact with the browser. After each meaningful action, log a one-line summary inline. `browser_click`, `browser_type`, `browser_select_option`, and `browser_hover` all take an `element` (human-readable description, used in logs/errors) and a `ref` (obtained from the most recent `browser_snapshot` or `browser_find`) — take a fresh snapshot after any action that may have changed the DOM before targeting a new element, since a stale `ref` will error.
 
@@ -343,7 +362,7 @@ Expected: [expected outcome]
 Actual: [what was observed — page text + any JS errors detected]
 ```
 - Call `browser_take_screenshot` unconditionally (overrides `screenshot_pref`). If the tool returns an inline image payload, it will be shown directly in this response. If it instead returns a file path, note the path in the report — do not assume every agent runtime renders screenshots inline in chat; some require the user (or a separate file-viewing tool call) to open the saved path.
-- Record: `failed_id`, `steps_executed`, `expected`, `actual`, `console_errors`, `network_errors`, screenshot (inline image or saved file path)
+- Record: `failed_id`, `steps_executed`, `expected`, `actual`, `console_errors`, `network_errors`, screenshot (inline image or saved file path), and with `backend = cli` the kept video and trace paths
 - If `fail_fast = true` → **Stop the entire run.**
 - If `fail_fast = false` → record the failure, continue, collect all for final report
 
@@ -397,6 +416,7 @@ If `viewport = "both"`, split each scenario into two rows — one per viewport:
 **Console errors:** [error/warn entries captured during scenario, or "none"]
 **Network errors:** [failed API calls with status codes, or "none"]
 **Screenshot:** [inline image, or the saved file path if the tool returned one instead of rendering inline]
+**Recording:** [playwright-cli only: video and/or trace path; omit the line otherwise]
 
 ### Verdict
 
@@ -409,6 +429,8 @@ Omit "Failure Detail" if all scenarios passed.
 ---
 
 ## Step 8 — Clean Up Environment
+
+With `backend = cli`, first stop any recording still running, close the run's browser session with `playwright-cli -s=test-pr-e2e close`, and delete screenshots and recordings of passed scenarios the run saved outside the location the user asked for. Keep the recordings the report links to.
 
 After the report is delivered (regardless of pass/fail outcome), check whether any temporary environment or configuration changes were made solely to make the app reachable for this test run (e.g. edited config files, generated certificates, added hosts entries, started ad hoc dev servers). If so:
 
@@ -423,7 +445,10 @@ If no temporary changes were made, state that explicitly (e.g. `No environment c
 
 | Situation | Behavior |
 |-----------|----------|
-| Playwright MCP not installed | Hard stop at Step 0 — point to `configure-mcp`'s Playwright integration, or manual pinned `@playwright/mcp@0.0.79` install |
+| Playwright MCP not installed, `playwright-cli` on PATH | Use `backend = cli`; translate every tool through [references/playwright-cli.md](references/playwright-cli.md) |
+| Neither Playwright MCP nor `playwright-cli` available | Hard stop at Step 0 — point to `npm install -g @playwright/cli`, `configure-mcp`'s Playwright integration, or manual pinned `@playwright/mcp@0.0.79` install |
+| CLI command prints `### Error` | Treat it as the equivalent MCP tool call failing |
+| Recording requested with `backend = mcp` | Not offered: MCP can only record when the server was started with recording flags. Runs exactly as before |
 | No working provider route (per `review-pr` Step 0) | Stop before Step 2; point to the relevant login command or `configure-mcp` — do not guess at a local diff |
 | Entry URL not reachable | Hard stop: "Could not reach [entry_url]. Is the app running?" |
 | Entry URL not provided, no documented dev environment found (Step 3.5) | Default to `http://localhost:3000`, mention this assumption |
@@ -434,7 +459,7 @@ If no temporary changes were made, state that explicitly (e.g. `No environment c
 | Login wall detected (first time) | Pause, ask credentials once, reuse the resulting browser session (not the credentials) for remaining scenarios |
 | Login wall detected (subsequent) | Session expired/cleared — pause and ask for credentials again; never store or replay them |
 | Action failed after retry (stale ref or timeout) | Re-snapshot and retry once; if it still fails, treat as test failure — screenshot + stop |
-| Multi-field form fill | Use `browser_fill_form`; verify each field's DOM value via `browser_evaluate` after filling, before submitting; re-fill mismatches |
+| Multi-field form fill | Use `browser_fill_form` (CLI: one `fill` per field); verify each field's DOM value via `browser_evaluate` after filling, before submitting; re-fill mismatches |
 | Corrupted/concatenated form data observed on failure | Re-run scenario fresh before reporting; if it passes, treat as tooling flakiness, not a bug |
 | `window.open()` / popup triggered | Switch tab via `browser_tabs` or handle inline as a login wall |
 | Required test data missing | Skip scenario, mark `⏭ skipped (missing data)` |
