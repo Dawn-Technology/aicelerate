@@ -69,7 +69,7 @@ Then give the details in these sections:
 - `Verification`: the build to run and what cannot be verified statically.
 - `Branch`: the branch name to create, for example `chore/fix-localization`, and its base branch.
 
-Agent-written translations follow the project's tone and terminology and are marked `needs_review`, so a translator or native speaker checks them before release. Ask the developer to choose: all categories, selected categories or items, or stop. When the developer stops here, or asked only for an audit, return the plan as the audit report followed by the YAML shape from [`../review-ios/SKILL.md`](../review-ios/SKILL.md) section "6. Return Compatible Output" (read that section; `category: documentation` for wrong or missing text, `maintainability` for hygiene; "whole-project localization audit" in `summary.scope`).
+Agent-written translations follow the project's tone and terminology and are marked `needs_review`, so a translator or native speaker checks them before release. Ask the developer to choose: all categories, selected categories or items, or stop. When the developer stops here, or asked only for an audit, return the plan as the audit report followed by the machine-mode output of aimate's `code-review` skill (the YAML in its Output Interface; load `aimate:code-review`, or `code-review` in hosts that use bare skill names, and read that section; `category: documentation` for wrong or missing text, `maintainability` for hygiene; "whole-project localization audit" in `summary.scope`).
 
 ## Phase 3: Fix (after approval)
 

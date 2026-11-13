@@ -60,7 +60,7 @@ Open with these sections:
 - `Findings`: app findings first, then CI and build findings, each with severity, MASVS control and MASTG test, `file:line`, who can reach it and how, impact, and a fix direction.
 - `Not checked`: every in-scope `runtime` and `binary` MASTG test by ID and title, any test whose advisory lookup or SBOM was not available, server-side behavior, and anything else outside static inspection.
 
-Then return the YAML shape from [`../review-ios/SKILL.md`](../review-ios/SKILL.md) section "6. Return Compatible Output" exactly, with no extra fields or totals, so a calling workflow can aggregate it. Read that section before writing the YAML. Use `category: security` for every finding, put the MASVS control and MASTG test in `title` (for example `[MASVS-STORAGE-2 / MASTG-TEST-0297]`), put the area and who can reach it in `body`, put "whole-project audit" in `summary.scope`, and put the baseline, the profiles, and the `Not checked` items in `summary.residual_gaps`. CI findings use the same severities, with "CI:" at the start of the title.
+Then return the machine-mode output of aimate's `code-review` skill (the YAML in its Output Interface; load `aimate:code-review`, or `code-review` in hosts that use bare skill names, and read that section) exactly, with no extra fields, so a calling workflow can aggregate it. Use `category: security` for every finding, put the MASVS control and MASTG test in `title` (for example `[MASVS-STORAGE-2 / MASTG-TEST-0297]`), put the area and who can reach it in `body`, put "whole-project audit" in `summary.scope`, and put the baseline, the profiles, and the `Not checked` items in `summary.residual_gaps`. CI findings use the same severities, with "CI:" at the start of the title.
 
 ## Final Check
 

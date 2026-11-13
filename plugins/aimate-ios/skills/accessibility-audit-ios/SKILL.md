@@ -81,7 +81,7 @@ Write the report once to `<repo-root>/docs/<project-name>-accessibility-audit-<Y
 
 Before replying, run `python3 <skill-dir>/scripts/check_report.py --report <report path>`. It checks that every criterion appears once with one status and prints the counts for the summary. Fix the report until it passes.
 
-When another skill calls this one, also return the YAML shape from [`../review-ios/SKILL.md`](../review-ios/SKILL.md) section "6. Return Compatible Output": `category: documentation` for missing labels and text, `maintainability` otherwise, the WCAG criterion in each `title` (for example `[WCAG 1.4.4]`), and "whole-app accessibility audit" in `summary.scope`.
+When another skill calls this one, also return the machine-mode output of aimate's `code-review` skill (the YAML in its Output Interface; load `aimate:code-review`, or `code-review` in hosts that use bare skill names, and read that section): `category: documentation` for missing labels and text, `maintainability` otherwise, the WCAG criterion in each `title` (for example `[WCAG 1.4.4]`), and "whole-app accessibility audit" in `summary.scope`.
 
 ## Part 2: Offer the Thorough Check
 
