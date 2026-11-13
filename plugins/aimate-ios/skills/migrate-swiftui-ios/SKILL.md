@@ -40,19 +40,22 @@ Measure tokens from the start of phase 1, so the report can compare the estimate
 ## Phase 1: Scan (read-only)
 
 1. Check every project-instruction location in `precedence.md` with a file listing and read what exists: architecture, navigation, design system, UI test conventions, and any rules about SwiftUI. Record the checked-out branch, whether the working tree is clean, and the integration branch (`git symbolic-ref refs/remotes/origin/HEAD`); a feature or work-in-progress branch is not a base for the migration unless the developer says so.
-2. Run `python3 <skill-dir>/scripts/uikit_inventory.py --repo <repo>` (add `--json` for the plan's data). It reads Xcode project membership, so files that no target uses (orphans, duplicate copies) are listed separately and left out of the counts. It lists:
-   - screens with a complexity class (rules in its output and in the guide), counting the class body plus the root view and cells only that screen uses; the storyboards that hold each one and the files that reference it (in `--json`); and controllers that are possibly unreferenced;
+2. Run `python3 <skill-dir>/scripts/uikit_inventory.py --repo <repo>` (add `--json` for the plan's data). It finds the main app target and reads Xcode project membership (case-insensitively on case-insensitive volumes), so files that no target uses (orphans, duplicate copies, commented-out files) and other Xcode projects in the repository (developer tools, samples) are listed separately and left out of the counts. The app lifecycle comes from the main app target only. It lists:
+   - every controller with its role (screen, base class, container, SwiftUI host, or merged into its only subclass) and, for screens, a complexity class (rules in its output and in the guide). A screen's size counts the class, its extensions (also in files such as `Name+UI.swift`), its root view in full, and the views and cells it uses (half when two controllers use them; shared ones are foundation). Flags show their weight. In `--json`: the storyboards and referencing files per screen, and `class_from_size` for the MVC rule;
+   - controllers that are possibly unreferenced, and views nothing references;
    - UIKit controllers that only host SwiftUI (`already SwiftUI`), and containers such as tab bar controllers (navigation work, not screens);
    - per screen, whether it has a view model, presenter, or store, or is `MVC`, and how many accessibility identifiers it sets; and the number of UI test files;
-   - base classes with their number of subclasses, which are foundation work, not screens;
-   - UIKit views and cells, and which are shared by three or more files;
+   - controller base classes with their number of subclasses (foundation work), and view and cell base classes (converted with their screens);
+   - controllers that subclass a library controller (`third-party base class`);
+   - UIKit views and cells, and which are shared (used by three or more controllers);
+   - storyboards and XIBs that nothing loads by name (removal candidates to confirm);
    - storyboard scenes and segues per storyboard, XIBs, UIKit-only APIs per file, dependencies, existing SwiftUI and bridging code, coordinators marked as `navigation` or `service`, and the app lifecycle.
 
-   It skips `ThirdParty`, `ThirdParties`, `Vendor`, and `External` folders and says so; add `--exclude` for other vendored source. Use the script's classes; when reading the code shows a class is clearly wrong, change it in the plan and say why.
+   It skips `ThirdParty`, `ThirdParties`, `Vendor`, and `External` folders and says so; add `--exclude` for other vendored source. Use the script's classes; when reading the code shows a class or role is clearly wrong, change it in the plan and say why. When a view's attribution looks wrong, `--explain <ViewName>` prints how each controller reaches it.
 3. Run `xcrun python3 <skill-dir>/../review-architecture-ios/scripts/ios_platform.py --repo <repo>` for the deployment targets, and check them against the Deployment Target table in the guide.
 4. Map the navigation: how each screen is presented (coordinator, segue, push from another controller, tab, deep link), and which screens are leaves.
 5. Read each screen's controller, view model, and storyboard scene or XIB enough to confirm the inventory's class and to choose a decision from the guide (`convert`, `convert with wrapper`, `keep UIKit`, `remove`, `already SwiftUI`). Before `remove`, check how the screen is presented, including helpers in its own file that other files call. List shared presentation helpers (sheets, toasts, loaders presented through `UIViewController` extensions) and how converted views reach them. For every base class, list what it provides to its subclasses (overlays, keyboard handling, permission or session checks) and how converted screens keep that behavior (see Base Classes in the guide). Note UIKit-only dependencies in the inventory's list (keyboard managers, pickers, activity indicators) and their SwiftUI replacement or wrapper.
-6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which tests cover each screen: UI tests that use the screen's accessibility identifiers or navigate to it, snapshot tests named after it, and unit tests of its view model. Write `none` when nothing covers it. Do not build yet; the baseline build runs in phase 4.
+6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which tests cover each screen: UI tests that use the screen's accessibility identifiers or navigate to it, snapshot tests named after it, and unit tests of its view model. Write `none` when nothing covers it, and `data only` when only repository or service tests touch it. When few or no screens have UI or snapshot tests, say so in `Risks` and propose a safety net before converting: snapshot tests of each screen in its main states (reuse the project's snapshot helper when it has one, even if no test uses it yet) or a short manual check list per screen. Do not build yet; the baseline build runs in phase 4.
 
 ## Phase 2: Plan
 
@@ -84,6 +87,7 @@ Go through the plan with the developer before changing anything. Ask, at least:
 - deployment-target limits, and whether to raise the minimum first with `raise-minimum-ios`;
 - visual differences they accept, and design references to follow;
 - how to change the project file when its folders are not synchronized;
+- when few screens have tests: whether to add snapshot tests or a manual check list before converting each batch;
 - whether the agent may make one local commit per batch on the migration branch (never push), or leaves everything uncommitted;
 - the base branch, and when to stop for review (after the pilot, after every batch, or only at the end).
 
