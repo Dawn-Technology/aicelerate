@@ -10,7 +10,7 @@ First version of `aimate-ios`, an optional plugin next to `aimate` for native iO
 - `accessibility-audit-ios`: validates a whole iOS app against WCAG 2.2 A and AA, interpreted for native screens, with a status per criterion in an untracked report in `docs/`; offers a thorough check that runs Apple's automated accessibility audit in XCUITest on a simulator.
 - `fix-localization-ios`: scans localization, presents a fix plan, and fixes the approved items on a new branch; checks every approved item afterwards and reports why any is not fixed.
 - `raise-minimum-ios`: raises the minimum iOS version and removes code that only existed for older versions, after a confirmed plan.
-- `migrate-swiftui-ios`: converts UIKit screens to SwiftUI after a plan with time and token estimates and agreement with the developer, in batches that build and test; reports the result and the tokens used.
+- `migrate-swiftui-ios` (alpha, use at your own risk): converts UIKit screens to SwiftUI after a plan with time and token estimates and agreement with the developer, in batches that build and test; reports the result and the tokens used.
 - `review-architecture-ios`: iOS companion of `review-architecture`, with Swift module-graph and platform-health scripts.
 - `summarize-project-ios`: onboarding overview and assessment of an iOS project.
 - `ios-standards`: shared company iOS policy that the other skills read.
