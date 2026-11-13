@@ -44,7 +44,7 @@
     },
     {
       "name": "aimate-ios",
-      "description": "Optional native iOS specialist skills and company policy for Swift projects.",
+      "description": "Native iOS specialist skills and company policy for Swift projects; an add-on that requires aimate.",
       "version": "0.1.0",
       "source": "./plugins/aimate-ios",
       "repository": "https://github.com/Dawn-Technology/aicelerate",

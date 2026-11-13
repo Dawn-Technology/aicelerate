@@ -1,13 +1,13 @@
 ---
 name: review-architecture-ios
-description: Use when the user asks for an architecture or design-quality review of an iOS, Swift, or Xcode project, where an iOS codebase is hardest to change, iOS hot spots, or refactoring priorities for an iOS app. The iOS companion of aimate's review-architecture: same method and report, with Swift module-graph analysis, iOS platform and SwiftPM dependency checks, and TCA and MVVM + Coordinators rules. Read-only on source; writes one untracked report to docs/.
+description: Use when the user asks for an architecture or design-quality review of an iOS, Swift, or Xcode project, where an iOS codebase is hardest to change, iOS hot spots, or refactoring priorities for an iOS app. The iOS layer on top of aimate's review-architecture (requires the aimate plugin): same method and report, with Swift module-graph analysis, iOS platform and SwiftPM dependency checks, and TCA and MVVM + Coordinators rules. Read-only on source; writes one untracked report to docs/.
 argument-hint: "Optional: path or module to limit the review to, a history window such as 6 months, and known pain points or upcoming work"
 metadata:
   author: "Dawn Technology"
-  version: 0.1.0
+  version: 0.2.0
   role: "architecture-review"
   writes_source: "false"
-  external_dependencies: "optional"
+  requires: "aimate (review-architecture)"
 ---
 
 # Review Architecture iOS
@@ -26,9 +26,11 @@ Always read:
 
 If a reference cannot be read, retry with another file-reading tool. If it still fails, name it in the report and do not apply its rules from memory.
 
-## 1. Find the Generic Skill
+## 1. Load the Generic Skill
 
-Look for `aimate`'s `review-architecture` folder: next to this plugin (`../../../aimate/skills/review-architecture` relative to this skill's folder, that is `plugins/aimate/skills/review-architecture` in the marketplace checkout), then in installed plugin and skill folders (`find ~/.claude ~/.config/opencode ~/.codex ~/.agents -path '*review-architecture/SKILL.md' 2>/dev/null`). When found, read its `SKILL.md`, `references/design-rules.md`, and `references/REPORT-TEMPLATE.md`, and follow them with the overrides below. When not found, follow the condensed method in step 7 and say so in "Method and limits".
+Load `aimate`'s `review-architecture` skill with the host's skill mechanism: in Claude Code as `aimate:review-architecture`, in hosts that load skills by bare name (GitHub Copilot, OpenCode) as `review-architecture`. Read its `SKILL.md`, `references/design-rules.md`, and `references/REPORT-TEMPLATE.md` from the folder the host reports for that skill, and follow them with the overrides below. Its scripts (`hotspots.py`) are in the same folder.
+
+If the skill cannot be loaded, stop and say: "review-architecture-ios is a layer on top of the aimate plugin; install aimate from the same marketplace and run the review again." Do not review without it.
 
 ## 2. Context (overrides Phase 0)
 
@@ -41,7 +43,7 @@ Look for `aimate`'s `review-architecture` folder: next to this plugin (`../../..
   xcrun python3 <skill-dir>/scripts/ios_platform.py --repo <target-repo>
   ```
 
-  Run every script, including the generic skill's `hotspots.py`, with `xcrun python3`: Xcode ships Python 3.9, so no other Python install is needed and the version is the same on every machine. If `xcrun python3` is missing, Xcode or its command-line tools are not installed; say so and use the condensed method in step 7 for churn.
+  Run every script, including the generic skill's `hotspots.py`, with `xcrun python3`: Xcode ships Python 3.9, so no other Python install is needed and the version is the same on every machine. If `xcrun python3` is missing, Xcode or its command-line tools are not installed; say so and stop, because the module and platform analysis needs them.
 
 - Do not fetch end-of-life data for iOS, tvOS, or watchOS; follow Platform in `ios-design-rules.md`.
 
@@ -73,15 +75,6 @@ Do not audit security, localization, or test execution. When the review sees rea
 
 Right after the verdict word in the Summary, and in the chat reply, add one sentence that says what it means, for example: "Broken: two or more High findings. This rates how safely the code can be changed, not whether the app works." Use the matching wording for Healthy (no High or Medium findings) and Strained (Medium findings or a single High). Fill the generic `REPORT-TEMPLATE.md`, with "review-architecture-ios <this version> (method of review-architecture <its version>)" as the skill version, and write it once to `<repo-root>/docs/<project-name>-architecture-review-<YYYY-MM-DD>.md` (add `-2`, `-3` instead of overwriting), so a later run of either skill finds it for comparison. The file stays untracked. In "Method and limits", name this skill, the scripts and their settings, the files dropped as generated, and what was not checked (cycles inside targets, runtime behavior, builds). In the vital-signs appendix, replace the rows that do not apply to iOS (end-of-life components, deprecated packages, domain-leak hits from `deps.py`) with: deployment targets per platform, availability checks, branch or revision pins, unused packages, `Package.resolved` pins outside the requirement or differing between files, undeclared internal imports, import cycles, and source targets without tests. Reply in chat with the path, the summary paragraph, and the top three findings.
 
-## 7. Condensed Method Without aimate
-
-When the generic skill is not installed:
-
-1. Churn: `git log --first-parent --since=<12 months before HEAD> --name-only --format=` counted per file, excluding generated files as in step 3; combine with line counts to pick 10 hot spots; list large files changed at most twice.
-2. Read the top 5 hot spots fully and ranks 6 to 10 partly; read the top 3 large, rarely changed files.
-3. Rules: Layer Isolation, Dependency Direction, Orchestration, Acyclic Dependencies, Module Encapsulation, Cross-Cutting Concerns, Error Handling, Single Reason to Change, Extensibility over Modification, Substitutability, Interface Segregation, Abstraction Decoupling, Single Source of Truth, Minimal Necessary Complexity, Build Only What Is Needed, Tested Where It Changes, plus Platform and Dependency Health from `ios-design-rules.md`.
-4. Severity: High when it blocks safe change or testing in a hot spot, or a business rule is duplicated and the copies differ; Medium for a clear violation with contained blast radius; Low for local cleanup. Every finding needs a location you read, one rule, a plain explanation, concrete impact, a first refactoring step, and an evidence level.
-5. Report sections: Summary with verdict (Healthy: no High or Medium findings; Strained: Medium findings or a single High; Broken: two or more High) and its one-sentence meaning, Architecture overview, Findings (High, Medium, Low), Roadmap in three steps, Method and limits, Appendix with hot spots and module graph.
 
 ## Final Check
 

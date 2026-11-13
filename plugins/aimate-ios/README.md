@@ -1,6 +1,6 @@
 # aimate-ios
 
-Optional native iOS specialist skills that work standalone and compose with `aimate` when its generic delivery or review workflows are installed. The plugin keeps company policy small, uses native Xcode tooling first, and composes a few optional third-party skills where they add depth.
+Native iOS specialist skills for Swift projects, as an add-on to `aimate`. The review skills (`review-ios`, `review-architecture-ios`) are layers on top of `aimate`'s review skills: they run the generic review and add iOS depth to it, instead of keeping their own copy. The audit skills return findings in the output format of `aimate`'s `code-review`. The plugin keeps company policy small, uses native Xcode tooling first, and composes a few optional third-party skills where they add depth.
 
 ## Status
 
@@ -8,7 +8,7 @@ Version 0.1 pilots nine skills, each evaluated on real projects before it was ad
 
 ## Install
 
-Install `aimate-ios` from the `aicelerate` marketplace. Install `aimate` separately when the project also needs its generic SDLC workflows. Other departments can continue installing only `aimate`.
+Install `aimate` and `aimate-ios` from the `aicelerate` marketplace: `aimate-ios` requires `aimate`, and its review skills stop with a message when `aimate` is missing. Other departments can continue installing only `aimate`.
 
 ```bash
 copilot plugin install aimate-ios@aicelerate
@@ -40,7 +40,7 @@ Install or symlink the individual skill folders into the host's Agent Skills dir
 
 | Skill | Use it to | Changes |
 | --- | --- | --- |
-| `review-ios` | Review a change with iOS depth, next to the generic review | Nothing |
+| `review-ios` | Review a pull request or local changes with `aimate`'s review, plus iOS depth | Nothing (comments only when asked) |
 | `test-ios` | Run the tests affected by a change, or named tests, on a simulator | Nothing |
 | `security-audit-ios` | Audit a whole project for security problems against OWASP MASVS | Nothing |
 | `accessibility-audit-ios` | Validate a whole app's accessibility against WCAG 2.2 A and AA | One report file in `docs/`; a temporary UI test only after confirmation |
@@ -54,7 +54,7 @@ Ask for a skill by name. In Claude Code you can also use `/aimate-ios:<skill>`.
 
 ### `review-ios`
 
-Read-only specialist review for Swift and native iOS code. It applies project precedence, checks iOS-specific risk areas, composes optional specialist skills when available, and returns findings compatible with generic `aimate` review workflows.
+Review of Swift and native iOS changes as a layer on top of `aimate`. It runs `aimate`'s `review-pr` (for a pull or merge request) or `review-local` (for local changes), which review through `code-review`, and adds iOS depth to that same review: the project's iOS baseline (deployment target, frameworks, architecture), the iOS checks for each module the change touches (Swift, concurrency, SwiftUI, UIKit, accessibility, localization, security, compatibility, tests), the company `ios-standards`, and a build and test run through Xcode. It passes these to `code-review` as its `review_baseline`, `focus_areas`, and `constraints`, so there is one review with one set of findings, severities, and comments, and fixes to `aimate`'s review apply to iOS reviews automatically.
 
 Generic `aimate` review skills never call `review-ios`, so teams that do not build iOS apps are unaffected. Run it in one of two ways:
 
@@ -66,7 +66,7 @@ Generic `aimate` review skills never call `review-ios`, so teams that do not bui
 ## aimate-ios
 
 - Architecture: TCA <!-- or: MVVM + Coordinators -->
-- When a review includes Swift or Xcode project files, also run `review-ios` from `aimate-ios` and merge its findings with the generic review.
+- When a review includes Swift or Xcode project files, run it through `review-ios` from `aimate-ios`, which runs the generic review with iOS depth added.
 <!-- aimate-ios:end -->
 ```
 
@@ -114,7 +114,7 @@ Ask for it by name, for example "run migrate-swiftui-ios on this project".
 
 ### `review-architecture-ios`
 
-iOS companion of `aimate`'s `review-architecture`: the same churn-first method, severities, roadmap, and report in `docs/`, with what the generic version cannot do for iOS. Two bundled scripts read the Swift module graph (package targets, declared dependencies, actual imports, app target links) and iOS platform health (deployment targets, Swift language settings, branch-pinned packages, `Package.resolved` drift, availability code) without writing to the repo. iOS rules cover TCA and MVVM + Coordinators layer mapping and signals such as hand-written `Equatable` that hides state from `TestStore`, side effects outside dependencies, and feature flags read in views. Uses `aimate`'s scripts and report template when `aimate` is installed and a condensed method otherwise. All scripts run with `xcrun python3`, the Python 3.9 that Xcode ships, so nothing extra needs installing. Writes one untracked report file; never edits source.
+iOS layer on top of `aimate`'s `review-architecture`, which it loads by skill name (it stops with a message when `aimate` is missing): the same churn-first method, severities, roadmap, and report in `docs/`, with what the generic version cannot do for iOS. Two bundled scripts read the Swift module graph (package targets, declared dependencies, actual imports, app target links) and iOS platform health (deployment targets, Swift language settings, branch-pinned packages, `Package.resolved` drift, availability code) without writing to the repo. iOS rules cover TCA and MVVM + Coordinators layer mapping and signals such as hand-written `Equatable` that hides state from `TestStore`, side effects outside dependencies, and feature flags read in views. Uses `aimate`'s scripts and report template when `aimate` is installed and a condensed method otherwise. All scripts run with `xcrun python3`, the Python 3.9 that Xcode ships, so nothing extra needs installing. Writes one untracked report file; never edits source.
 
 Ask for it by name, for example "run review-architecture-ios on this project".
 

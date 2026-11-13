@@ -1,6 +1,6 @@
 {
   "name": "aimate-ios",
-  "description": "Optional native iOS specialist skills and company policy for Swift projects, designed to compose with the generic aimate plugin.",
+  "description": "Native iOS specialist skills and company policy for Swift projects, as an add-on to the aimate plugin (requires aimate).",
   "version": "0.1.0",
   "author": {
     "name": "Dawn Technology - Smart Devices",
