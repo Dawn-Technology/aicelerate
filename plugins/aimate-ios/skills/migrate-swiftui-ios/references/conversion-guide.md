@@ -11,7 +11,7 @@ Convert incrementally, so the app builds and works after every batch:
 3. **Leaf screens next**: screens that push nothing further, then their parents. Each converted screen is a SwiftUI `View` hosted in a `UIHostingController` inside the existing navigation, so coordinators, segues that remain, and deep links keep working.
 4. **Navigation and app lifecycle last, and only when approved**: replacing coordinators and `UINavigationController` with `NavigationStack`, and `AppDelegate`/`SceneDelegate` with a SwiftUI `App`, is a separate decision. Keep `UIApplicationDelegateAdaptor` for push notifications, background tasks, and SDK setup.
 
-Keep the project's architecture (see `../../ios-standards/references/architecture.md`): an existing view model, presenter, or store drives the new view; do not introduce TCA, a new navigation library, or a new observation framework as part of the conversion. Introduce `@Observable` only when the deployment target is iOS 17 or later and the developer approves it; otherwise use `ObservableObject`.
+Keep the project's architecture (see `../../ios-standards/references/architecture.md`). By default, convert an existing view model in place to an `ObservableObject` (or `@Observable`); add a separate adapter only when UIKit screens that stay unconverted also use it. An existing view model, presenter, or store drives the new view; do not introduce TCA, a new navigation library, or a new observation framework as part of the conversion. Introduce `@Observable` only when the deployment target is iOS 17 or later and the developer approves it; otherwise use `ObservableObject`.
 
 ## Base Classes
 
@@ -26,7 +26,7 @@ Apps often present sheets, pickers, toasts, loaders, and alerts through `UIViewC
 | Minimum | What the conversion can use |
 | --- | --- |
 | iOS 13–14 | Basic SwiftUI only: no `NavigationStack`, limited lists, `@StateObject` from iOS 14. Recommend raising the minimum first with `raise-minimum-ios`; converting below iOS 15 costs more and leaves many wrappers. |
-| iOS 15 | `AsyncImage`, `refreshable`, `searchable`, `task`, `FocusState`, swipe actions. Navigation stays in UIKit. |
+| iOS 15 | `AsyncImage`, `refreshable`, `searchable`, `task`, `FocusState`, swipe actions. Navigation stays in UIKit. A `List` background cannot be changed (`scrollContentBackground` is iOS 16); use a `ScrollView` with `LazyVStack` when the design needs one. |
 | iOS 16 | `NavigationStack`, `Grid`, `Layout`, sheets with detents, `ViewThatFits`. |
 | iOS 17 or later | `@Observable`, `ContentUnavailableView`, scroll position APIs, `onChange` with two values. |
 
@@ -62,6 +62,9 @@ Name the reason for every decision other than `convert`.
 | Present, push, dismiss | Coordinator or presenting controller keeps doing it through closures from the view; `sheet`, `fullScreenCover`, and `NavigationStack` only when navigation is converted |
 | Delegates and target-action | Closures or view model methods |
 | Combine bindings, KVO | `@Published` or `@Observable` properties observed by the view |
+| Diffable data source snapshots published by a view model | Plain `@Published` section and row arrays; identify rows by a stable id, never by a hash that includes mutable state (such as a switch's on/off value) |
+| A debounce per control (each cell debounces its own switch) | A debounce per item, keyed by the item's id; one debounced stream for all controls drops quick changes to different items |
+| A custom control (for example a branded switch) | A custom `ToggleStyle` or `ButtonStyle`; a style that wraps a `Toggle` must set `.toggleStyle(.switch)` on the inner one, or it recurses |
 | RxSwift bindings | Keep the Rx view model and bridge it to an observable object; replacing Rx is a separate decision |
 | Keyboard notifications | Built-in keyboard avoidance, `FocusState`, `scrollDismissesKeyboard` |
 | `WKWebView`, `MKMapView` with UIKit-only features, `PDFView`, camera, composers, document pickers | `UIViewRepresentable` or `UIViewControllerRepresentable` wrapper (`Map` for simple maps on iOS 17) |
@@ -87,18 +90,19 @@ Adding and removing Swift files, storyboards, and XIBs changes the Xcode project
 
 - With synchronized folders, add and remove files in the folder.
 - With XcodeGen or Tuist, change the files and regenerate the project with the project's documented command.
+- Keep the file names when the old file is rewritten in place (for example `AlertsView.swift` from a UIKit view to a SwiftUI view): no project-file change is needed. Do not save the project with tools such as the `xcodeproj` gem, which can reformat the whole file.
 - Otherwise, recommend that the developer converts the affected groups to folders in Xcode first ("Convert to Folder"), or approves minimal edits to `project.pbxproj`. Never rewrite the project file wholesale; build after each edit.
 
 ## Estimates
 
-Size counts the controller with its extensions, its root view, and the views, cells, and data-source helpers it uses (the script's `COMPLEXITY` text gives the exact rule). A size marked near a boundary (within 5% above it, `~` in the text output) may take the lower class when the code is plainly simple; say so in the plan. Estimate per screen from its complexity class (from `uikit_inventory.py`) and its decision, then add the foundation and navigation work. Show agent time in minutes or hours, tokens in millions, and developer time in hours, per screen and per batch. These are starting values; replace them with the measured pilot result (see the skill) and record the actual numbers in the report so the team can tune this table.
+Inventory flags are hints from type names: a flagged `UIRefreshControl` may never be attached, so check the code before mapping a flag (for example before adding `refreshable`). Size counts the controller with its extensions, its root view, and the views, cells, and data-source helpers it uses (the script's `COMPLEXITY` text gives the exact rule). A size marked near a boundary (within 5% above it, `~` in the text output) may take the lower class when the code is plainly simple; say so in the plan. Estimate per screen from its complexity class (from `uikit_inventory.py`) and its decision, then add the foundation and navigation work. Show agent time in minutes or hours, tokens in millions, and developer time in hours, per screen and per batch. These are starting values; replace them with the measured pilot result (see the skill) and record the actual numbers in the report so the team can tune this table.
 
 | Class | Screen (rules from `uikit_inventory.py`; minor and major flags are its weights 1 and 2) | Agent time | Tokens, all types | Output tokens | Developer review and testing |
 | --- | --- | --- | --- | --- | --- |
-| S | Up to 150 lines; in code, or from Interface Builder with a class of 80 lines or less and a layout of 15 elements or less; at most one minor flag | 5–15 min | 0.5–1.5 M | 10–25 k | 0.5–1 h |
-| M | Up to 400 lines, or from a storyboard or XIB with a larger class or layout, or two minor flags | 15–30 min | 1.5–4 M | 25–60 k | 1–2 h |
-| L | Up to 800 lines, or one major flag (custom collection layout, map with overlays, camera, custom transition, Rx in the controller, third-party base class) | 30–60 min | 4–8 M | 60–120 k | 2–4 h |
-| XL | More than 800 lines, or two or more major flags | 1–2 h | 8–16 M | 120–250 k | 4–8 h |
+| S | Up to 150 lines; in code, or from Interface Builder with a class of 80 lines or less and a layout of 15 elements or less; at most one minor flag | 5–15 min | 1–3 M | 10–25 k | 0.5–1 h |
+| M | Up to 400 lines, or from a storyboard or XIB with a larger class or layout, or two minor flags | 15–30 min | 3–8 M | 25–60 k | 1–2 h |
+| L | Up to 800 lines, or one major flag (custom collection layout, map with overlays, camera, custom transition, Rx in the controller, third-party base class) | 30–60 min | 8–16 M | 60–120 k | 2–4 h |
+| XL | More than 800 lines, or two or more major flags | 1–2 h | 16–32 M | 120–250 k | 4–8 h |
 
 - `convert with wrapper`: the screen's class plus one S per wrapped component (a map, player, web view, or ad banner inside a converted screen). System controllers that UIKit presents (mail and message composers, document and image pickers, share sheets) need no wrapper while navigation stays UIKit: the hosting controller presents them. A screen that is mostly the wrapped view, such as a full-screen map or player, costs its class only. `keep UIKit`: about 10% of its class, for hosting it from a converted parent. `remove`: 10% of an S each; count it with the batch that removes it.
 - **Identical small screens**: screens that share one view and differ only in data or a setting (for example two feature-toggle screens) count as one S for the first and 10% of an S for each further one.
@@ -111,7 +115,9 @@ Size counts the controller with its extensions, its root view, and the views, ce
 - **Styles**: one S when the project already has SwiftUI colors, fonts, and spacing (for example from earlier SwiftUI screens), one M when they exist only for UIKit, plus one M for a design system of custom controls.
 - **Containers** (the inventory's `container`: tab bar and navigation controllers, controllers that set two or more child controllers, and pagers whose pages are full controllers, including controllers built by a factory): their cost is part of the navigation flows they hold, so do not count them separately, even when they have sizable own views (headers, menu bars); that UI is part of the flow's L. While navigation stays UIKit, they cost nothing and host converted children. A paging container can become a `TabView` with `.tabViewStyle(.page)` (iOS 14) and a SwiftUI menu bar once its children are SwiftUI. A pager whose pages are plain views or a small page controller in its own file (an onboarding carousel, an image gallery) is a screen; the script merges such a page controller into it.
 - `already SwiftUI`: no cost. Round shared-component groups up (8 shared components at three to five per M is two to three M; use the range).
-- Scan and plan (phases 1 to 3): about 2–6 M tokens for an app of 50–100 screens; report it separately from the conversion.
+- Scan and plan (phases 1 to 3): about 2–6 M tokens for an app of 50–100 screens, plus about 1–2 M for the phase 3 questions; report it separately from the conversion.
+- **Build readiness** (from the phase 1 check): S (about 15 min and 2–5 M tokens) when the project builds as it is; M when one or two prerequisites need routes (missing dependency copies, build-only overrides); L for a legacy project on a much newer Xcode with several blockers. Every new worktree or clone repeats part of it until the team fixes the prerequisites.
+- **Session length**: the table assumes each batch runs in a fresh session that starts from the plan file, with about 2–4 M tokens of session overhead (reading the skill, the references, and the plan). Running several batches in one long session costs about two to three times more tokens, because every step re-reads the growing conversation. The values come from one measured pilot (Arsenal: two screens, 33 minutes, 63 k output tokens, 21 M tokens in a long session that included build setup) and should be updated after each pilot.
 - Sum every column, including output tokens, per batch and in total.
 - Tokens are dominated by cache reads, because every step re-reads the conversation. Report all four types (input, cache write, cache read, output); the team's price list decides the cost, not this skill.
 - Give every total as a range, never a single number.

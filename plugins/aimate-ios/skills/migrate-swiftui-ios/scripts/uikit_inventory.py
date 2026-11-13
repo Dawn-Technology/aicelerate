@@ -73,7 +73,7 @@ FLAGS = [
     ("auto layout in code", r"NSLayoutConstraint|\.snp\.|SnapKit|anchor\(equalTo|constraint\(equalTo", 0),
     ("imports Combine", r"import Combine", 0),
     ("context menu or swipe actions", r"UIContextMenuConfiguration|UISwipeActionsConfiguration|trailingSwipeActionsConfiguration", 0),
-    ("pull to refresh", r"\bUIRefreshControl\b", 0),
+    ("pull to refresh", r"\.refreshControl\s*=|addSubview\(\s*\w*[Rr]efreshControl", 0),  # attached, not just declared
 ]
 CLASS_RE = re.compile(r"^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|open|internal|private|fileprivate|final)\s+)*class\s+(\w+)\s*(?:<[^>]*>)?\s*:\s*([\w.]+)", re.M)
 OBJC_RE = re.compile(r"@interface\s+(\w+)\s*:\s*(\w+)")
@@ -834,6 +834,8 @@ def main():
         role = ", " + (f"base class of {c['subclasses']}" if c["role"] == "base class" else
                        "embeds SwiftUI" if c["role"] == "SwiftUI host" else c["role"])
         mvc = ", MVC" if c["role"] == "screen" and not c["has_view_model"] else ""
+        if c["role"] == "screen" and c.get("class_from_controller") != c["complexity"]:
+            mvc += f", controller alone {c['class_from_controller']}"
         ids = f", {c['accessibility_identifiers']} a11y ids" if c["accessibility_identifiers"] else ""
         entry = (f", entry points used in {len(c['entry_point_refs'])} files"
                  if c["entry_point_refs"] and not c["referenced_by"] else "")

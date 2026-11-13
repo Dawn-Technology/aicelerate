@@ -5,11 +5,14 @@ metadata:
   author: "Dawn Technology"
   version: 0.1.0
   role: "uikit-to-swiftui-migration"
+  stability: "alpha"
   writes_source: "true"
   external_dependencies: "none"
 ---
 
 # Migrate to SwiftUI iOS
+
+> **Alpha: use at your own risk.** This skill has been tested on scans and plans of two apps and on one pilot conversion that could build but not run, so its conversions and estimates are not proven. Say this to the developer before phase 4, review every change before merging it, and never ship a build that used the build-only overrides from `tooling.md`.
 
 Convert a UIKit app to SwiftUI, screen by screen, so the app keeps building and working after every batch. Work in four phases: scan, plan, agree on what is feasible, convert, then report. Never change a file before the developer approves the plan.
 
@@ -35,7 +38,8 @@ Measure tokens from the start of phase 1, so the report can compare the estimate
 
 - In Claude Code, run `python3 <skill-dir>/scripts/token_usage.py now` at the start and record the timestamp in the plan file's `Token measurement` section. Later, `python3 <skill-dir>/scripts/token_usage.py sum --since <timestamp>` totals the session's main conversation and its subagents per model. Mark the start of phase 4 the same way.
 - On another host, or when the script exits with status 2, ask the developer to read the host's usage or cost view at the start and at the end, and use their numbers. If no counter exists, say the actual usage is unknown. Never invent a number.
-- A conversion that continues in a new session needs a new mark per session; add the sessions together in the report.
+- Mark a second timestamp when the baseline build and launch first succeed in phase 4, so the report separates one-off build setup from conversion work.
+- Tokens grow with the length of a session, because every step re-reads the whole conversation (the pilot on Arsenal used 21 M tokens for two screens, mostly cache reads). Run each batch after the pilot in a fresh, short session that starts from the plan file, and give each session its own marks; add the sessions together in the report.
 
 ## Phase 1: Scan (read-only)
 
@@ -55,7 +59,8 @@ Measure tokens from the start of phase 1, so the report can compare the estimate
 3. Run `xcrun python3 <skill-dir>/../review-architecture-ios/scripts/ios_platform.py --repo <repo>` for the deployment targets, and check them against the Deployment Target table in the guide.
 4. Map the navigation: how each screen is presented (coordinator, segue, push from another controller, tab, deep link), and which screens are leaves.
 5. Read each screen's controller, view model, and storyboard scene or XIB enough to confirm the inventory's class and to choose a decision from the guide (`convert`, `convert with wrapper`, `keep UIKit`, `remove`, `already SwiftUI`). Before `remove`, check how the screen is presented, including helpers in its own file that other files call. List shared presentation helpers (sheets, toasts, loaders presented through `UIViewController` extensions) and how converted views reach them. For every base class, list what it provides to its subclasses (overlays, keyboard handling, permission or session checks) and how converted screens keep that behavior (see Base Classes in the guide). Note UIKit-only dependencies in the inventory's list (keyboard managers, pickers, activity indicators) and their SwiftUI replacement or wrapper.
-6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which tests cover each screen: UI tests that use the screen's accessibility identifiers or navigate to it, snapshot tests named after it, and unit tests of its view model. Write `none` when nothing covers it, and `data only` when only repository or service tests touch it. When few or no screens have UI or snapshot tests, say so in `Risks` and propose a safety net before converting: snapshot tests of each screen in its main states (reuse the project's snapshot helper when it has one, even if no test uses it yet) or a short manual check list per screen. Do not build yet; the baseline build runs in phase 4.
+6. Note how the project adds files (synchronized folders, XcodeGen or Tuist, or classic groups; see Project Files in the guide) and which tests cover each screen: UI tests that use the screen's accessibility identifiers or navigate to it, snapshot tests named after it, and unit tests of its view model. Write `none` when nothing covers it, and `data only` when only repository or service tests touch it. When few or no screens have UI or snapshot tests, say so in `Risks` and propose a safety net before converting: snapshot tests of each screen in its main states (reuse the project's snapshot helper when it has one, even if no test uses it yet) or a short manual check list per screen. Do not build the app yet; the baseline build runs in phase 4.
+7. Check build readiness, read-only, so phase 3 can settle every prerequisite at once instead of one blocker at a time in phase 4. Follow Build Readiness in `tooling.md`: whether every dependency source can be fetched from this machine, whether the installed Xcode is newer than the project supports (old pod deployment targets, third-party code that no longer compiles), whether simulator builds exclude arm64, and whether the test target is likely to compile. Record each finding with its evidence and a proposed route in `Risks`, and add a `Build readiness` item to the estimate (S when nothing is found, up to L for a legacy project with several blockers).
 
 ## Phase 2: Plan
 
@@ -72,7 +77,7 @@ Then the details:
 - `Foundation`: shared styles and components to convert first.
 - `Navigation and lifecycle`: what stays UIKit, and the optional steps to convert coordinators and the app lifecycle, each with its estimate.
 - `Batches`: groups of screens converted and built together, in the guide's strategy order: the pilot (one or two typical S or M leaf screens with only the foundation they need), the rest of the foundation, then the screens.
-- `Risks`: build prerequisites (private packages, project build scripts), deployment-target limits, UIKit-only APIs, Rx or other binding frameworks, project-file changes, visual differences, and screens without tests.
+- `Risks`: build prerequisites from the build readiness check (unreachable or private dependencies, toolchain gaps, simulator architectures, project build scripts), deployment-target limits, UIKit-only APIs, Rx or other binding frameworks, project-file changes, visual differences, and screens without tests.
 - `Estimate`: totals per part and in all, as ranges from the guide's Estimates table, saying that the pilot will correct them.
 - `Verification`: builds and tests per batch, and what needs manual checking.
 - `Branch`: the branch to create, for example `feature/swiftui-migration`, from the project's integration branch.
@@ -88,6 +93,7 @@ Go through the plan with the developer before changing anything. Ask, at least:
 - visual differences they accept, and design references to follow;
 - how to change the project file when its folders are not synchronized;
 - when few screens have tests: whether to add snapshot tests or a manual check list before converting each batch;
+- every build prerequisite from the build readiness check, with the proposed route for each (for example local copies of unreachable pods through the dependency cache, or build-only overrides of deployment targets), in one list;
 - whether the agent may make one local commit per batch on the migration branch (never push), or leaves everything uncommitted;
 - the base branch, and when to stop for review (after the pilot, after every batch, or only at the end).
 
@@ -95,11 +101,11 @@ Update the plan file with the answers. Do nothing until the developer approves t
 
 ## Phase 4: Convert (after approval)
 
-1. Require a clean working tree, apart from the untracked plan; if it is not clean, stop and say so. Create the branch from the confirmed base. Never push.
-2. Mark the token start of this phase. Build the affected schemes for a simulator and run the test plans with the `tooling.md` route (see Simulator Builds and Signing there: missing certificates or profiles do not block a simulator build, and tracked files that build scripts rewrite are restored), and save the results as the baseline, so later failures can be attributed.
+1. Require a clean working tree, apart from the untracked plan; if it is not clean, stop and say so. Create the branch from the confirmed base; when the checked-out branch is already a dedicated work branch at the confirmed base (for example a worktree made for this migration), use it and say so. Never push.
+2. Mark the token start of this phase, then build the baseline before writing any conversion code, following Baseline in `tooling.md`: resolve dependencies with the routes agreed in phase 3, build the affected schemes for a simulator from unchanged code, launch the app once as a smoke test, and run the test plans (or, when the test target does not compile, record that and use `build-for-testing` as the comparison). Record HEAD, a clean `git status`, and every build-only override with the results, and mark the setup timestamp. When the baseline cannot build or launch, stop and ask with every remaining option; do not convert unverified.
 3. Convert in the approved batch order, following the guide's Mapping and Must Stay the Same sections. Per screen: write the SwiftUI view, connect it to the existing view model, host it where the controller was presented, keep accessibility identifiers and localization keys, and remove the old controller, scene, or XIB only when nothing else uses them.
-4. After every batch: build, run the tests that cover the batch, fix failures the conversion caused, and update the plan file's progress. Commit locally only when the developer allowed it, with a message naming the screens.
-5. After the pilot batch: measure its tokens and time, recalculate the estimate for the remaining batches with the measured numbers, show both, and ask the developer to continue, adjust, or stop.
+4. After every batch: build, run the tests that cover the batch, fix failures the conversion caused, and update the plan file's progress. When the app runs on a simulator, show the result: screenshots of each converted screen before and after (`xcrun simctl io <device> screenshot`), in light and dark appearance, restoring the appearance afterwards; screens behind a login get manual steps instead. When the app cannot run, mark the look as unverified and give the manual check list. Commit locally only when the developer allowed it, with a message naming the screens.
+5. After the pilot batch: measure its tokens and time, split into build setup (until the setup timestamp) and conversion work, recalculate the estimate for the remaining batches from the conversion part (assuming a fresh session per batch), show both, and ask the developer to continue, adjust, or stop.
 6. When a screen needs a change outside the approved plan (a new wrapper, a change to a shared component, a model change, a deployment-target issue), or the same build failure persists after three attempts, stop and ask. Mark a screen that cannot be finished as not converted and restore its UIKit version, so the app still works.
 7. At the end: a clean build of all affected schemes, the full test plans compared with the baseline, and the token total.
 
@@ -110,7 +116,7 @@ End with, and add to the plan file:
 - `Converted`: per screen, the result (converted, converted with wrapper, kept UIKit, removed, not converted) and its files.
 - `Not converted`: each screen that failed or was stopped, why, and what is needed to finish it.
 - `Verification`: builds, test results compared with the baseline, and what needs manual checking per screen (look, animations, VoiceOver, keyboard, iPad); suggest running `accessibility-audit-ios` on the converted screens.
-- `Tokens and time`: the estimate from the plan, the corrected estimate after the pilot, and the actual tokens per type and per model (main conversation and subagents) with the source of the numbers, plus the agent's working time. Name sessions that could not be measured.
+- `Tokens and time`: the estimate from the plan, the corrected estimate after the pilot, and the actual tokens per type and per model, split into build setup and conversion, (main conversation and subagents) with the source of the numbers, plus the agent's working time. Name sessions that could not be measured.
 - `Follow-ups`: navigation or lifecycle steps not done, wrappers that could become SwiftUI at a higher deployment target, and dead code left.
 - `Git`: the branch, the commits made or that nothing is committed, and the changed-file count.
 
@@ -119,6 +125,7 @@ End with, and add to the plan file:
 Before returning, confirm:
 
 - nothing changed before the developer approved the plan, and only approved screens were converted;
+- the baseline was built from unchanged code before any conversion, and every build-only override is listed and must never ship;
 - every batch was built and its tests run, and the final results were compared with the baseline;
 - every converted screen kept its accessibility identifiers, localization keys, and entry points;
 - the app builds, and any screen that could not be converted still works in UIKit;
