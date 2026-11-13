@@ -4,7 +4,9 @@ Native iOS specialist skills for Swift projects, as an add-on to `aimate`. The r
 
 ## Status
 
-Version 0.1 pilots nine skills, each evaluated on real projects before it was added. Most are read-only. The two that change code, `fix-localization-ios` and `raise-minimum-ios`, first scan and present a plan, and only change files after the developer confirms, on a new branch, without committing. Feature implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
+Version 0.1 has ten skills and requires `aimate`. Nine are tested on real projects; `migrate-swiftui-ios` is **alpha**: its scan and plan were tested on two apps, but its conversion only in one pilot that built and could not run, so review every change it makes and treat its estimates as rough. `review-ios` and `review-architecture-ios` are layers on top of `aimate`'s review skills; `review-ios` in that form was tested once on a local commit, not yet on a pull request.
+
+Most skills are read-only. The ones that change code, `fix-localization-ios`, `raise-minimum-ios`, and `migrate-swiftui-ios`, first scan and present a plan, and only change files after the developer confirms, on a new branch; `migrate-swiftui-ios` commits only when the developer allows it. Feature implementation, physical-device testing, and visual SwiftUI capabilities are planned only after independent skill evaluations.
 
 ## Install
 

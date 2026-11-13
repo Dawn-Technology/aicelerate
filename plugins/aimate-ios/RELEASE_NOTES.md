@@ -1,6 +1,8 @@
 # Release notes
 
-## 0.1.0 (2026-11-04)
+## 0.1.0 (unreleased)
+
+<!-- Set the date when this is merged to main. -->
 
 First version of `aimate-ios`, an add-on to `aimate` for native iOS projects. Requires `aimate`: the review skills run `aimate`'s review skills with iOS depth added, and the audits use the output format of `aimate`'s `code-review`.
 
