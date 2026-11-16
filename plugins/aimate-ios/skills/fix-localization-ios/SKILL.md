@@ -3,7 +3,7 @@ name: fix-localization-ios
 description: Use when the user asks to check or fix localization across a whole iOS app, such as missing or wrong translations, hard-coded text that is not localized, wrong-bundle lookups, plurals, and date or number formatting. Scans first and presents what it will fix; changes code and string catalogs only after the developer approves, on a new branch, without committing. Stopping after the scan gives a localization audit. For localization review of a single change, use review-ios instead.
 metadata:
   author: "Dawn Technology"
-  version: 0.2.2
+  version: 0.3.0
   role: "localization-fix"
   writes_source: "true"
   external_dependencies: "none"
@@ -33,7 +33,7 @@ Determine the supported languages as `localization.md` describes and report ever
 
 ### Inventory With Scripts
 
-Parse the catalogs and tables with a script instead of reading them by eye: per catalog and language, the number of keys, missing entries, and states; stale keys; duplicate keys in `.strings`; and values whose language does not match. Then extract every key looked up in code per module with its bundle argument and match it exactly against that bundle's catalog. Keep these scripts outside the repository and name where they are.
+Parse the catalogs and tables with a script instead of reading them by eye: per catalog and language, the number of keys, missing entries, and states; stale keys; duplicate keys in `.strings`; and values whose language does not match. Then extract every key looked up in code per module with its bundle argument and match it exactly against that bundle's catalog. Keep these scripts outside the repository and name where they are. Also run `xcrun python3 scripts/xcstrings.py lint` on every catalog: it reports invalid or mismatched format specifiers, leading or trailing spaces that differ from the source language, values equal to the source text, near-duplicate keys, and Info.plist keys outside an InfoPlist catalog. Judge each against the code before it becomes a finding.
 
 ### Check Every Area
 
@@ -75,12 +75,19 @@ Agent-written translations follow the project's tone and terminology and are mar
 
 1. Require a clean working tree; if it is not clean, stop and say so. Create the branch from the confirmed base. Never commit or push.
 2. Edit String Catalogs only through [`scripts/xcstrings.py`](scripts/xcstrings.py) (`xcrun python3 scripts/xcstrings.py set|delete|rename-key|check`), so files keep Xcode's exact format and diffs stay small. Run `check` on every catalog before editing; if one does not round-trip, report it and edit it in Xcode format by hand with the smallest possible change.
-3. Translations written by the agent get state `needs_review` in String Catalogs; in `.strings` files add a `/* needs review */` comment above the line. Values the developer supplied or confirmed get `translated`.
-4. When moving text into a catalog or fixing a lookup in package code, pass `bundle: .module` (or the module's own resource accessor) and add the key to that module's catalog with every supported language.
-5. When the project generates code from strings (SwiftGen `L10n`), run its documented generation command after editing the tables, and report if it cannot run.
-6. When a fix needs a change outside the approved items, stop and ask.
-7. Reconcile against the approved plan before building. Go through every approved item, including each hard-coded literal in category 4, and confirm in the working tree that it is fixed: the literal is gone from the source (`git grep`), the lookup resolves in the right bundle, and the key exists in the catalog for every supported language. For each item that is not fixed, say why (for example the text is built at runtime, passed through a `String` parameter that skips localization, or shared with non-user-facing code), state how to fix it, then apply that fix and check again. If the fix would go beyond the approved items or needs a team decision, ask as in step 6. Never leave an approved item unfixed without saying so.
-8. Build the affected schemes with the `tooling.md` route, and run the tests when the project has them. Run `xcstrings.py check` on every catalog you changed.
+3. Before writing a value, check it against these rules:
+   - write the translation on the exact key the code looks up (`git grep` it, including apostrophes and spaces), not on a near-duplicate;
+   - never replace a value that is correct in its language with source-language text;
+   - keep the separating spaces and punctuation of fragments that code joins the same as the source language's;
+   - keep format specifiers of the same type and position as the source value;
+   - put Info.plist keys (usage descriptions, app name) in the `InfoPlist` catalog of the target that owns the Info.plist; creating that catalog is a project-file change the plan must name;
+   - leave the state of values you do not change as it is.
+4. Translations written by the agent get state `needs_review` in String Catalogs; in `.strings` files add a `/* needs review */` comment above the line. Values the developer supplied or confirmed get `translated`.
+5. When moving text into a catalog or fixing a lookup in package code, pass `bundle: .module` (or the module's own resource accessor) and add the key to that module's catalog with every supported language.
+6. When the project generates code from strings (SwiftGen `L10n`), run its documented generation command after editing the tables, and report if it cannot run.
+7. When a fix needs a change outside the approved items, stop and ask.
+8. Reconcile against the approved plan before building. Go through every approved item, including each hard-coded literal in category 4, and confirm in the working tree that it is fixed: the literal is gone from the source (`git grep`), the lookup resolves in the right bundle, and the key exists in the catalog for every supported language. For each item that is not fixed, say why (for example the text is built at runtime, passed through a `String` parameter that skips localization, or shared with non-user-facing code), state how to fix it, then apply that fix and check again. If the fix would go beyond the approved items or needs a team decision, ask as in step 7. Never leave an approved item unfixed without saying so.
+9. Build the affected schemes with the `tooling.md` route, and run the tests when the project has them. Run `xcstrings.py check` on every catalog you changed, and `xcstrings.py lint --base <base branch>` on them: fix every finding your changes caused (a value changed into source-language text, a lost separator, an invalid specifier, a translation on an unused key), and report the rest.
 
 ## Report
 
@@ -89,7 +96,7 @@ End with:
 - `Changes`: per category, every approved item with its status (fixed, fixed after reconciliation, or not fixed), with files.
 - `Needs review`: every translation written by the agent, per language, for a translator.
 - `Not changed`: every approved item that is still not fixed, with the reason, the suggested fix, and what is needed to apply it; then the findings left out of the plan and any questions still open.
-- `Verification`: build and test results, catalog checks, and what was not verified (layout, truncation, VoiceOver); suggest checking each language on a simulator through Xcode.
+- `Verification`: build and test results, catalog checks, the `lint --base` result, and what was not verified (layout, truncation, VoiceOver); suggest checking each language on a simulator through Xcode.
 - `Git`: the branch, that nothing is committed, and the changed-file count.
 
 ## Final Check
@@ -99,5 +106,5 @@ Before returning, confirm:
 - supported languages are stated with their sources, and keys used in code were matched exactly against each lookup's bundle;
 - nothing was changed before approval, and only approved items were fixed;
 - every approved item was checked in the working tree, and each one that is still not fixed is reported with its reason and suggested fix;
-- catalogs were edited through `xcstrings.py` and still round-trip, and agent translations are marked `needs_review`;
+- catalogs were edited through `xcstrings.py` and still round-trip, `lint --base` shows no problem the changes caused, and agent translations are marked `needs_review`;
 - work happened on a new branch, nothing was committed or pushed, and the build ran.
