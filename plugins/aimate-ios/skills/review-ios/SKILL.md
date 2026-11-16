@@ -16,7 +16,7 @@ Review an iOS change with `aimate`'s review skills and add Apple-platform depth 
 
 ## Requires aimate
 
-Before anything else, check that the entry skill you will use (step 1) and `aimate`'s `code-review` are available in the host's skill list: in Claude Code as `aimate:review-pr` or `aimate:review-local` and `aimate:code-review`; in hosts that load skills by bare name (GitHub Copilot, OpenCode) as `review-pr` or `review-local` and `code-review`. Only check here; load and run the entry skill in step 5, after the iOS context is ready. If they are not available, stop and say: "review-ios is a layer on top of the aimate plugin; install aimate from the same marketplace and run the review again." Do not review without it.
+Before anything else, check that the entry skill you will use (step 1) and `aimate`'s `code-review` are available in the host's skill list: in Claude Code as `aimate:review-pr` or `aimate:review-local` and `aimate:code-review`; in hosts that load skills by bare name (GitHub Copilot, OpenCode) as `review-pr` or `review-local` and `code-review`. Only check here; the entry skill is loaded in step 2. If they are not available, stop and say: "review-ios is a layer on top of the aimate plugin; install aimate from the same marketplace and run the review again." Do not review without it.
 
 ## Policy
 
@@ -49,25 +49,31 @@ Use accepted optional specialists when available and relevant. They deepen one m
 - Local changes, a commit, a branch comparison, or files: `review-local`.
 - Called by another skill with a diff and `output_target: calling-skill`: `code-review` directly, in machine mode.
 
-Pass the user's request (scope, output target, whether to post comments) through unchanged. The entry skill owns provider access, scope sizing, chunking, comments, and approvals.
+Pass the user's request (scope, output target, whether to post comments) through unchanged. The entry skill owns provider access, scope sizing, chunking, comments, approvals, and cleanup. A request to report only (in chat, without comments, approvals, or a submitted review) is the up-front answer to the entry skill's question about posting: post nothing, and run its cleanup right after the report instead of waiting for another turn.
 
-### 2. Establish the iOS Baseline
+### 2. Start the Entry Skill
 
-Determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. Record conflicts between project policy and company defaults.
+Load the entry skill and run its steps up to the point where the code to review is available: for `review-pr`, provider detection, metadata, and its checkout of the pull request (a new worktree inside the current repository, never another checkout of the developer's); for `review-local`, the scope and its changes. Stop before it builds `code-review`'s input; that happens in step 6. When calling `code-review` directly, there is no entry skill to start.
+
+### 3. Establish the iOS Baseline
+
+On the code the entry skill made available, determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. Record conflicts between project policy and company defaults.
 
 Check every project-instruction location listed in `precedence.md` with a file listing, then read each file that exists and name them. When none exist, say "No project instructions; baseline inferred from project evidence" and name the evidence used for each item. When they exist, report every place where they disagree with the project files or this machine, such as deployment targets, Xcode paths, or simulator names.
 
 List project-local skills and say for each whether it was used and why. Check `.agents/skills/`, `.claude/skills/`, and `skills-lock.json` with a file listing first; report "none found" only after that check. They rank with project instructions in `precedence.md`.
 
-### 3. Verify
+### 4. Verify
 
-Unless the user asks for a static-only review, build the affected scheme and run the tests that cover the changed code before the review, so the review can use the results. Resolve the route in the `tooling.md` order, starting with Xcode MCP, and run only build and test operations. Prefer the specific affected tests over the full suite. For each route, name the scheme, test plan, and destination, and report every route in the `tooling.md` order: `available` with the outcome, `unavailable` with the observed reason, or not run with the reason. Never invent a build or test result.
+Unless the user asks for a static-only review, build the affected scheme and run the tests that cover the changed code on the checked-out code before `code-review` runs, so the review can use the results. Resolve the route in the `tooling.md` order, starting with Xcode MCP, and run only build and test operations. Prefer the specific affected tests over the full suite. For each route, name the scheme, test plan, and destination, and report every route in the `tooling.md` order: `available` with the outcome, `unavailable` with the observed reason, or not run with the reason. Never invent a build or test result.
 
-### 4. Build the iOS Review Context
+To show that a build or test failure already existed before the change, build the change's base as Baseline in `tooling.md` describes.
 
-Prepare what goes into `code-review`'s input, using the fields `code-review` defines. When the entry skill builds that input in step 5, add to it as follows; never replace what the entry skill puts there:
+### 5. Build the iOS Review Context
 
-- `review_baseline` (under `code_input`): the baseline from step 2; the build and test results from step 3 (a failure the change causes is evidence for a finding, a pre-existing failure is a gap); the checks of every engaged module from the table below; and the rules of the `ios-standards` references read for this change, with their severity notes.
+Prepare what goes into `code-review`'s input, using the fields `code-review` defines. When the entry skill builds that input in step 6, add to it as follows; never replace what the entry skill puts there:
+
+- `review_baseline` (under `code_input`, a text field): when the entry skill has none, set it; when it has one, append a section headed "iOS baseline (review-ios)". It holds the baseline from step 3; the build and test results from step 4 (a failure the change causes is evidence for a finding, a pre-existing failure is a gap); the checks of every engaged module from the table below; and the rules of the `ios-standards` references read for this change, with their severity notes.
 - `focus_areas`: append the engaged modules by name (for example "Concurrency, SwiftUI, Accessibility") to the entry skill's own focus areas.
 - `constraints`: append the real deployment target and dependency versions, and the iOS review rules below, to the entry skill's own constraints.
 
@@ -96,11 +102,11 @@ iOS review rules to pass as constraints:
 - Do not report continued use of UIKit, MVVM, XCTest, or another established pattern by itself; recommend a migration only when evidence shows the current design blocks safe change or testing.
 - Severity follows `code-review`'s shared standard. The severity tables in `accessibility.md`, `localization.md`, and `security.md` explain how iOS cases fit its labels (`security-violation`, `request-for-change`, `optional`); when they would differ, `code-review`'s standard decides.
 
-### 5. Run the Review
+### 6. Finish the Review
 
-Load and run the entry skill from step 1 with the user's request. When it assembles `code-review`'s input, add the context from step 4 as described there; when calling `code-review` directly, put the context in its input yourself. Let the entry skill finish as it normally does: its report, comments, and output are the review's result. Severities, categories, finding format, deduplication, and the machine-mode output are `code-review`'s; do not restate or change them. In hosts where all skills run in one agent, keep `code-review`'s output structure anyway; it is what the entry skill presents.
+Continue the entry skill from where step 2 stopped. When it assembles `code-review`'s input, add the context from step 5 as described there; when calling `code-review` directly, put the context in its input yourself. Let the entry skill finish as it normally does: its report, comments (only when the request allows them), and output are the review's result. Severities, categories, finding format, deduplication, and the machine-mode output are `code-review`'s; do not restate or change them. In hosts where all skills run in one agent, keep `code-review`'s output structure anyway; it is what the entry skill presents.
 
-When the user gets the result in chat, show a `Baseline` section and a `Verification` section (steps 2 and 3) first, then the entry skill's report unchanged.
+When the user gets the result in chat, show a `Baseline` section and a `Verification` section (steps 3 and 4) first, then the entry skill's report unchanged.
 
 ## Final Check
 
@@ -110,5 +116,6 @@ Before returning, confirm:
 - the always-read references were read, or the failure is named in the baseline;
 - project instruction files and project skills were checked with a file listing before being reported;
 - the engaged modules and their `ios-standards` rules reached `code-review` as `review_baseline`, `focus_areas`, and `constraints`, added to (not replacing) the entry skill's own values;
+- nothing was posted, approved, or submitted unless the request allowed it, and the entry skill's checkout was cleaned up;
 - a build and the affected tests were attempted unless the review was static-only, and no route is reported `unavailable` without an attempt or observed reason;
 - no optional provider was treated as required, and no migration was proposed without demonstrated need.
