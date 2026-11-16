@@ -39,7 +39,7 @@ Give every MASVS control one status for the profiles in scope:
 | `not checked` | Every in-scope test for the control needs a running app, the IPA, or an advisory lookup that was not allowed. |
 | `not applicable` | The app has no such feature (for example no web views for PLATFORM-2), with the evidence, or no in-scope profile has tests for it. |
 
-A test's own result uses the same words. Reading a MASTG test page or Apple documentation sends nothing about the project and is allowed, unless the user forbids all outside access; then a claim that needs it becomes a residual gap. The `security.md` areas of a control count toward it too, including controls without an iOS test (AUTH-1, AUTH-3, CODE-1, PRIVACY-2, PRIVACY-4).
+A test's own result uses the same words. A finding fails only the one control it is labeled with. For CODE-1, judge the deployment target against the oldest iOS version the project's instructions or company policy support; when neither names one, report the minimum and ask, without a status of `fail`. Reading a MASTG test page or Apple documentation sends nothing about the project and is allowed, unless the user forbids all outside access; then a claim that needs it becomes a residual gap. The `security.md` areas of a control count toward it too, including controls without an iOS test (AUTH-1, AUTH-3, CODE-1, PRIVACY-2, PRIVACY-4).
 
 ## Controls
 
