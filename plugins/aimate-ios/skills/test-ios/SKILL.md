@@ -30,7 +30,7 @@ If a reference cannot be read, retry with another file-reading tool. If it still
 
 Check every project-instruction location listed in `precedence.md` with a file listing, read each file that exists, and use its build and test commands, schemes, test plans, simulators, and known flaky tests. Report every place where they disagree with this machine, such as a missing simulator or Xcode path, and the substitute used.
 
-Find the workspace or project, the schemes, the test plans (`*.xctestplan` and scheme test actions), and the test targets, including `.testTarget` entries in local packages. Pick a simulator that the instructions name, or an available iPhone simulator whose runtime meets the deployment target; name it by id when names are ambiguous.
+Find the workspace or project, the schemes, the test plans (`*.xctestplan` and scheme test actions), and the test targets, including `.testTarget` entries in local packages. Check build prerequisites as Build Readiness in `tooling.md` describes (submodules, generated code, dependency sources), and run the project's documented setup steps when they only write inside the checkout. Pick a simulator that the instructions name, or an available iPhone simulator whose runtime meets the deployment target; name it by id when names are ambiguous.
 
 ### 2. Select Tests
 
@@ -59,7 +59,7 @@ UI tests (XCUITest) and snapshot tests run only when requested, when they cover 
 Open with these sections:
 
 - `Baseline`: project instruction files found and their disagreements with this machine, workspace or project, scheme, test plan, destination (name, runtime, id), and Xcode version.
-- `Verification`: every route in `tooling.md` order with its exact state (`available` with the outcome, `fallback`, `unavailable` with the observed reason, or not run with the reason), and the exact commands or tool calls used.
+- `Verification`: every route in the order of `tooling.md`'s Build and Test section with its exact state (`available` with the outcome, `fallback`, `unavailable` or `blocked` with the observed reason, or not run with the reason), the exact commands or tool calls used, any setup steps run (submodules, generated code), and how long setup, build, and tests took.
 - `Selection`: what was selected and why, including changed files mapped to targets and tests, or the evidence that no test covers them.
 - `Results`: passed, failed, skipped, and flaky counts from the result bundle or tool output. For each failure: test identifier, assertion message, `file:line`, and whether the rerun confirmed it.
 - `Gaps`: what was not run and why, including missing coverage for the change and the build-only verification used instead.
