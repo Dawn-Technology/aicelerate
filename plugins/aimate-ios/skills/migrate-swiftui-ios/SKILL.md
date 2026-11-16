@@ -39,7 +39,7 @@ Measure tokens from the start of phase 1, so the report can compare the estimate
 - In Claude Code, run `python3 <skill-dir>/scripts/token_usage.py now` at the start and record the timestamp in the plan file's `Token measurement` section. Later, `python3 <skill-dir>/scripts/token_usage.py sum --since <timestamp>` totals the session's main conversation and its subagents per model. Mark the start of phase 4 the same way.
 - On another host, or when the script exits with status 2, ask the developer to read the host's usage or cost view at the start and at the end, and use their numbers. If no counter exists, say the actual usage is unknown. Never invent a number.
 - Mark a second timestamp when the baseline build and launch first succeed in phase 4, so the report separates one-off build setup from conversion work.
-- Tokens grow with the length of a session, because every step re-reads the whole conversation (the pilot on Arsenal used 21 M tokens for two screens, mostly cache reads). Run each batch after the pilot in a fresh, short session that starts from the plan file, and give each session its own marks; add the sessions together in the report.
+- Tokens grow with the length of a session, because every step re-reads the whole conversation (a measured pilot used 21 M tokens for two screens, mostly cache reads). Run each batch after the pilot in a fresh, short session that starts from the plan file, and give each session its own marks; add the sessions together in the report.
 
 ## Phase 1: Scan (read-only)
 

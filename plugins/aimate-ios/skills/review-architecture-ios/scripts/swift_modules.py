@@ -177,7 +177,7 @@ def main():
     ap.add_argument("--repo", required=True)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--layer", action="append", default=[],
-                    help="name=pattern[,pattern] on target names, innermost layer first, e.g. domain=*Models,*Core")
+                    help="name=pattern[,pattern] on target names, innermost layer first; quote it in zsh, e.g. --layer 'domain=*Models,*Core'")
     args = ap.parse_args()
     repo = os.path.abspath(args.repo)
     files = git_files(repo)

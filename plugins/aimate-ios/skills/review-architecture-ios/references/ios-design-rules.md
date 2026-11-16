@@ -30,7 +30,7 @@ Severity follows the generic rules: High in a hot spot when it blocks safe chang
 | --- | --- | --- |
 | A low-level module (components, styling, utilities) depends on the composition root or on features; visible as a high transitive count with high fan-in | Dependency Direction | Name the import that creates the edge. |
 | A target imports an internal module it does not declare | Module Encapsulation | Low unless it hides a layering break. |
-| A hand-written `==` or `hash` on TCA `State` or `Action` that omits fields | Tested Where It Changes | `TestStore` compares with `==`, so assertions on the omitted fields always pass. High in a hot spot. |
+| A hand-written `==` on TCA `State` or `Action` that omits fields or returns a fixed result for some cases (such as `default: return false`) | Tested Where It Changes | `TestStore` compares with `==`, so assertions on the omitted fields always pass, and a value unequal to itself breaks every assertion on it. A hand-written `hash` alone is not a finding: hashing a subset of fields is valid. High in a hot spot. |
 | Side effects in a reducer or view model outside dependencies: `URLSession.shared`, `String(contentsOf:)`, `UserDefaults.standard`, `Date()`, `UUID()`, `FileManager.default`, database queries | Abstraction Decoupling | Untestable without the real system. |
 | Feature flags or remote config read directly in views | Layer Isolation | Flags belong in state or the view model, so tests and snapshots can set them. |
 | A parent reducer pattern-matches deep child actions instead of child delegate actions | Module Encapsulation | Every child change touches the parent. |

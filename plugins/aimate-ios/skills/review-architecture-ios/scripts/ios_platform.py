@@ -8,7 +8,10 @@ Reports, from tracked files only:
 - package requirements pinned to a branch, a revision, or an exact version;
 - every tracked Package.resolved, and pins that differ between them;
 - availability code: #available, #unavailable, and @available counts per
-  platform version, and the files with the most checks;
+  platform version, the files with the most checks, and which checks are dead
+  (at or below the lowest deployment target, or for a platform no target builds
+  for);
+- which Package.resolved drives the app build (the one in the app workspace);
 - the local Xcode version, for comparison with what the project requires.
 
 It never fetches anything and never states support or end-of-life dates.
@@ -161,11 +164,49 @@ def main():
             per_file[f] += 1
             for p, v in PLATFORM_VER_RE.findall(m.group(2)):
                 versions[f"{p} {v}"] += 1
+    # Lowest deployment target per platform, from Xcode targets and package manifests.
+    setting_platform = {"IPHONEOS_DEPLOYMENT_TARGET": "iOS", "TVOS_DEPLOYMENT_TARGET": "tvOS",
+                        "WATCHOS_DEPLOYMENT_TARGET": "watchOS", "MACOSX_DEPLOYMENT_TARGET": "macOS",
+                        "XROS_DEPLOYMENT_TARGET": "visionOS"}
+
+    def as_version(text):
+        nums = re.findall(r"\d+", text.replace("_", "."))
+        return (tuple(int(n) for n in nums[:2]) + (0,))[:2] if nums else None
+
+    minimums = {}
+    for vals in result.get("xcode_targets", {}).values():
+        for key, values in vals.items():
+            if key in setting_platform:
+                for v in values:
+                    ver = as_version(v)
+                    if ver:
+                        plat = setting_platform[key]
+                        minimums[plat] = min(minimums.get(plat, ver), ver)
+    for m in manifests:
+        for spec in m["platforms"]:
+            plat, _, rest = spec.partition("(")
+            ver = as_version(rest)
+            if ver:
+                minimums[plat] = min(minimums.get(plat, ver), ver)
+    dead, live = Counter(), Counter()
+    for key, count in versions.items():
+        plat, ver = key.split(" ")
+        lowest = minimums.get(plat)
+        if lowest is None:
+            dead[f"{key} (platform not built)"] += count
+        elif as_version(ver) <= lowest:
+            dead[f"{key} (at or below {plat} {'.'.join(map(str, lowest))})"] += count
+        else:
+            live[key] += count
     result["availability"] = {
         "total": sum(per_file.values()),
         "by_platform_version": dict(versions.most_common()),
+        "minimum_deployment_targets": {k: ".".join(map(str, v)) for k, v in minimums.items()},
+        "dead_checks": dict(dead.most_common()),
+        "needed_checks": dict(live.most_common()),
         "top_files": per_file.most_common(10),
     }
+    result["app_resolved_files"] = [r for r in resolved if "xcshareddata/swiftpm/" in r]
 
     xv = subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True)
     result["local_xcode"] = xv.stdout.strip().replace("\n", " ") if xv.returncode == 0 else "not available"
@@ -188,6 +229,7 @@ def main():
     for p in pins or [{"location": "none", "kind": "", "url": ""}]:
         print(f"  {p['location']} {p['kind']} {p['url']}")
     print("\nPackage.resolved files:", result["resolved_files"] or "none")
+    print("  used by the app build (app workspace):", ", ".join(result["app_resolved_files"]) or "none found; check the workspace")
     for r, b in result["resolved_branch_pins"].items():
         if b:
             print(f"  {r} branch pins: {b}")
@@ -197,6 +239,9 @@ def main():
     a = result["availability"]
     print(f"\nAvailability checks: {a['total']} total")
     print("  by platform version:", ", ".join(f"{k} x{v}" for k, v in a["by_platform_version"].items()) or "none")
+    print("  lowest deployment targets:", ", ".join(f"{k} {v}" for k, v in a["minimum_deployment_targets"].items()) or "none found")
+    print("  dead (always true, or platform not built):", ", ".join(f"{k} x{v}" for k, v in a["dead_checks"].items()) or "none")
+    print("  still needed:", ", ".join(f"{k} x{v}" for k, v in a["needed_checks"].items()) or "none")
     print("  top files:", ", ".join(f"{f} ({n})" for f, n in a["top_files"]) or "none")
 
 

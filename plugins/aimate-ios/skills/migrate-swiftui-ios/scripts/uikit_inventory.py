@@ -12,7 +12,7 @@ unused files, dependencies, and the app lifecycle of the main app target. Every
 screen gets a complexity class (see COMPLEXITY and the conversion guide).
 
 Path comparison follows the file system: case-insensitive volumes (the macOS
-default) match `arsenal/` and `Arsenal/` as one folder.
+default) match `app/` and `App/` as one folder.
 
 Usage: uikit_inventory.py --repo PATH [--json] [--exclude GLOB ...] [--include-vendored]
 """
