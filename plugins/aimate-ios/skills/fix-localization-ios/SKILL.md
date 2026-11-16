@@ -80,9 +80,9 @@ Agent-written translations follow the project's tone and terminology and are mar
    - never replace a value that is correct in its language with source-language text;
    - keep the separating spaces and punctuation of fragments that code joins the same as the source language's;
    - keep format specifiers of the same type and position as the source value;
-   - put Info.plist keys (usage descriptions, app name) in the `InfoPlist` catalog of the target that owns the Info.plist; creating that catalog is a project-file change the plan must name;
+   - put Info.plist keys (usage descriptions, app name) in the `InfoPlist` catalog of the target that owns the Info.plist; create a missing catalog with `xcstrings.py create`, and add it to the target as a project-file change the plan names;
    - leave the state of values you do not change as it is.
-4. Translations written by the agent get state `needs_review` in String Catalogs; in `.strings` files add a `/* needs review */` comment above the line. Values the developer supplied or confirmed get `translated`.
+4. A value moved unchanged into the language it is written in (Dutch text that sat in the `en` slot, copied to `nl`) keeps `translated`. Translations written by the agent get state `needs_review` in String Catalogs; in `.strings` files add a `/* needs review */` comment above the line. Values the developer supplied or confirmed get `translated`.
 5. When moving text into a catalog or fixing a lookup in package code, pass `bundle: .module` (or the module's own resource accessor) and add the key to that module's catalog with every supported language.
 6. When the project generates code from strings (SwiftGen `L10n`), run its documented generation command after editing the tables, and report if it cannot run.
 7. When a fix needs a change outside the approved items, stop and ask.

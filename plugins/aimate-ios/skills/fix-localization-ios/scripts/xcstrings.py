@@ -14,6 +14,9 @@ Commands:
                                       key that differs from the code by a
                                       non-breaking space); refuses to overwrite
                                       an entry that already has localizations
+  create FILE [--source-language L]   write a new, empty catalog in Xcode's format
+                                      (for example an InfoPlist.xcstrings); adding it
+                                      to the target is a separate project-file step
   lint FILE... [--base REF]           report likely translation mistakes: format
                                       specifiers that differ from the source
                                       language or are invalid, leading or trailing
@@ -179,10 +182,13 @@ def lint(path, ref):
                         old_state, old_value = old_units[vpath]
                         if old_state == "translated" and state == "needs_review":
                             states[lang] += 1
-                        if lang != source and value != old_value and value == src_new.get(vpath, key) and old_value != value:
+                        if (lang != source and value != old_value and value == src_new.get(vpath, key)
+                                and re.search(r"[^\W\d_]", value)):
                             findings.append(f"changed into {source} text: {key!r} [{lang}] {old_value!r} -> {value!r}")
             for lang, count in sorted(states.items()):
-                findings.append(f"{count} value(s) in {lang} changed from translated to needs_review since {ref}")
+                findings.append(f"{count} value(s) in {lang} changed from translated to needs_review since {ref} "
+                                "(expected for values the change rewrote, such as wrong-language text; otherwise it "
+                                "sends finished text back to translators)")
     return findings
 
 
@@ -204,10 +210,20 @@ def main():
     r.add_argument("file")
     r.add_argument("--from", dest="old", required=True)
     r.add_argument("--to", dest="new", required=True)
+    cr = sub.add_parser("create")
+    cr.add_argument("file")
+    cr.add_argument("--source-language", default="en")
     li = sub.add_parser("lint")
     li.add_argument("files", nargs="+")
     li.add_argument("--base", help="git revision to compare with, such as the branch the change starts from")
     args = ap.parse_args()
+
+    if args.cmd == "create":
+        if os.path.exists(args.file):
+            sys.exit(f"{args.file} already exists")
+        save(args.file, {"sourceLanguage": args.source_language, "strings": {}, "version": "1.0"}, "\n")
+        print(f"created {args.file} (source language {args.source_language})")
+        return
 
     if args.cmd == "lint":
         total = 0
