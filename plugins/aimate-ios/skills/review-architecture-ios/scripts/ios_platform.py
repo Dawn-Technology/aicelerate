@@ -37,8 +37,11 @@ SETTINGS = [
     "IPHONEOS_DEPLOYMENT_TARGET", "TVOS_DEPLOYMENT_TARGET", "WATCHOS_DEPLOYMENT_TARGET",
     "MACOSX_DEPLOYMENT_TARGET", "XROS_DEPLOYMENT_TARGET", "SWIFT_VERSION",
     "SWIFT_STRICT_CONCURRENCY", "SWIFT_APPROACHABLE_CONCURRENCY", "SWIFT_DEFAULT_ACTOR_ISOLATION",
-    "SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY",
+    "SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY", "SDKROOT", "SUPPORTED_PLATFORMS",
 ]
+SDK_PLATFORM = {"iphoneos": "iOS", "iphonesimulator": "iOS", "macosx": "macOS", "appletvos": "tvOS",
+                "appletvsimulator": "tvOS", "watchos": "watchOS", "watchsimulator": "watchOS",
+                "xros": "visionOS", "xrsimulator": "visionOS"}
 AVAIL_RE = re.compile(r"(#available|#unavailable|@available)\s*\(([^)]*)\)")
 PLATFORM_VER_RE = re.compile(r"\b(iOS|tvOS|watchOS|macOS|visionOS|macCatalyst)\s+(\d+(?:\.\d+)?)")
 
@@ -173,21 +176,30 @@ def main():
         nums = re.findall(r"\d+", text.replace("_", "."))
         return (tuple(int(n) for n in nums[:2]) + (0,))[:2] if nums else None
 
-    minimums = {}
+    # Platforms the Xcode targets build for; the app's floor wins over a package's, which only
+    # applies when no Xcode target sets that platform (or the repository has no Xcode project).
+    built = set()
+    for vals in result.get("xcode_targets", {}).values():
+        for value in vals.get("SUPPORTED_PLATFORMS", []) + vals.get("SDKROOT", []):
+            built.update(SDK_PLATFORM[s] for s in value.split() if s in SDK_PLATFORM)
+    app_minimums, package_minimums = {}, {}
     for vals in result.get("xcode_targets", {}).values():
         for key, values in vals.items():
             if key in setting_platform:
                 for v in values:
                     ver = as_version(v)
-                    if ver:
-                        plat = setting_platform[key]
-                        minimums[plat] = min(minimums.get(plat, ver), ver)
+                    plat = setting_platform[key]
+                    if ver and (not built or plat in built):
+                        app_minimums[plat] = min(app_minimums.get(plat, ver), ver)
     for m in manifests:
         for spec in m["platforms"]:
             plat, _, rest = spec.partition("(")
             ver = as_version(rest)
             if ver:
-                minimums[plat] = min(minimums.get(plat, ver), ver)
+                package_minimums[plat] = min(package_minimums.get(plat, ver), ver)
+    if not built:
+        built = set(app_minimums) | set(package_minimums)
+    minimums = {p: app_minimums.get(p, package_minimums.get(p)) for p in built if p in app_minimums or p in package_minimums}
     dead, live = Counter(), Counter()
     for key, count in versions.items():
         plat, ver = key.split(" ")
@@ -201,7 +213,9 @@ def main():
     result["availability"] = {
         "total": sum(per_file.values()),
         "by_platform_version": dict(versions.most_common()),
+        "platforms_built": sorted(built),
         "minimum_deployment_targets": {k: ".".join(map(str, v)) for k, v in minimums.items()},
+        "platform_clauses": sum(versions.values()),
         "dead_checks": dict(dead.most_common()),
         "needed_checks": dict(live.most_common()),
         "top_files": per_file.most_common(10),
@@ -237,7 +251,9 @@ def main():
     for n, vals in drift.items():
         print(f"  {n}: " + "; ".join(f"{r}={v}" for r, v in vals.items()))
     a = result["availability"]
-    print(f"\nAvailability checks: {a['total']} total")
+    print(f"\nAvailability checks: {a['total']} total, naming {a['platform_clauses']} platform versions "
+          "(one check can name several platforms; the counts below are per platform version)")
+    print("  platforms built by the Xcode targets:", ", ".join(a["platforms_built"]) or "none found")
     print("  by platform version:", ", ".join(f"{k} x{v}" for k, v in a["by_platform_version"].items()) or "none")
     print("  lowest deployment targets:", ", ".join(f"{k} {v}" for k, v in a["minimum_deployment_targets"].items()) or "none found")
     print("  dead (always true, or platform not built):", ", ".join(f"{k} x{v}" for k, v in a["dead_checks"].items()) or "none")

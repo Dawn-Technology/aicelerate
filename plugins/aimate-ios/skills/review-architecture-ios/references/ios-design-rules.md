@@ -53,7 +53,7 @@ Count TCA `TestStore` tests of a parent reducer and snapshot tests of a parent v
 Replaces Supported Platform for apps. The deployment target is a floor, not a runtime: Apple publishes no end-of-life dates for iOS versions, and endoflife.date entries for iOS do not mean an app on that minimum is unsupported. Never report a support date for iOS, tvOS, or watchOS.
 
 - Report deployment targets per Xcode target and package, from `scripts/ios_platform.py`.
-- The cost of an old minimum is the availability and backport code it forces: the count of `#available`/`@available` checks, backport modules, and packages that exist only for older systems. Medium when that code sits in hot spots or many files; Low otherwise. An old minimum alone is never High.
+- The cost of an old minimum is the availability and backport code it forces: the count of `#available`/`@available` checks, backport modules, and packages that exist only for older systems. Medium when that code sits in hot spots or many files; Low otherwise. An old minimum alone is never High. Report it under Minimal Necessary Complexity, with the dead and still-needed counts from `ios_platform.py`.
 - Platforms declared in packages or Xcode targets that cannot build or are not shipped: Low, or Medium when shared schemes or test plans still include them.
 - Mixed Swift language modes or strict-concurrency settings between targets: Low, Medium when a hot spot sits on the less strict side.
 - The `swift-tools-version` and project format against the local Xcode: report only a mismatch.
