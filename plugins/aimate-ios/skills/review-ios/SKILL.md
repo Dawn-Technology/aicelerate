@@ -49,7 +49,7 @@ Use accepted optional specialists when available and relevant. They deepen one m
 - Local changes, a commit, a branch comparison, or files: `review-local`.
 - Called by another skill with a diff and `output_target: calling-skill`: `code-review` directly, in machine mode.
 
-Pass the user's request (scope, output target, whether to post comments) through unchanged. The entry skill owns provider access, scope sizing, chunking, comments, approvals, and cleanup. A request to report only (in chat, without comments, approvals, or a submitted review) is the up-front answer to the entry skill's question about posting: post nothing, and run its cleanup right after the report instead of waiting for another turn.
+Pass the user's request (scope, output target, whether to post comments) through unchanged. The entry skill owns provider access, scope sizing, chunking, comments, approvals, and cleanup. A request to report only (in chat, without comments, approvals, or a submitted review) is the up-front answer to the entry skill's question about posting: post nothing, and run its cleanup (including any worktree for a base build) before showing the report, in the same response; the entry skill's stop before posting does not apply, because nothing will be posted.
 
 ### 2. Start the Entry Skill
 
@@ -65,7 +65,7 @@ List project-local skills and say for each whether it was used and why. Check `.
 
 ### 4. Verify
 
-Unless the user asks for a static-only review, build the affected scheme and run the tests that cover the changed code on the checked-out code before `code-review` runs, so the review can use the results. Resolve the route in the `tooling.md` order, starting with Xcode MCP, and run only build and test operations. Prefer the specific affected tests over the full suite. For each route, name the scheme, test plan, and destination, and report every route in the `tooling.md` order: `available` with the outcome, `unavailable` with the observed reason, or not run with the reason. Never invent a build or test result.
+Unless the user asks for a static-only review, build the affected scheme and run the tests that cover the changed code on the checked-out code before `code-review` runs, so the review can use the results. Resolve the route in the order of `tooling.md`'s Build and Test section (a project-selected command first, then Xcode MCP, then `xcodebuild`), and run only build and test operations. Prefer the specific affected tests over the full suite. For each route, name the scheme, test plan, and destination, and report every route in the `tooling.md` order: `available` with the outcome, `unavailable` with the observed reason, or not run with the reason. Never invent a build or test result.
 
 To show that a build or test failure already existed before the change, build the change's base as Baseline in `tooling.md` describes.
 
@@ -75,7 +75,7 @@ Prepare what goes into `code-review`'s input, using the fields `code-review` def
 
 - `review_baseline` (under `code_input`, a text field): when the entry skill has none, set it; when it has one, append a section headed "iOS baseline (review-ios)". It holds the baseline from step 3; the build and test results from step 4 (a failure the change causes is evidence for a finding, a pre-existing failure is a gap); the checks of every engaged module from the table below; and the rules of the `ios-standards` references read for this change, with their severity notes.
 - `focus_areas`: append the engaged modules by name (for example "Concurrency, SwiftUI, Accessibility") to the entry skill's own focus areas.
-- `constraints`: append the real deployment target and dependency versions, and the iOS review rules below, to the entry skill's own constraints.
+- `constraints`: append the real deployment target and dependency versions, and the iOS review rules below, to the entry skill's own constraints. Include that String Catalogs (`.xcstrings`) and `.strings` files are resources: review them, but do not count their lines toward the size that decides whether `code-review` splits the review into chunks.
 
 Because a baseline is supplied, `code-review` and the entry skill use it instead of gathering the same project context again; they still read the changed code and whatever the change needs.
 
