@@ -15,7 +15,7 @@ Each MASTG test belongs to one or more MAS profiles. Decide which apply in the a
 | L2 | when the app has accounts or tokens, payments, health, financial, children's, or precise location data, or the project's instructions ask for it | Defense in depth for apps that handle sensitive data. |
 | R | only when the project's instructions ask for it | Resilience against reverse engineering and tampering. |
 
-Record why L2 applies or not, with the evidence (for example "Keychain token for login in `AuthStore.swift:12`"). A test that belongs only to profiles that do not apply is out of scope; leave it out of the report.
+Health data includes what a person looked up about their health (search terms, bookmarks, reading history) when the app stores it on the device or sends it off the device; a health-information app that keeps and sends nothing personal stays at L1 and P. Record why L2 applies or not, with the evidence (for example "Keychain token for login in `AuthStore.swift:12`" or "health search terms sent to analytics in `Tracking.swift:40`"). A test that belongs only to profiles that do not apply is out of scope; leave it out of the report.
 
 ## How Each Test Is Checked
 
@@ -33,12 +33,13 @@ Give every MASVS control one status for the profiles in scope:
 
 | Status | When |
 | --- | --- |
-| `fail` | At least one in-scope test or `security.md` check for the control has a reachable finding. |
-| `pass` | Every in-scope test checked from the repository passed. Runtime and binary tests for the control are still listed under `Not checked`. |
+| `fail` | At least one in-scope test or `security.md` check for the control has a reachable `security-violation` or `request-for-change` finding. |
+| `accepted` | Every reachable finding for the control is a risk the project's instructions accept; name the instruction. |
+| `pass` | Every in-scope test checked from the repository passed, or only `optional` findings remain (list them). Runtime and binary tests for the control are still listed under `Not checked`. |
 | `not checked` | Every in-scope test for the control needs a running app, the IPA, or an advisory lookup that was not allowed. |
 | `not applicable` | The app has no such feature (for example no web views for PLATFORM-2), with the evidence, or no in-scope profile has tests for it. |
 
-A test's own result uses the same words. The `security.md` areas of a control count toward it too, including controls without an iOS test (AUTH-1, AUTH-3, CODE-1, PRIVACY-2, PRIVACY-4).
+A test's own result uses the same words. Reading a MASTG test page or Apple documentation sends nothing about the project and is allowed, unless the user forbids all outside access; then a claim that needs it becomes a residual gap. The `security.md` areas of a control count toward it too, including controls without an iOS test (AUTH-1, AUTH-3, CODE-1, PRIVACY-2, PRIVACY-4).
 
 ## Controls
 
@@ -169,8 +170,8 @@ Tests are grouped by their MASTG category; the Controls column gives the MASVS c
 | 0230 | Automatic Reference Counting (ARC) not enabled | CODE-3, CODE-4 | L2 | build settings | Build hardening |
 | 0273 | Identify Dependencies with Known Vulnerabilities by Scanning Dependency Managers Artifacts | CODE-3 | L1,L2 | source + advisories | Dependencies and CI |
 | 0275 | Dependencies with Known Vulnerabilities in the App's SBOM | CODE-3 | L1,L2 | SBOM | Dependencies and CI |
-| 0383 | References to Enforced Updating APIs | CODE-2 | L2 | source | App updates |
-| 0384 | Runtime Use of Enforced Updating APIs | CODE-2 | L2 | runtime | App updates |
+| 0383 | References to Enforced Updating APIs | CODE-2 | L2 | source | App updates and platform version |
+| 0384 | Runtime Use of Enforced Updating APIs | CODE-2 | L2 | runtime | App updates and platform version |
 | 0386 | References to Object Deserialization of Untrusted Data | CODE-4 | L1,L2 | source | Untrusted data parsing |
 
 ### MASVS-RESILIENCE
