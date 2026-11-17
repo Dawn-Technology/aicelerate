@@ -1,6 +1,7 @@
 ---
 name: test-pr-e2e
 description: Test a PR or MR like a human QA engineer using Playwright MCP. Analyzes the diff (or diffs, for a multi-service/microservice feature spanning several PRs) to generate a scenario list (Phase 1), then executes each scenario live in a browser with inline logging and screenshots (Phase 2). Use when asked to "test this PR with Playwright", "browser-test this MR", "QA this PR", "QA this PR automatically", "run Playwright on this branch", "run browser tests on this PR", or "test this feature across these PRs/services".
+disable-model-invocation: true
 metadata:
   author: Kay Joosten <kay.joosten@dawn.tech>
   version: 1.0.0
