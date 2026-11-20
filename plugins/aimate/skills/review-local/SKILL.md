@@ -1,6 +1,6 @@
 ---
 name: review-local
-description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request or merge request.
+description: Use when reviewing local code before committing and the user wants findings for a file, folder, uncommitted changes, staged changes, commits, patches, or snippets without involving a pull request (PR) or merge request (MR).
 metadata:
   author: "Piotr Ramotowski <piotr.ramotowski@dawn.tech>"
   version: 1.3.0

@@ -1,6 +1,6 @@
 ---
 name: validate-ticket
-description: "[DEPRECATED] Renamed to prepare-ticket. Use only when validate-ticket is named explicitly; otherwise use prepare-ticket."
+description: "[DEPRECATED] Renamed to prepare-ticket. Use only when validate-ticket is named explicitly."
 metadata:
   author: "Martin Roest <martin.roest@dawn.tech>"
   version: 2.0.0

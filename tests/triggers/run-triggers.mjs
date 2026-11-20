@@ -21,7 +21,9 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
-const skillsRoot = join(repoRoot, "plugins/aimate/skills");
+// Every plugin's skills compete for the same prompts: aimate-ios installs on top of aimate,
+// so a prompt must route to the right skill across both.
+const pluginsRoot = join(repoRoot, "plugins");
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -48,9 +50,22 @@ function readDescription(text) {
 }
 
 const skills = {};
-for (const dir of readdirSync(skillsRoot)) {
-  if (!statSync(join(skillsRoot, dir)).isDirectory()) continue;
-  skills[dir] = readDescription(readFileSync(join(skillsRoot, dir, "SKILL.md"), "utf8"));
+const skillPlugin = {};
+const loadErrors = [];
+for (const plugin of readdirSync(pluginsRoot)) {
+  const skillsRoot = join(pluginsRoot, plugin, "skills");
+  if (!statSync(join(pluginsRoot, plugin)).isDirectory()) continue;
+  let dirs;
+  try { dirs = readdirSync(skillsRoot); } catch { continue; }
+  for (const dir of dirs) {
+    if (!statSync(join(skillsRoot, dir)).isDirectory()) continue;
+    if (dir in skills) {
+      loadErrors.push(`skill "${dir}" exists in both ${skillPlugin[dir]} and ${plugin}; prompts.json cannot tell them apart`);
+      continue;
+    }
+    skills[dir] = readDescription(readFileSync(join(skillsRoot, dir, "SKILL.md"), "utf8"));
+    skillPlugin[dir] = plugin;
+  }
 }
 
 // --- tokenization: lowercase, strip punctuation, drop stopwords, crude stem ---
@@ -105,7 +120,7 @@ function rank(prompt) {
 
 // --- run the prompt suite ---
 const suite = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
-const failures = [];
+const failures = [...loadErrors];
 let posTotal = 0;
 let posTop1 = 0;
 
