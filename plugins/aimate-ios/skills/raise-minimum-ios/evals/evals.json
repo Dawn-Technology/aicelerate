@@ -1,0 +1,23 @@
+{
+  "skill_name": "raise-minimum-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Raise the minimum iOS version of ~/Documents/git/thuisarts-ios from 16.1 to 18.0 and clean up the code.",
+      "expected_output": "Known material: app target IPHONEOS_DEPLOYMENT_TARGET 16.1 and package .iOS(.v16); a Backport module (about 17 files, including onGeometryChange with fatalError on 16.0-16.3) and many #available(iOS 17/18) checks; navigation-stack-backport declared but unused; macOS and visionOS settings that are not shipped (report, do not change). First scans read-only and presents a plan with numbered steps, not-changed items, follow-ups, a verification plan, and a branch name, then stops until the developer confirms. After confirmation: requires a clean tree, creates the branch, and never commits. Raises the iOS minimum in every Xcode target and Package.swift that is below the new value, never lowers a higher target, and leaves other platforms unchanged unless asked. Removes #available/#unavailable branches and @available annotations made always-true, keeping the remaining branch's code; replaces backport wrappers with the system API and deletes wrappers and backport packages that become unused. Does not apply modernizations that are not required by the old minimum (for example Perception to Observation, ObservableObject to @Observable, NavigationView to NavigationStack), but lists them as follow-ups. Builds the affected schemes and runs the tests, and reports every change grouped by step with what was verified.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Raise the minimum iOS version of ~/Documents/git/knmi-app-ios from 15.0 to 17.0 and clean up the code.",
+      "expected_output": "Known material: iOS 15 minimum in app, widget, and package; a Backport module, NavigationStackBackport, Perception with WithPerceptionTracking (Observation migration is a follow-up, not applied), the LegacyIntents extension and legacy widget provider that exist for iOS 15-16 (report removal as a follow-up rather than deleting targets silently); CellWarn already on 26.5 must stay; tvOS, watchOS, and macOS settings unchanged. First scans read-only and presents a plan with numbered steps, not-changed items, follow-ups, a verification plan, and a branch name, then stops until the developer confirms. After confirmation: requires a clean tree, creates the branch, and never commits. Raises the iOS minimum in every Xcode target and Package.swift that is below the new value, never lowers a higher target, and leaves other platforms unchanged unless asked. Removes #available/#unavailable branches and @available annotations made always-true, keeping the remaining branch's code; replaces backport wrappers with the system API and deletes wrappers and backport packages that become unused. Does not apply modernizations that are not required by the old minimum (for example Perception to Observation, ObservableObject to @Observable, NavigationView to NavigationStack), but lists them as follow-ups. Builds the affected schemes and runs the tests, and reports every change grouped by step with what was verified.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Raise the minimum iOS version of ~/Documents/git/npo-start-ios from 16.4 to 18.0 and clean up the code.",
+      "expected_output": "Known material: iOS 16.4 in app targets and four local packages, Preview at 16.6, tvOS 17.0 (unchanged); #available(iOS 17/18) checks in presentation code; ObservableObject view models (moving to @Observable is a follow-up, not applied); AGENTS.md documents the deployment target and should be reported as needing an update or updated consistently. First scans read-only and presents a plan with numbered steps, not-changed items, follow-ups, a verification plan, and a branch name, then stops until the developer confirms. After confirmation: requires a clean tree, creates the branch, and never commits. Raises the iOS minimum in every Xcode target and Package.swift that is below the new value, never lowers a higher target, and leaves other platforms unchanged unless asked. Removes #available/#unavailable branches and @available annotations made always-true, keeping the remaining branch's code; replaces backport wrappers with the system API and deletes wrappers and backport packages that become unused. Does not apply modernizations that are not required by the old minimum (for example Perception to Observation, ObservableObject to @Observable, NavigationView to NavigationStack), but lists them as follow-ups. Builds the affected schemes and runs the tests, and reports every change grouped by step with what was verified.",
+      "files": []
+    }
+  ]
+}

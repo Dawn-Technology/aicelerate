@@ -21,7 +21,12 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
-const skillsRoot = join(repoRoot, "plugins/aimate/skills");
+// Prompts are ranked against the skills installed in the situation they describe. aimate is
+// the base plugin and installs on its own, so its prompts rank against aimate's skills only.
+// An add-on (aimate-ios) requires aimate, so its prompts rank against aimate plus the add-on;
+// and with an add-on installed, no aimate prompt may route to one of the add-on's skills.
+const BASE_PLUGIN = "aimate";
+const pluginsRoot = join(repoRoot, "plugins");
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -48,9 +53,22 @@ function readDescription(text) {
 }
 
 const skills = {};
-for (const dir of readdirSync(skillsRoot)) {
-  if (!statSync(join(skillsRoot, dir)).isDirectory()) continue;
-  skills[dir] = readDescription(readFileSync(join(skillsRoot, dir, "SKILL.md"), "utf8"));
+const skillPlugin = {};
+const loadErrors = [];
+for (const plugin of readdirSync(pluginsRoot)) {
+  const skillsRoot = join(pluginsRoot, plugin, "skills");
+  if (!statSync(join(pluginsRoot, plugin)).isDirectory()) continue;
+  let dirs;
+  try { dirs = readdirSync(skillsRoot); } catch { continue; }
+  for (const dir of dirs) {
+    if (!statSync(join(skillsRoot, dir)).isDirectory()) continue;
+    if (dir in skills) {
+      loadErrors.push(`skill "${dir}" exists in both ${skillPlugin[dir]} and ${plugin}; prompts.json cannot tell them apart`);
+      continue;
+    }
+    skills[dir] = readDescription(readFileSync(join(skillsRoot, dir, "SKILL.md"), "utf8"));
+    skillPlugin[dir] = plugin;
+  }
 }
 
 // --- tokenization: lowercase, strip punctuation, drop stopwords, crude stem ---
@@ -75,25 +93,37 @@ function tokens(text) {
   return grams;
 }
 
-// --- build TF-IDF vectors; skill name tokens count triple ---
-const docs = Object.entries(skills).map(([name, desc]) => ({
-  name,
-  terms: [...tokens(name), ...tokens(name), ...tokens(name), ...tokens(desc)],
-}));
-const df = new Map();
-for (const d of docs) for (const t of new Set(d.terms)) df.set(t, (df.get(t) ?? 0) + 1);
-const idf = (t) => Math.log(1 + docs.length / (df.get(t) ?? docs.length));
-for (const d of docs) {
-  d.vec = new Map();
-  for (const t of d.terms) d.vec.set(t, (d.vec.get(t) ?? 0) + 1);
-  for (const [t, tf] of d.vec) d.vec.set(t, (1 + Math.log(tf)) * idf(t));
+// --- build TF-IDF vectors per install set; skill name tokens count triple ---
+function buildDocs(names) {
+  const docs = names.map((name) => ({
+    name,
+    terms: [...tokens(name), ...tokens(name), ...tokens(name), ...tokens(skills[name])],
+  }));
+  const df = new Map();
+  for (const d of docs) for (const t of new Set(d.terms)) df.set(t, (df.get(t) ?? 0) + 1);
+  const idf = (t) => Math.log(1 + docs.length / (df.get(t) ?? docs.length));
+  for (const d of docs) {
+    d.vec = new Map();
+    for (const t of d.terms) d.vec.set(t, (d.vec.get(t) ?? 0) + 1);
+    for (const [t, tf] of d.vec) d.vec.set(t, (1 + Math.log(tf)) * idf(t));
+  }
+  return docs;
+}
+const allNames = Object.keys(skills);
+const docs = buildDocs(allNames); // every skill: used for the collision check
+const baseNames = allNames.filter((n) => skillPlugin[n] === BASE_PLUGIN);
+const installSets = new Map(); // plugin -> docs of the skills installed with it
+for (const plugin of new Set(Object.values(skillPlugin))) {
+  installSets.set(plugin, buildDocs(plugin === BASE_PLUGIN
+    ? baseNames
+    : allNames.filter((n) => skillPlugin[n] === BASE_PLUGIN || skillPlugin[n] === plugin)));
 }
 
 // Cosine scoring: normalizing by the description's vector length stops long,
 // example-rich descriptions from outranking everything on raw overlap.
-function rank(prompt) {
+function rank(prompt, pool) {
   const q = tokens(prompt);
-  return docs
+  return pool
     .map((d) => {
       let dot = 0, norm = 0;
       for (const [, w] of d.vec) norm += w * w;
@@ -105,7 +135,7 @@ function rank(prompt) {
 
 // --- run the prompt suite ---
 const suite = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
-const failures = [];
+const failures = [...loadErrors];
 let posTotal = 0;
 let posTop1 = 0;
 
@@ -114,16 +144,27 @@ for (const [skill, { positive = [], negative = [] }] of Object.entries(suite.ski
     failures.push(`prompts.json names unknown skill "${skill}"`);
     continue;
   }
+  const pool = installSets.get(skillPlugin[skill]);
   for (const p of positive) {
     posTotal++;
-    const ranked = rank(p);
+    const ranked = rank(p, pool);
     const top = ranked[0];
     if (top.name === skill && top.score > 0) posTop1++;
     else failures.push(`positive: "${p}" → ranked #1 is "${top.name}", expected "${skill}" (which ranked #${ranked.findIndex((r) => r.name === skill) + 1})`);
     if (VERBOSE) console.log(`  [${skill}] "${p}" → ${ranked.slice(0, 3).map((r) => `${r.name}:${r.score.toFixed(1)}`).join("  ")}`);
+    // An add-on must not take the base plugin's prompts once it is installed.
+    if (skillPlugin[skill] === BASE_PLUGIN) {
+      for (const [plugin, addOnPool] of installSets) {
+        if (plugin === BASE_PLUGIN) continue;
+        const taken = rank(p, addOnPool)[0];
+        if (skillPlugin[taken.name] === plugin) {
+          failures.push(`add-on: with ${plugin} installed, "${p}" routes to "${taken.name}" instead of "${skill}"`);
+        }
+      }
+    }
   }
   for (const p of negative) {
-    const top = rank(p)[0];
+    const top = rank(p, pool)[0];
     if (top.name === skill) failures.push(`negative: "${p}" must not route to "${skill}" but ranked it #1`);
   }
 }

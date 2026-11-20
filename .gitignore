@@ -41,3 +41,6 @@ Temporary Items
 evals/results/
 evals/runner/pipelines.local.json
 plugins/aimate/evals/plugin/results/
+
+# Python bytecode from the script tests
+__pycache__/

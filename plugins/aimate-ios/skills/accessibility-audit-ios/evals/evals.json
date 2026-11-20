@@ -1,0 +1,23 @@
+{
+  "skill_name": "accessibility-audit-ios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run an accessibility audit of the iOS app in ~/Documents/git/knmi-app-ios (current checkout).",
+      "expected_output": "Government weather app: reads project instructions first, lists the screens, and gives every WCAG 2.2 A and AA criterion one status (fail, pass, needs check, not applicable) with evidence, marking which failures are in the WCAG 2.1 AA baseline. Checks Dynamic Type on weather values and charts, color-only information in maps and warnings (1.4.1), and labels on icon-only buttons. Marks video criteria not applicable when there is no video. Writes one untracked report to docs/ and changes nothing else. Lists VoiceOver and keyboard checks for a tester instead of passing them. Then offers the thorough XCUITest check and stops for an answer.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Check the accessibility of the iOS app in ~/Documents/git/npo-start-ios (current checkout) against WCAG.",
+      "expected_output": "Streaming app: checks the video player for captions and audio description selection (1.2.x), auto-advancing carousels and autoplay against 2.2.2 and Reduce Motion, sign-in fields for textContentType and paste (1.3.5, 3.3.8), focus order in sheets and the player, and touch targets in the player controls (2.5.8). Covers extensions separately. Names web-content screens as needing a web WCAG check. Writes the report to docs/, edits nothing else, and offers the thorough check without starting it.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run accessibility-audit-ios on ~/Documents/git/thuisarts-ios (current checkout). If it offers the thorough check, answer yes.",
+      "expected_output": "Health app using TCA: after the static report, asks about the thorough check; on yes, requires a clean tree, creates a new branch, finds the UI test target (or stops and explains when there is none), writes AccessibilityAuditUITests.swift that runs performAccessibilityAudit on the main screens at default and the largest accessibility text size and in light and dark appearance, runs only those tests through Xcode MCP or xcodebuild, maps each issue to a WCAG criterion, updates the same report, restores the simulator appearance, commits nothing, and asks whether to keep the test file.",
+      "files": []
+    }
+  ]
+}

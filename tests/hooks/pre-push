@@ -4,4 +4,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 node tests/structural/validate-plugin.mjs
+node tests/structural/check-layers.mjs
 node tests/triggers/run-triggers.mjs --min-rank1 90
+python3 -m unittest discover -s tests/python
+python3 -m unittest discover -s plugins/aimate/skills/asvs-audit/scripts -p 'test_*.py'
