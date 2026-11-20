@@ -162,10 +162,13 @@ def main():
     result["resolved_branch_pins"] = {r: {n: v for n, v in pins_.items() if v and v.startswith("branch")} for r, pins_ in resolved.items()}
 
     versions, per_file = Counter(), Counter()
+    check_clauses = []  # the platform versions each check names, to count checks with a dead clause
     for f in [f for f in files if f.endswith(".swift")]:
         for m in AVAIL_RE.finditer(read(repo, f)):
             per_file[f] += 1
-            for p, v in PLATFORM_VER_RE.findall(m.group(2)):
+            clauses = PLATFORM_VER_RE.findall(m.group(2))
+            check_clauses.append(clauses)
+            for p, v in clauses:
                 versions[f"{p} {v}"] += 1
     # Lowest deployment target per platform, from Xcode targets and package manifests.
     setting_platform = {"IPHONEOS_DEPLOYMENT_TARGET": "iOS", "TVOS_DEPLOYMENT_TARGET": "tvOS",
@@ -216,6 +219,11 @@ def main():
             dead[f"{key} (at or below {plat} {'.'.join(map(str, lowest))})"] += count
         else:
             live[key] += count
+
+    def clause_dead(plat, ver):
+        return minimums.get(plat) is None or as_version(ver) <= minimums[plat]
+
+    dead_check_count = sum(1 for clauses in check_clauses if any(clause_dead(p, v) for p, v in clauses))
     result["availability"] = {
         "total": sum(per_file.values()),
         "by_platform_version": dict(versions.most_common()),
@@ -223,6 +231,8 @@ def main():
         "minimum_deployment_targets": {k: ".".join(map(str, v)) for k, v in minimums.items()},
         "platform_clauses": sum(versions.values()),
         "dead_checks": dict(dead.most_common()),
+        "dead_platform_versions": sum(dead.values()),
+        "checks_with_a_dead_platform_version": dead_check_count,
         "needed_checks": dict(live.most_common()),
         "top_files": per_file.most_common(10),
     }
@@ -265,6 +275,8 @@ def main():
     print("  platforms built by the Xcode targets:", ", ".join(a["platforms_built"]) or "none found")
     print("  by platform version:", ", ".join(f"{k} x{v}" for k, v in a["by_platform_version"].items()) or "none")
     print("  lowest deployment targets:", ", ".join(f"{k} {v}" for k, v in a["minimum_deployment_targets"].items()) or "none found")
+    n = a["checks_with_a_dead_platform_version"]
+    print(f"  dead: {a['dead_platform_versions']} platform versions in {n} check{'' if n == 1 else 's'}")
     print("  dead (always true, or platform not built):", ", ".join(f"{k} x{v}" for k, v in a["dead_checks"].items()) or "none")
     print("  still needed:", ", ".join(f"{k} x{v}" for k, v in a["needed_checks"].items()) or "none")
     print("  top files:", ", ".join(f"{f} ({n})" for f, n in a["top_files"]) or "none")

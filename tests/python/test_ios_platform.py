@@ -100,11 +100,16 @@ class IosPlatformTests(RepoTestCase):
             "macOS 14 (platform not built)": 1,
         })
         self.assertEqual(availability["needed_checks"], {"iOS 17.4": 2})
+        # The @available(iOS 17.4, macOS 14, *) check has one dead clause (macOS), so 3 checks hold
+        # 3 dead platform versions: iOS 15, iOS 16.0, and that macOS 14.
+        self.assertEqual(availability["dead_platform_versions"], 3)
+        self.assertEqual(availability["checks_with_a_dead_platform_version"], 3)
 
     def test_text_output(self):
         result = run_script(SCRIPT, "--repo", self.repo)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Availability checks: 4 total, naming 5 platform versions", result.stdout)
+        self.assertIn("dead: 3 platform versions in 3 checks", result.stdout)
         self.assertIn("alamofire: " + APP_RESOLVED + "=5.9.0", result.stdout)
 
 
@@ -155,6 +160,14 @@ class MultiPlatformTests(RepoTestCase):
         self.assertEqual(availability["minimum_deployment_targets"], {"iOS": "16.0", "macOS": "13.0"})
         self.assertEqual(availability["dead_checks"], {
             "iOS 15.6 (at or below iOS 16.0)": 1, "macOS 13 (at or below macOS 13.0)": 1})
+
+    def test_one_check_naming_two_dead_platforms_counts_once_as_a_check(self):
+        self.write("App.xcodeproj/project.pbxproj", with_macos_target(PBXPROJ))
+        self.write("App/Widget.swift", "@available(iOS 15, macOS 12, *)\nstruct Old {}\n")
+        self.commit()
+        availability = run_json(self, SCRIPT, "--repo", self.repo)["availability"]
+        self.assertEqual(availability["dead_platform_versions"], 2)
+        self.assertEqual(availability["checks_with_a_dead_platform_version"], 1)
 
 
 @requires_git

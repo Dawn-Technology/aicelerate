@@ -3,7 +3,7 @@ name: review-ios
 description: Use when the user explicitly asks for an iOS review, or when the project's instructions (such as AGENTS.md) route Swift or Xcode reviews to review-ios. Runs aimate's review of a pull request or local changes with iOS depth added to it, covering SwiftUI, UIKit, concurrency, lifecycle, accessibility, TCA, MVVM + Coordinators, XCTest, XCUITest, Swift Testing, deployment targets, and Apple-platform API compatibility. Requires the aimate plugin.
 metadata:
   author: "Dawn Technology"
-  version: 0.2.0
+  version: 0.3.0
   role: "ios-review-layer"
   requires: "aimate (review-pr, review-local, code-review)"
 ---
@@ -57,7 +57,7 @@ Load the entry skill and run its steps up to the point where the code to review 
 
 ### 3. Establish the iOS Baseline
 
-On the code the entry skill made available, determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. When the review covers commits that are not at HEAD (a commit or a range in `review-local`), read that evidence at the reviewed head commit with `git show <commit>:<path>`, without checking anything out, and name that commit in the baseline. Record conflicts between project policy and company defaults.
+On the code the entry skill made available, determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. When the review covers commits that are not at HEAD (a commit or a range in `review-local`), read that evidence at the reviewed head commit with `git show <commit>:<path>`, without checking anything out, and name that commit in the baseline. Check the instruction locations and project skills below at that commit as well, with `git ls-tree -r --name-only <commit> -- <path>`, because a file listing shows HEAD. Record conflicts between project policy and company defaults.
 
 Check every project-instruction location listed in `precedence.md` with a file listing, then read each file that exists and name them. When none exist, say "No project instructions; baseline inferred from project evidence" and name the evidence used for each item. When they exist, report every place where they disagree with the project files or this machine, such as deployment targets, Xcode paths, or simulator names.
 

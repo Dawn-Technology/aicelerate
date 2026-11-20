@@ -8,7 +8,7 @@ allowed-tools:
   - Bash(xcrun python3 */review-architecture/scripts/hotspots.py *)
 metadata:
   author: "Dawn Technology"
-  version: 0.3.0
+  version: 0.4.0
   role: "architecture-review"
   writes_source: "false"
   requires: "aimate (review-architecture)"
@@ -86,16 +86,16 @@ For iOS, fill the template's appendices as follows:
 
 - D. Method and limits: under "Complexity and dependency checks", name `swift_modules.py` and `ios_platform.py` with their settings instead of `deps.py` and `packages.py`; under "End-of-life lookup", write that iOS support dates are not looked up (see Platform in `ios-design-rules.md`).
 - E. Platform and dependencies: "Runtimes, frameworks and images" becomes deployment targets per platform with the lowest one, the Swift language mode, and the dead and still-needed availability checks from `ios_platform.py`; "Deprecated or abandoned packages" becomes branch or revision pins, unused packages, and packages from personal forks; "Lockfiles and updates" names the `Package.resolved` the app build uses (`ios_platform.py` marks it) and pins that differ between files.
-- F. Vital signs: these rows replace the template's "keep the rows; add none" for iOS, and a cell may hold a version instead of a number. Fill each row with the count named here, so a later run compares like with like:
-  - Findings.
+- F. Vital signs: these rows replace the template's "keep the rows; add none" for iOS, and a cell may hold a version instead of a number. Keep the template's row names word for word, so a later review, generic or iOS, finds the same row; the count each row holds follows, so runs compare like with like. Put the meaning of a bracketed number in the cell itself:
+  - Findings (High / Medium / Low).
   - Source files / test files.
-  - Hot spots with no test by name: of the top 10, the ones with no test after crediting parent `TestStore` and snapshot tests (step 3) and direct tests that the generic search of the test folders found; add the plain by-name count in brackets when the two differ.
-  - Cycles between modules.
-  - Imports pointing the wrong way between layers: the count `swift_modules.py` prints, with the count you confirmed in the code in brackets when they differ.
-  - Months since the main lockfile last changed (the app's `Package.resolved`).
-  - Large, complex, rarely changed files: the number `hotspots.py` lists, with the number reviewed in Appendix A in brackets.
-  - Undeclared internal imports, replacing Domain leaks and hidden dependencies: the count for production targets from `swift_modules.py`.
-  - Lowest deployment target per platform, and Dead availability checks, replacing Components past end of life. Dead checks are counted in platform versions as `ios_platform.py` prints them, so one check that names two platforms counts 2; write the unit in the cell (for example "2 platform versions in 1 check").
+  - Hot spots with no test by name: the template's by-name count of the top 10, then in brackets the ones with no test at all after crediting parent `TestStore` and snapshot tests (step 3) and direct tests the generic search of the test folders found, for example "4 of 10 (no test at all: 0)".
+  - Cycles between modules (not nested).
+  - Imports pointing the wrong way between layers: the count `swift_modules.py` prints, then in brackets the count you confirmed in the code when they differ, for example "5 (confirmed: 3)".
+  - Months since the main lockfile last changed: the app's `Package.resolved`.
+  - Large, complex, rarely changed files listed: the number reviewed in Appendix A. `hotspots.py` caps its list (`--stable-top`, 10 by default), so its count measures the setting, not the code.
+  - Undeclared internal imports, replacing Domain leaks and hidden dependencies (hits): the count for production targets from `swift_modules.py`.
+  - Lowest deployment target per platform, and Dead availability checks, replacing Components past end of life / ending within 6 months. For dead checks, copy the "dead:" line of `ios_platform.py`, which counts both units, for example "2 platform versions in 1 check".
   - Branch or revision pins, replacing Deprecated or abandoned direct packages.
   - Source targets without tests (added).
 
