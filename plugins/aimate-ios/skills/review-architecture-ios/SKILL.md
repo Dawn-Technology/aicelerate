@@ -2,6 +2,10 @@
 name: review-architecture-ios
 description: Use when the user asks for an architecture or design-quality review of an iOS, Swift, or Xcode project, where an iOS codebase is hardest to change, iOS hot spots, or refactoring priorities for an iOS app. The iOS layer on top of aimate's review-architecture (requires the aimate plugin): same method and report, with Swift module-graph analysis, iOS platform and SwiftPM dependency checks, and TCA and MVVM + Coordinators rules. Read-only on source; writes one untracked report to docs/.
 argument-hint: "Optional: path or module to limit the review to, a history window such as 6 months, and known pain points or upcoming work"
+allowed-tools:
+  - Bash(xcrun python3 ${CLAUDE_SKILL_DIR}/scripts/swift_modules.py *)
+  - Bash(xcrun python3 ${CLAUDE_SKILL_DIR}/scripts/ios_platform.py *)
+  - Bash(xcrun python3 */review-architecture/scripts/hotspots.py *)
 metadata:
   author: "Dawn Technology"
   version: 0.3.0
@@ -42,6 +46,8 @@ If the skill cannot be loaded, stop and say: "review-architecture-ios is a layer
   xcrun python3 <skill-dir>/scripts/swift_modules.py --repo <target-repo>
   xcrun python3 <skill-dir>/scripts/ios_platform.py --repo <target-repo>
   ```
+
+  In Claude Code, `<skill-dir>` is `${CLAUDE_SKILL_DIR}`: use that absolute path as written, so the skill's pre-approved commands match and the developer is not asked for each run. Run each script as a command of its own: no `cd`, variable assignments, or output redirects in the same call, because any of those makes the host ask for approval again; read the output from the command result. Read and search code with the host's file tools (in Claude Code: Read, Grep, Glob) rather than shell pipelines such as `sed` or `awk`.
 
   Run every script, including the generic skill's `hotspots.py`, with `xcrun python3`: Xcode ships Python 3.9, so no other Python install is needed and the version is the same on every machine. If `xcrun python3` is missing, Xcode or its command-line tools are not installed; say so and stop, because the module and platform analysis needs them.
 
