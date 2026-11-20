@@ -222,8 +222,11 @@ def main():
     }
     result["app_resolved_files"] = [r for r in resolved if "xcshareddata/swiftpm/" in r]
 
-    xv = subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True)
-    result["local_xcode"] = xv.stdout.strip().replace("\n", " ") if xv.returncode == 0 else "not available"
+    try:
+        xv = subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True)
+    except OSError:
+        xv = None
+    result["local_xcode"] = xv.stdout.strip().replace("\n", " ") if xv and xv.returncode == 0 else "not available"
 
     if args.json:
         json.dump(result, sys.stdout, indent=2)

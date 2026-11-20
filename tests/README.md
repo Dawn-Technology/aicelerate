@@ -8,6 +8,7 @@ Automated checks for the aicelerate marketplace and the aimate plugin. The suite
 tests/
   structural/     deterministic validation of manifests, skills and links (CI, blocking)
   triggers/       deterministic skill-routing checks over descriptions (CI, blocking)
+  python/         unit tests for the Python scripts the aimate-ios skills run (CI, blocking)
   claude-code/    headless smoke tests against the Claude Code CLI
   copilot-cli/    headless smoke tests against the GitHub Copilot CLI
   manual/         checklists for hosts without a headless mode
@@ -33,7 +34,7 @@ Exit code 0 means all checks passed; any violation prints one line per finding a
 
 ```mermaid
 flowchart LR
-    push[dev machine: git push] -->|pre-push hook| L1["layer 1: structural + routing (free, seconds)"]
+    push[dev machine: git push] -->|pre-push hook| L1["layer 1: structural + routing + script tests (free, seconds)"]
     pr[every pull request] --> L1
     merge[merge to main] --> L1
     local[dev machine: Claude Code] --> smoke["layer 2: Claude Code smoke"]
@@ -45,7 +46,7 @@ flowchart LR
 
 | Layer | Needs | Claude Code only | Copilot CLI only |
 |---|---|---|---|
-| 1 — structural + routing checks | Node, nothing else | ✓ | ✓ |
+| 1 — structural + routing checks, script tests | Node and Python 3.9+ (plus git; `swift` and `plutil` for the tests that use them) | ✓ | ✓ |
 | 2 — host smoke + promise-and-fire | the host CLI, authenticated | `tests/claude-code/`, `claude plugin eval` | `tests/copilot-cli/` (smoke + routing) |
 | 3 — behavioral evals | Claude Code CLI + API access | ✓ | ✗ for now (the runner drives `claude`; a Copilot-driven runner is planned, the session events already give it a trace) |
 
@@ -63,9 +64,23 @@ When your change touches a skill or its description, also run the paid checks it
 
 ## When what runs (CI)
 
-`.github/workflows/test.yml` runs one job: on every pull request and merge to main, the free deterministic checks (structural + routing) run and block on failure.
+`.github/workflows/test.yml` runs one job: on every pull request and merge to main, the free deterministic checks (structural + routing + script tests) run and block on failure.
 
 The paid layers run locally, not in CI, because the runners have no authenticated agent access: there is no Anthropic API key for this repo (the Claude Code smoke tests and the eval runner both drive `claude` for real), and the Copilot CLI needs an interactively authenticated GitHub account with a Copilot entitlement. If a key or a Copilot service account becomes available, the same scripts run unchanged in a workflow. Result folders are gitignored; eval scores are advisory against the pinned baseline, never a merge gate — the reasoning is in `evals/README.md`.
+
+## Script tests
+
+```bash
+xcrun python3 -m unittest discover -s tests/python   # Xcode's Python 3.9, the version the skills run on
+python3 -m unittest discover -s tests/python -v      # any Python 3.9+, one line per test
+python3 -m unittest discover -s plugins/aimate/skills/asvs-audit/scripts -p 'test_*.py'
+```
+
+`tests/python/` holds one `test_<script>.py` per script under `plugins/aimate-ios/skills/*/scripts/`, written with the standard library's `unittest` so they need no install. `support.py` loads a script by its path (skill folders have dashes, so they can't be imported normally), runs it as a command, and gives each repository-scanning test a fresh git repository to write fixture files into. `fixtures/App.pbxproj` is a small but real Xcode project (one app target, a local and a remote package product) shared by the `ios_platform`, `swift_modules`, and `uikit_inventory` tests; `plutil -lint` accepts it.
+
+Tests that need a tool skip when it is missing: git for everything that scans a repository, `swift` for the `swift_modules` end-to-end test, and `plutil` (macOS only) for the `uikit_inventory` end-to-end test. CI runs on Linux, so run the suite on a Mac before pushing changes to `uikit_inventory.py`. `token_usage.py` has no tests: it measures our own sessions and no skill output depends on it.
+
+When you change a script, add a test for the behavior you changed, and keep the script and its tests working on Python 3.9.
 
 ## Trigger and routing checks
 

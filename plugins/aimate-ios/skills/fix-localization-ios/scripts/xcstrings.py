@@ -124,9 +124,10 @@ def normalized_key(key):
 
 
 def base_catalog(path, ref):
-    top = subprocess.run(["git", "-C", os.path.dirname(os.path.abspath(path)), "rev-parse", "--show-toplevel"],
+    real = os.path.realpath(path)  # git reports the top level with symlinks resolved
+    top = subprocess.run(["git", "-C", os.path.dirname(real), "rev-parse", "--show-toplevel"],
                          capture_output=True, text=True).stdout.strip()
-    rel = os.path.relpath(os.path.abspath(path), top)
+    rel = os.path.relpath(real, os.path.realpath(top))
     out = subprocess.run(["git", "-C", top, "show", f"{ref}:{rel}"], capture_output=True, text=True)
     return json.loads(out.stdout) if out.returncode == 0 else None
 
