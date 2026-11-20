@@ -57,7 +57,7 @@ Load the entry skill and run its steps up to the point where the code to review 
 
 ### 3. Establish the iOS Baseline
 
-On the code the entry skill made available, determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. Record conflicts between project policy and company defaults.
+On the code the entry skill made available, determine the actual deployment target, toolchain constraints, UI framework, architecture, dependency versions, and test framework from project evidence. When the review covers commits that are not at HEAD (a commit or a range in `review-local`), read that evidence at the reviewed head commit with `git show <commit>:<path>`, without checking anything out, and name that commit in the baseline. Record conflicts between project policy and company defaults.
 
 Check every project-instruction location listed in `precedence.md` with a file listing, then read each file that exists and name them. When none exist, say "No project instructions; baseline inferred from project evidence" and name the evidence used for each item. When they exist, report every place where they disagree with the project files or this machine, such as deployment targets, Xcode paths, or simulator names.
 
