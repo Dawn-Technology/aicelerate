@@ -108,6 +108,55 @@ class IosPlatformTests(RepoTestCase):
         self.assertIn("alamofire: " + APP_RESOLVED + "=5.9.0", result.stdout)
 
 
+MAC_TARGET = """\t\tT00000000000000000000002 /* App (macOS) */ = {
+\t\t\tisa = PBXNativeTarget;
+\t\t\tbuildConfigurationList = L00000000000000000000003 /* Build configuration list for PBXNativeTarget "App (macOS)" */;
+\t\t\tname = "App (macOS)";
+\t\t};
+"""
+MAC_LIST = """\t\tL00000000000000000000003 /* Build configuration list for PBXNativeTarget "App (macOS)" */ = {
+\t\t\tisa = XCConfigurationList;
+\t\t\tbuildConfigurations = (
+\t\t\t\tC00000000000000000000005 /* Release */,
+\t\t\t);
+\t\t};
+"""
+MAC_CONFIG = """\t\tC00000000000000000000005 /* Release */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbuildSettings = {
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.6;
+\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 13.0;
+\t\t\t\tSDKROOT = macosx;
+\t\t\t};
+\t\t\tname = Release;
+\t\t};
+"""
+
+
+def with_macos_target(pbxproj):
+    for marker, block in (("/* End PBXNativeTarget section */", MAC_TARGET),
+                          ("/* End XCConfigurationList section */", MAC_LIST),
+                          ("/* End XCBuildConfiguration section */", MAC_CONFIG)):
+        pbxproj = pbxproj.replace(marker, block + marker, 1)
+    return pbxproj
+
+
+@requires_git
+class MultiPlatformTests(RepoTestCase):
+    def test_inert_ios_setting_of_a_macos_target_is_not_the_ios_floor(self):
+        self.write("App.xcodeproj/project.pbxproj", with_macos_target(PBXPROJ))
+        self.write("App/Feature.swift", "if #available(iOS 15.6, *) {}\nif #available(macOS 13, *) {}\n")
+        self.commit()
+        result = run_json(self, SCRIPT, "--repo", self.repo)
+        target = result["xcode_targets"]["App.xcodeproj/project.pbxproj: App (macOS)"]
+        self.assertEqual(target["IPHONEOS_DEPLOYMENT_TARGET"], ["15.6"])  # still listed per target
+        availability = result["availability"]
+        self.assertEqual(availability["platforms_built"], ["iOS", "macOS"])
+        self.assertEqual(availability["minimum_deployment_targets"], {"iOS": "16.0", "macOS": "13.0"})
+        self.assertEqual(availability["dead_checks"], {
+            "iOS 15.6 (at or below iOS 16.0)": 1, "macOS 13 (at or below macOS 13.0)": 1})
+
+
 @requires_git
 class PackageOnlyRepoTests(RepoTestCase):
     def test_package_platforms_count_when_there_is_no_xcode_project(self):

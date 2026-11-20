@@ -1,6 +1,6 @@
 # iOS Design Rules
 
-iOS additions to the generic architecture rules. Cite findings by the generic rule names (`design-rules.md` of `aimate`'s `review-architecture`, or the condensed list in `SKILL.md`); this file says how those rules apply to iOS, which signals are iOS-specific, and when not to flag.
+iOS additions to the generic architecture rules. Cite findings by the generic rule names (the Contents of `design-rules.md` in `aimate`'s `review-architecture`); this file says how those rules apply to iOS, which signals are iOS-specific, and when not to flag.
 
 ## Layer Mapping
 
@@ -11,7 +11,10 @@ Name the architecture from code with [`../../ios-standards/references/architectu
 | Domain | Model and pure-logic modules (no SwiftUI or UIKit) | Domain models and use cases |
 | Application | Reducers (`*Feature`) orchestrating through `@Dependency` clients | View models and coordinators |
 | Infrastructure | Live dependency clients, persistence (GRDB, SwiftData, Core Data), networking, SDK wrappers | Repositories, data stores, adapters, networking |
-| UI | SwiftUI and UIKit views (`*View`) | Views and view controllers |
+| UI | SwiftUI and UIKit views (`*View`), shared UI kits (`Styling`, design system, `UIComponents`) | Views and view controllers, shared UI kits |
+| Composition root | Targets that wire live dependencies together (`AppDependencies`, `*Dependencies`), the app and extension targets | The app target, dependency containers |
+
+The generic skill counts rendering as Infrastructure; on iOS, UI is its own layer. Pass the layers to `swift_modules.py --layer` from the inside out, as in the example in `SKILL.md` step 4: Domain, Infrastructure, Application, UI, then Composition root, which may import everything. Infrastructure sits inside Application because features import their client modules (`@Dependency` clients in TCA, repositories in MVVM). Small helper targets (`Backport`, `Convenience`, extensions on Apple types) go in the innermost layer that imports them; put a target that fits no row where its imports place it, and name that choice in Method and limits.
 
 Layers in iOS projects are Swift package targets or Xcode targets, not folders. Use `scripts/swift_modules.py` for the graph: declared dependencies, imports, transitive dependency counts, and Xcode target links.
 
@@ -60,7 +63,7 @@ Replaces Supported Platform for apps. The deployment target is a floor, not a ru
 
 ## Dependency Health
 
-Replaces the package-manager checks for SwiftPM.
+Replaces the generic deprecated, abandoned, unpinned, and duplicate-version checks for SwiftPM. The generic lockfile-age and update-automation signals still apply: Dependabot and Renovate both support SwiftPM, so a `Package.resolved` that has not changed for many months while the code kept changing, with neither configured, is Low as the generic rules say.
 
 - Direct dependencies pinned to a branch or revision, or coming from a personal fork: Medium; Low when the code that uses them is not in a hot spot.
 - `Package.resolved` files that disagree: Medium when one resolves outside the manifest's requirement, Low otherwise.

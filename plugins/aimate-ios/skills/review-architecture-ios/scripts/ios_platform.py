@@ -178,18 +178,24 @@ def main():
 
     # Platforms the Xcode targets build for; the app's floor wins over a package's, which only
     # applies when no Xcode target sets that platform (or the repository has no Xcode project).
+    def target_platforms(vals):
+        return {SDK_PLATFORM[s] for value in vals.get("SUPPORTED_PLATFORMS", []) + vals.get("SDKROOT", [])
+                for s in value.split() if s in SDK_PLATFORM}
+
     built = set()
     for vals in result.get("xcode_targets", {}).values():
-        for value in vals.get("SUPPORTED_PLATFORMS", []) + vals.get("SDKROOT", []):
-            built.update(SDK_PLATFORM[s] for s in value.split() if s in SDK_PLATFORM)
+        built |= target_platforms(vals)
     app_minimums, package_minimums = {}, {}
     for vals in result.get("xcode_targets", {}).values():
+        # A target's deployment target only counts for the platforms it builds: a macOS target
+        # often carries an inert IPHONEOS_DEPLOYMENT_TARGET that is not the app's iOS floor.
+        own = target_platforms(vals) or built
         for key, values in vals.items():
             if key in setting_platform:
                 for v in values:
                     ver = as_version(v)
                     plat = setting_platform[key]
-                    if ver and (not built or plat in built):
+                    if ver and (not own or plat in own):
                         app_minimums[plat] = min(app_minimums.get(plat, ver), ver)
     for m in manifests:
         for spec in m["platforms"]:
