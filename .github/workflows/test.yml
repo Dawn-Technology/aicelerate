@@ -22,6 +22,7 @@ jobs:
         with:
           node-version: "22"
       - run: node tests/structural/validate-plugin.mjs
+      - run: node tests/structural/check-layers.mjs
       - run: node tests/triggers/run-triggers.mjs --min-rank1 90
       # Unit tests for the Python scripts that skills run (stdlib unittest, no dependencies).
       # Tests that need macOS tools (plutil) skip on this Linux runner; run them locally too.

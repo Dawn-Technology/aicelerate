@@ -6,7 +6,7 @@ Automated checks for the aicelerate marketplace and the aimate plugin. The suite
 
 ```
 tests/
-  structural/     deterministic validation of manifests, skills and links (CI, blocking)
+  structural/     deterministic validation of manifests, skills, links, and the aimate anchors the aimate-ios layers use (CI, blocking)
   triggers/       deterministic skill-routing checks over descriptions (CI, blocking)
   python/         unit tests for the Python scripts the aimate-ios skills run (CI, blocking)
   claude-code/    headless smoke tests against the Claude Code CLI
@@ -29,6 +29,12 @@ Validates, with no dependencies and no network:
 - No `SKILL.md` exceeds the line budget (500 lines, set at the top of the script).
 
 Exit code 0 means all checks passed; any violation prints one line per finding and exits 1. A failure here means the plugin is broken as shipped. Fix the finding, don't loosen the check.
+
+```bash
+node tests/structural/check-layers.mjs
+```
+
+`review-ios` and `review-architecture-ios` run aimate's skills and change parts of them by name (phases, `code-review` input fields, report rows, `hotspots.py` flags), and three more iOS skills return `code-review`'s output format. This check lists those anchors and fails when one disappears from aimate, naming the iOS skill that uses it. When an aimate change trips it, update the iOS skill and the anchor in the same pull request.
 
 ## When which check runs
 

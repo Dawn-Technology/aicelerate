@@ -13,8 +13,13 @@ Most skills are read-only. The ones that change code, `fix-localization-ios`, `r
 Install `aimate` and `aimate-ios` from the `aicelerate` marketplace: `aimate-ios` requires `aimate`, and its review skills stop with a message when `aimate` is missing. Other departments can continue installing only `aimate`.
 
 ```bash
-copilot plugin install aimate-ios@aicelerate
+# Claude Code
+claude plugin install aimate@aicelerate
 claude plugin install aimate-ios@aicelerate
+
+# GitHub Copilot CLI
+copilot plugin install aimate@aicelerate
+copilot plugin install aimate-ios@aicelerate
 ```
 
 ### OpenCode
