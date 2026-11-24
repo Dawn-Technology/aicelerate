@@ -1,7 +1,7 @@
 {
   "name": "aimate",
   "description": "AI Automation Teammate - SDLC acceleration with reusable skills for security auditing, architecture review, repository workflows, integration setup, and development planning.",
-  "version": "4.8.0",
+  "version": "4.9.0",
   "author": {
     "name": "Dawn Technology",
     "url": "https://github.com/Dawn-Technology"
@@ -35,6 +35,7 @@
     "estimation",
     "write-readme",
     "playwright",
+    "playwright-cli",
     "browser-testing",
     "e2e",
     "split-spec",
