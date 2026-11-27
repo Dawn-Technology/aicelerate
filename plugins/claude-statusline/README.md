@@ -6,9 +6,23 @@ See [release notes](RELEASE_NOTES.md) for changes.
 
 ## What it shows
 
-From left to right: `ctx` is the share of the context window that is used, coloured green, yellow, orange and red, with a hint at 50% (wrap up), 70% (no new) and 85% (finish). `chr` is the prompt cache hit ratio. The green and red numbers are lines added and removed. `5h` and `7d` show how much of each usage window is left, and how long until it resets. At the far right, dimmed, is `sid:` followed by the session id, which is the id of the transcript and of the session board.
+An example, with the parts explained below:
 
-Each part is left out when Claude Code does not report it. When the terminal is too narrow, the session id moves to its own line.
+```text
+ctx 55% wrap up │ chr 82% │ +12/-3 │ 5h 70% · ⏳00d 02h │ 7d 90% · ⏳05d 21h        sid: 3f2a9c1e-...
+```
+
+| Part | Meaning |
+| --- | --- |
+| `ctx 55%` | The share of the context window that is used. Green below 50%, yellow from 50%, orange from 70%, red from 85%. |
+| `wrap up`, `no new`, `finish` | A hint that goes with `ctx`. At 50% start wrapping up the current task, at 70% do not start anything new, at 85% finish and hand over or clear. |
+| `chr 82%` | Cache hit ratio: how much of the prompt was served from the prompt cache, as reported by Claude Code. Higher means cheaper and faster turns. |
+| `+12/-3` | Lines added (green) and removed (red) in this session. |
+| `5h 70% · ⏳00d 02h` | What is left of the 5-hour usage window, and how long until it resets. Green, then yellow at 40% left and red at 15% left. |
+| `7d 90% · ⏳05d 21h` | The same for the 7-day usage window. |
+| `sid: ...` | The session id, dimmed at the far right. It is also the name of the session's transcript and of its session board. |
+
+Note that `ctx` counts what is used, while `5h` and `7d` count what is left. Each part is left out when Claude Code does not report it. When the terminal is too narrow, the session id moves to its own line.
 
 ## Setup
 
