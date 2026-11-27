@@ -1,6 +1,6 @@
 # aicelerate — AI Acceleration Repository
 
-An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process.
+An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process, and the `claude-statusline` plugin, a status line for the Claude CLI.
 
 ## Start here
 
@@ -313,7 +313,7 @@ The full stage-by-stage workflow (tooling per stage, MCP remarks, where specs li
 
 ## Plugin
 
-See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details.
+See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details. The [claude-statusline plugin README](plugins/claude-statusline/README.md) covers the status line for the Claude CLI.
 
 ---
 
