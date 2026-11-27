@@ -1,0 +1,18 @@
+{
+  "name": "session-board",
+  "description": "Per-session task board pane (/session-board) that Claude keeps current while working.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dawn Technology",
+    "url": "https://github.com/Dawn-Technology"
+  },
+  "repository": "https://github.com/Dawn-Technology/aicelerate/plugins/session-board",
+  "license": "MIT",
+  "keywords": [
+    "board",
+    "tasks",
+    "progress",
+    "session"
+  ],
+  "types": "./types/index.d.ts"
+}

@@ -1,6 +1,6 @@
 # aicelerate — AI Acceleration Repository
 
-An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process.
+An agent plugin marketplace by Dawn Technology, containing the `aimate` plugin with reusable skills for support in our Assured Delivery Process, and the `session-board` plugin, a task board pane that Claude keeps current while it works.
 
 ## Start here
 
@@ -313,7 +313,7 @@ The full stage-by-stage workflow (tooling per stage, MCP remarks, where specs li
 
 ## Plugin
 
-See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details.
+See the [aimate plugin README](plugins/aimate/README.md) for available skills and usage details. The [session-board plugin README](plugins/session-board/README.md) covers the task board: install it with `claude plugin install session-board@aicelerate`.
 
 ---
 
