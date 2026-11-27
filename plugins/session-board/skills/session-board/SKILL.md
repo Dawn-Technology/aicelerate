@@ -20,6 +20,6 @@ A repo-level board also works as a fallback: `.claude/board.md`, or a `TASKS.md`
 - Skip trivial one-off questions.
 
 ## Fill the board from session history (only when the user asks, never automatically)
-1. Run `python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/session-board/scan_history.py" <session-id>` (local, no network, no model). Default cap 12000 chars (about 3k tokens); use `--max-chars 4000` for a cheaper pass. Never read the raw transcript .jsonl (it is MBs).
+1. Run `python3 -I <skill-dir>/scan_history.py <session-id>` where `<skill-dir>` is this skill's base directory, shown when the skill loads (local, no network, no model). Default cap 12000 chars (about 3k tokens); use `--max-chars 4000` for a cheaper pass. Never read the raw transcript .jsonl (it is MBs).
 2. From that digest only, write items to the session board: finished work as `- [x]`, open or promised work as `- [ ]`. Group under short headings. Do not invent items; skip anything you cannot find in the digest.
 3. Tell the user what you added and that it comes from a condensed digest, so it can miss things.
