@@ -41,6 +41,20 @@
         "browser-testing",
         "e2e"
       ]
+    },
+    {
+      "name": "claude-statusline",
+      "description": "Status line for the Claude CLI: context usage with a hint, cache hit ratio, usage windows and the session id.",
+      "version": "0.1.0",
+      "source": "./plugins/claude-statusline",
+      "repository": "https://github.com/Dawn-Technology/aicelerate",
+      "license": "MIT",
+      "keywords": [
+        "statusline",
+        "context",
+        "usage",
+        "session"
+      ]
     }
   ]
 }
